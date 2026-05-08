@@ -40,14 +40,17 @@ export class ProcessSaleDto {
   @IsUUID()
   payment_account_id?: string; // For backward compatibility
 
+  @IsOptional()
   @IsUUID()
-  revenue_account_id: string;
+  revenue_account_id?: string;
 
+  @IsOptional()
   @IsUUID()
-  hpp_account_id: string;
+  hpp_account_id?: string;
 
+  @IsOptional()
   @IsUUID()
-  inventory_account_id: string;
+  inventory_account_id?: string;
 
   @IsOptional()
   @IsUUID()
@@ -69,8 +72,9 @@ export class ProcessSaleDto {
   @IsString()
   description?: string;
 
+  @IsOptional()
   @IsUUID()
-  entity_id: string;
+  entity_id?: string;
 
   @IsOptional()
   @IsUUID()

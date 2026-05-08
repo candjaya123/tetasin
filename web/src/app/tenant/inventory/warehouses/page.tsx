@@ -113,7 +113,7 @@ export default function WarehousesPage() {
           setIsModalOpen(open);
           if (!open) resetForm();
         }}>
-          <DialogTrigger asChild>
+          <DialogTrigger>
             <Button className="flex gap-2">
               <Plus className="w-4 h-4" />
               Tambah Gudang

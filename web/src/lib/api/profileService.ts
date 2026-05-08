@@ -65,5 +65,18 @@ export const profileService = {
     });
     if (!response.ok) throw new Error('Failed to invite staff');
     return response.json();
+  },
+
+  async deleteAccount() {
+    const response = await fetch(`${BACKEND_URL}/api/v1/business-profile/account/delete`, {
+      method: 'POST',
+      headers: await getHeaders(),
+    });
+    
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => 'Unknown error');
+      throw new Error(`Failed to delete account: ${errorBody}`);
+    }
+    return response.json();
   }
 };

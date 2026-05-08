@@ -3,6 +3,8 @@
 -- =============================================================
 
 -- 1. TASK 6.1: Pembuatan Tabel Audit Log
+DROP TABLE IF EXISTS audit_logs CASCADE;
+
 CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,

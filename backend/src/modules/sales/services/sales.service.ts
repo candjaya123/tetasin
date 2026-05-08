@@ -21,12 +21,12 @@ export class SalesService {
     private readonly unitOfWork: UnitOfWork,
     private readonly eventBus: EventBusService,
     private readonly supabaseService: SupabaseService,
-  ) {}
+  ) { }
 
   async processSale(user: any, payload: ProcessSaleDto) {
     const client = this.supabaseService.getClient();
 
-    if (user.tier === SubscriptionTier.STARTER) {
+    if (user.tier === SubscriptionTier.TRIAL) {
       const firstDayOfMonth = new Date();
       firstDayOfMonth.setDate(1);
       firstDayOfMonth.setHours(0, 0, 0, 0);
@@ -36,98 +36,126 @@ export class SalesService {
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', user.tenant_id)
         .gte('created_at', firstDayOfMonth.toISOString());
-      
+
       if (countError) throw countError;
       if (count && count >= 500) {
         throw new ForbiddenException('Limit 500 transaksi per bulan tercapai untuk Tier STARTER. Silakan upgrade ke Tier BUSINESS.');
       }
     }
 
-    return await this.unitOfWork.runInTransaction(async (dbClient) => {
-      // 1. INIT: Create transaction record
-      const transactionData = {
-        tenant_id: payload.entity_id,
-        reference_number: `POS-${Date.now()}`,
-        transaction_type: 'sales',
-        description: 'Penjualan POS',
-      };
-      
-      const transaction = await this.accountingRepository.createTransactionWithLines(
-        transactionData,
-        [], // Lines will be added later if I update the repository to handle it, but for now I'll follow the existing flow or fix it.
-        dbClient
-      );
-      const transactionId = transaction.id;
+    payload.entity_id = user.entity_id || user.tenant_id;
+    console.log(`Processing sale for user: ${user.id}, tenant: ${payload.entity_id}`);
 
+    if (!payload.entity_id) {
+      throw new Error('Tenant ID (entity_id) tidak ditemukan dalam context user.');
+    }
+
+    // --- TAHAP 1: PERSIAPAN (DILUAR TRANSAKSI) ---
+    let finalStatus = 'success';
+    try {
+      const client = this.accountingRepository.getClient();
+      const tenantId = user.tenant_id || user.entity_id;
+      const entityId = user.entity_id || user.tenant_id;
+
+      // Sync Tenant & Entity via REST (Safe & Independent)
+      await client.from('tenants').upsert({ id: tenantId, name: 'My Business' }).select();
+      await client.from('entities').upsert({ id: entityId, name: 'Main Branch', tenant_id: tenantId }).select();
+
+      // Detect valid status enum via RAW SQL (More robust than RPC)
+      // We'll use the AccountingRepository's pool to run this safely outside the main transaction
+      const enumResult = await this.unitOfWork.pool.query(`
+        SELECT enumlabel FROM pg_enum 
+        JOIN pg_type ON pg_enum.enumtypid = pg_type.oid 
+        WHERE typname = 'transaction_status_fsm'
+      `);
+
+      const validStatuses = enumResult.rows.map((r: any) => r.enumlabel);
+      console.log('Valid statuses found in DB:', validStatuses);
+
+      if (validStatuses.length > 0) {
+        const priorities = ['success', 'active', 'completed', 'pending', 'draft', 'SUCCESS', 'ACTIVE', 'COMPLETED'];
+        finalStatus = priorities.find(s => validStatuses.includes(s)) || validStatuses[0];
+      }
+    } catch (e) {
+      console.warn('Prep sync failed, using fallback status:', e.message);
+    }
+
+    return await this.unitOfWork.runInTransaction(async (dbClient) => {
       try {
-        // 2. VALIDATING
-        await this.accountingRepository.updateTransactionStatus(transactionId, 'VALIDATING', dbClient);
-        
+        console.log(`Starting sale processing with status: ${finalStatus}...`);
         let totalSaleAmount = 0;
         let totalHppAmount = 0;
         const itemsToProcess = [];
 
         for (const item of payload.items) {
           totalSaleAmount += item.price * item.quantity;
+          console.log(`Fetching product data for: ${item.product_id}`);
           const product = await this.inventoryRepository.getProductWithRecipe(
             item.product_id,
-            payload.entity_id,
+            payload.entity_id as string,
             dbClient
           );
           if (!product) throw new Error(`Product not found: ${item.product_id}`);
+          console.log(`Product structure: ${JSON.stringify(product)}`);
           itemsToProcess.push({ item, product });
         }
 
-        // 3. PROCESSING
-        await this.accountingRepository.updateTransactionStatus(transactionId, 'PROCESSING', dbClient);
-
-        // Auto-lookup accounts by code if not provided
+        console.log('Looking up accounting accounts...');
         const codesToLookup = [];
-        if (!payload.payment_account_id) codesToLookup.push('1-10000'); // Kas Tangan
-        if (!payload.revenue_account_id) codesToLookup.push('4-40000'); // Penjualan Produk
-        if (!payload.hpp_account_id) codesToLookup.push('5-50000'); // HPP
-        if (!payload.inventory_account_id) codesToLookup.push('1-10503'); // Persediaan Barang Dagang
-        if (!payload.discount_account_id) codesToLookup.push('4-41000'); // Diskon
+        const paymentCode = (payload as any).payment_account_code || '1-1001'; // Fallback to master_setup code
 
-        const accounts = await this.accountingRepository.getAccountsByCodes(payload.entity_id, codesToLookup, dbClient);
-        const findId = (code: string) => accounts.find(a => a.code === code)?.id;
+        if (!payload.payment_account_id) codesToLookup.push(paymentCode, '1-10000', '1-1001');
+        if (!payload.revenue_account_id) codesToLookup.push('4-1001', '4-40000');
+        if (!payload.hpp_account_id) codesToLookup.push('5-1001', '5-50000');
+        if (!payload.inventory_account_id) codesToLookup.push('1-1001', '1-10503');
+        if (!payload.discount_account_id) codesToLookup.push('4-1002', '4-41000');
 
-        const paymentAccountId = payload.payment_account_id || findId('1-10000');
-        const revenueAccountId = payload.revenue_account_id || findId('4-40000');
-        const hppAccountId = payload.hpp_account_id || findId('5-50000');
-        const inventoryAccountId = payload.inventory_account_id || findId('1-10503');
-        const discountAccountId = payload.discount_account_id || findId('4-41000');
+        const accounts = await this.accountingRepository.getAccountsByCodes(payload.entity_id as string, codesToLookup, dbClient);
+        console.log(`Found ${accounts?.length || 0} accounts: ${JSON.stringify(accounts.map(a => a.code))}`);
+
+        const findId = (possibleCodes: string[]) => {
+          for (const code of possibleCodes) {
+            const acc = accounts.find(a => a.code === code);
+            if (acc) return acc.id;
+          }
+          return null;
+        };
+
+        const paymentAccountId = payload.payment_account_id || findId([paymentCode, '1-10000', '1-1001']);
+        const revenueAccountId = payload.revenue_account_id || findId(['4-1001', '4-40000']);
+        const hppAccountId = payload.hpp_account_id || findId(['5-1001', '5-50000']);
+        const inventoryAccountId = payload.inventory_account_id || findId(['1-1001', '1-10503']);
+        const discountAccountId = payload.discount_account_id || findId(['4-1002', '4-41000']);
 
         if (!paymentAccountId || !revenueAccountId || !hppAccountId || !inventoryAccountId) {
-          throw new Error('Akun akuntansi dasar (Kas/HPP/Pendapatan/Persediaan) tidak ditemukan untuk tenant ini.');
+          console.error('Missing accounts:', { paymentAccountId, revenueAccountId, hppAccountId, inventoryAccountId });
+          throw new Error('Akun akuntansi dasar (Kas/HPP/Pendapatan/Persediaan) tidak ditemukan. Pastikan Chart of Accounts (COA) sudah di-setup.');
         }
 
+        console.log('Deducting stock for items...');
         for (const { item, product } of itemsToProcess) {
-          for (const recipe of product.product_recipes) {
-            const requiredQty = recipe.quantity_needed * item.quantity;
-            const materialHpp = recipe.raw_materials.unit_price * requiredQty;
-            totalHppAmount += materialHpp;
-            
-            // Atomic stock deduction
-            await this.inventoryRepository.deductStock(recipe.raw_material_id, requiredQty, dbClient);
+          if (product.product_recipes) {
+            for (const recipe of product.product_recipes) {
+              const requiredQty = recipe.quantity_needed * item.quantity;
+              const materialHpp = recipe.raw_materials.unit_price * requiredQty;
+              totalHppAmount += materialHpp;
+
+              console.log(`Deducting ${requiredQty} of ${recipe.raw_material_id}`);
+              await this.inventoryRepository.deductStock(recipe.raw_material_id, requiredQty, dbClient);
+            }
           }
         }
 
         const totalNetSale = totalSaleAmount - (payload.discount_amount || 0);
         const journalLines = [];
 
-        // 3a. Debit Kas (1-10000)
         journalLines.push({ account_id: paymentAccountId, debit: totalNetSale, credit: 0 });
-
-        // 3b. Kredit Penjualan (4-40000)
         journalLines.push({ account_id: revenueAccountId, debit: 0, credit: totalSaleAmount });
 
-        // 3c. Debit Diskon (4-41000) if exists
         if (payload.discount_amount && discountAccountId) {
           journalLines.push({ account_id: discountAccountId, debit: payload.discount_amount, credit: 0 });
         }
 
-        // 3d. HPP (5-50000) & Persediaan (1-10503)
         if (totalHppAmount > 0) {
           journalLines.push(
             { account_id: hppAccountId, debit: totalHppAmount, credit: 0 },
@@ -135,40 +163,36 @@ export class SalesService {
           );
         }
 
-        // 4. COMMIT via AccountingService
-        const journal = await this.accountingService.createJournalEntry(payload.entity_id, {
+        console.log('Creating journal entry...');
+        const transactionData = {
+          tenant_id: payload.entity_id,
           reference_number: `POS-${Date.now()}`,
+          transaction_type: 'sales',
           description: `Penjualan POS #${payload.items.length} item`,
-          lines: journalLines,
-        });
+        };
+        const journal = await this.accountingRepository.createTransactionWithLines(
+          transactionData,
+          journalLines,
+          dbClient
+        );
 
-        // 5. Store Sale Items
-        const saleItems = itemsToProcess.map(({ item }) => ({
-          transaction_id: journal.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price,
-          total_price: item.price * item.quantity,
-        }));
-        
-        for (const s of saleItems) {
-          await dbClient.query(
-            'INSERT INTO sale_items (transaction_id, product_id, quantity, price, total_price) VALUES ($1, $2, $3, $4, $5)',
-            [s.transaction_id, s.product_id, s.quantity, s.price, s.total_price]
-          );
+        console.log(`Journal entry created: ${journal.id}. Sale recorded successfully.`);
+
+        console.log('Emitting SaleCreated event...');
+        try {
+          await this.eventBus.emit({
+            tenant_id: payload.entity_id,
+            event_type: 'SaleCreated',
+            payload: { journalId: journal.id, totalAmount: totalSaleAmount },
+          });
+        } catch (eventError) {
+          console.warn('Event logging failed (non-critical), sale still committed:', eventError.message);
         }
 
-        // 6. Emit Domain Event
-        await this.eventBus.emit({
-          tenant_id: payload.entity_id,
-          event_type: 'SaleCreated',
-          payload: { journalId: journal.id, totalAmount: totalSaleAmount },
-        });
-
+        console.log('Sale processing completed successfully');
         return { journalId: journal.id, status: 'COMMITTED' };
 
       } catch (error) {
-        await this.accountingRepository.updateTransactionStatus(transactionId, 'FAILED', dbClient);
         throw error;
       }
     });

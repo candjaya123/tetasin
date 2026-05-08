@@ -10,25 +10,25 @@ export class PromoController {
   constructor(private readonly promoService: PromoService) {}
 
   @Get()
-  @RequireTier(SubscriptionTier.BUSINESS)
+  @RequireTier(SubscriptionTier.FULL)
   async getPromotions(@Request() req: any) {
     return this.promoService.getPromotions(req.user.tenant_id);
   }
 
   @Post()
-  @RequireTier(SubscriptionTier.BUSINESS)
+  @RequireTier(SubscriptionTier.FULL)
   async createPromotion(@Request() req: any, @Body() body: any) {
     return this.promoService.createPromotion(req.user.tenant_id, body);
   }
 
   @Put(':id')
-  @RequireTier(SubscriptionTier.BUSINESS)
+  @RequireTier(SubscriptionTier.FULL)
   async updatePromotion(@Request() req: any, @Param('id') id: string, @Body() body: any) {
     return this.promoService.updatePromotion(id, req.user.tenant_id, body);
   }
 
   @Delete(':id')
-  @RequireTier(SubscriptionTier.BUSINESS)
+  @RequireTier(SubscriptionTier.FULL)
   async deletePromotion(@Request() req: any, @Param('id') id: string) {
     return this.promoService.deletePromotion(id, req.user.tenant_id);
   }

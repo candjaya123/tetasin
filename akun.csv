@@ -1,0 +1,76 @@
+,,,,,,
+,,,,,,
+,,Kode,Nama Akun,Saldo Normal,Kategori akun,Keterangan
+,,1-10000,Kas Tangan,Debit,ASET,"Aset (asset) adalah segala sesuatu yang dimiliki
+oleh bisnis yang punya nilai ekonomi dan bisa
+digunakan untuk menghasilkan uang atau
+mendukung operasional. Contoh 
+Kas Tangan
+Kas Bank
+E-Wallet
+Biaya Dibayar di Muka
+Piutang Usaha
+Perlengkapan
+Persediaan Bahan Baku
+Persediaan Dalam Proses (WIP)
+Persediaan Barang Jadi
+Persediaan Barang Dagang
+Peralatan
+Akumulasi Penyusutan"
+,,1-10002,Kas Bank,Debit,ASET,
+,,1-10003,E-Wallet,Debit,ASET,
+,,1-10100,Biaya Dibayar di Muka,Debit,ASET,
+,,1-10300,Piutang Usaha,Debit,ASET,
+,,1-10400,Perlengkapan,Debit,ASET,
+,,1-10500,Persediaan Bahan Baku,Debit,ASET,
+,,1-10501,Persediaan Dalam Proses (WIP),Debit,ASET,
+,,1-10502,Persediaan Barang Jadi,Debit,ASET,
+,,1-10503,Persediaan Barang Dagang,Debit,ASET,
+,,1-15000,Peralatan,Debit,ASET,
+,,1-15900,Akumulasi Penyusutan,Kredit ⚠️ (kontra aset),ASET,
+,,2-20100,Hutang Usaha,Kredit,KEWAJIBAN,"Kewajiban (liability) adalah utang atau tanggungan
+yang harus dibayar oleh bisnis kepada pihak lain
+di masa sekarang atau masa depan. Contoh
+Hutang Usaha
+Hutang Bank
+Pendapatan Diterima di Muka"
+,,2-20400,Hutang Bank,Kredit,KEWAJIBAN,
+,,2-20600,Pendapatan Diterima di Muka,Kredit,KEWAJIBAN,
+,,3-30000,Modal,Kredit,EKUITAS,"Ekuitas (equity) adalah hak pemilik atas kekayaan bisnis
+setelah dikurangi semua kewajiban (utang). Contoh
+Modal
+Prive"
+,,3-31000,Prive,Debit ⚠️ (pengurang modal),EKUITAS,
+,,4-40000,Penjualan Produk,Kredit,PENDAPATAN,"Pendapatan (revenue) adalah uang atau nilai yang
+diperoleh bisnis dari aktivitas utamanya—seperti
+menjual produk atau memberikan jasa. Contoh
+Penjualan Produk
+Penjualan Jasa
+Pendapatan Lain-lain
+Diskon Penjualan
+Retur Penjualan"
+,,4-40001,Penjualan Jasa,Kredit,PENDAPATAN,
+,,4-40900,Pendapatan Lain-lain,Kredit,PENDAPATAN,
+,,4-41000,Diskon Penjualan,Debit ⚠️ (contra revenue),PENDAPATAN,
+,,4-41001,Retur Penjualan,Debit ⚠️ (contra revenue),PENDAPATAN,
+,,5-50000,Harga Pokok Penjualan,Debit,HPP / BIAYA LANGSUNG,"HPP (Harga Pokok Penjualan) adalah biaya langsung
+yang dikeluarkan untuk menghasilkan barang atau
+jasa yang berhasil kamu jual."
+,,6-60000,Biaya Admin,Debit,BEBAN OPERASIONAL,"Beban operasional adalah semua biaya yang dikeluarkan
+untuk menjalankan bisnis sehari-hari, tapi tidak langsung
+terkait dengan pembuatan produk atau jasa yang dijual. Contoh
+Biaya Admin
+Biaya Utility (Listrik, Air, dll)
+Biaya Marketing
+Beban Gaji Karyawan
+Beban Sewa
+Beban Penyusutan
+Biaya Distribusi
+Biaya Lain-lain"
+,,6-60200,"Biaya Utility (Listrik, Air, dll)",Debit,BEBAN OPERASIONAL,
+,,6-60300,Biaya Marketing,Debit,BEBAN OPERASIONAL,
+,,6-60100,Beban Gaji Karyawan,Debit,BEBAN OPERASIONAL,
+,,6-60400,Beban Sewa,Debit,BEBAN OPERASIONAL,
+,,6-60500,Beban Penyusutan,Debit,BEBAN OPERASIONAL,
+,,6-60600,Biaya Distribusi,Debit,BEBAN OPERASIONAL,
+,,6-60999,Biaya Lain-lain,Debit,BEBAN OPERASIONAL,

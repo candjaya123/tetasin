@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, UseGuards, Request, UseInterceptors, UploadedFile, Query } from '@nestjs/common';
 import { InventoryService } from '../services/inventory.service';
 import { JwtAuthGuard } from '../../business-profile/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -45,9 +45,9 @@ export class InventoryController {
   }
 
   @Get('products')
-  async getProducts(@Request() req: any) {
+  async getProducts(@Request() req: any, @Query('search') search?: string) {
     const tenantId = req.user.tenant_id || req.user.entity_id;
-    return this.inventoryService.getProducts(tenantId);
+    return this.inventoryService.getProducts(tenantId, search);
   }
 
   @Post('products')
@@ -59,6 +59,12 @@ export class InventoryController {
   async updateProduct(@Request() req: any, @Param('id') id: string, @Body() body: any) {
     const tenantId = req.user.tenant_id || req.user.entity_id;
     return this.inventoryService.updateProductWithRecipe(id, tenantId, body);
+  }
+
+  @Patch('products/:id/stock')
+  async updateProductStock(@Request() req: any, @Param('id') id: string, @Body() body: { stock: number }) {
+    const tenantId = req.user.tenant_id || req.user.entity_id;
+    return this.inventoryService.updateProductStock(id, tenantId, body.stock);
   }
 
   @Delete('products/:id')
@@ -113,5 +119,23 @@ export class InventoryController {
   async deleteAsset(@Request() req: any, @Param('id') id: string) {
     const tenantId = req.user.tenant_id || req.user.entity_id;
     return this.inventoryService.deleteAsset(id, tenantId);
+  }
+
+  @Get('warehouses')
+  async getWarehouses(@Request() req: any) {
+    const tenantId = req.user.tenant_id || req.user.entity_id;
+    return this.inventoryService.getWarehouses(tenantId);
+  }
+
+  @Post('transfer')
+  async stockTransfer(@Request() req: any, @Body() body: any) {
+    const tenantId = req.user.tenant_id || req.user.entity_id;
+    return this.inventoryService.stockTransfer(tenantId, body);
+  }
+
+  @Post('opname')
+  async stockOpname(@Request() req: any, @Body() body: any) {
+    const tenantId = req.user.tenant_id || req.user.entity_id;
+    return this.inventoryService.stockOpname(tenantId, body);
   }
 }

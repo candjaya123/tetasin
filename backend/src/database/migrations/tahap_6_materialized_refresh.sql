@@ -1,6 +1,9 @@
--- 1. Drop existing standard views
-DROP VIEW IF EXISTS ledger_balances;
-DROP VIEW IF EXISTS monthly_profit_loss;
+-- 1. Drop existing standard views or materialized views
+DROP VIEW IF EXISTS ledger_balances CASCADE;
+DROP VIEW IF EXISTS monthly_profit_loss CASCADE;
+
+DROP MATERIALIZED VIEW IF EXISTS ledger_balances CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS monthly_profit_loss CASCADE;
 
 -- 2. Create Materialized View for Ledger Balances
 CREATE MATERIALIZED VIEW ledger_balances AS
@@ -26,7 +29,7 @@ CREATE UNIQUE INDEX idx_ledger_balances_account_id ON ledger_balances (account_i
 -- 3. Create Materialized View for Profit & Loss
 CREATE MATERIALIZED VIEW monthly_profit_loss AS
 SELECT 
-    tenant_id,
+    e.tenant_id,
     EXTRACT(YEAR FROM date) as year,
     EXTRACT(MONTH FROM date) as month,
     SUM(CASE WHEN a.type = 'revenue' THEN l.credit - l.debit ELSE 0 END) as total_revenue,
@@ -36,7 +39,7 @@ SELECT
 FROM journal_entries e
 JOIN journal_lines l ON e.id = l.entry_id
 JOIN chart_of_accounts a ON l.account_id = a.id
-GROUP BY tenant_id, year, month;
+GROUP BY e.tenant_id, year, month;
 
 -- 4. Function to refresh analytics
 CREATE OR REPLACE FUNCTION refresh_ledger_analytics()

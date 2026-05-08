@@ -14,24 +14,31 @@ export class AggregatorService {
   async getSemanticFinancialSummary(tenantId: string) {
     const client = this.supabaseService.getClient();
 
-    // 1. Ambil Saldo dari View ledger_balances
-    const { data: balances, error } = await client
-      .from('ledger_balances')
-      .select('code, name, type, current_balance')
-      .eq('tenant_id', tenantId);
+    let balances: any[] = [];
 
-    if (error) {
-      this.logger.error(`Failed to fetch ledger balances: ${error.message}`);
-      throw error;
+    try {
+      // 1. Ambil Saldo dari View ledger_balances
+      const { data, error } = await client
+        .from('ledger_balances')
+        .select('code, name, type, current_balance')
+        .eq('tenant_id', tenantId);
+
+      if (error) {
+        this.logger.warn(`ledger_balances not available: ${error.message}. Using empty data.`);
+      } else {
+        balances = data || [];
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to fetch ledger balances: ${e.message}. Proceeding with empty data.`);
     }
 
-    // 2. Kategorisasi Data
+    // 2. Kategorisasi Data (handles empty balances gracefully)
     const summary = {
-      cash_on_hand: balances.filter(b => b.code.startsWith('1-100')).reduce((sum, b) => sum + b.current_balance, 0),
-      inventory_value: balances.filter(b => b.code === '1-10503').reduce((sum, b) => sum + b.current_balance, 0),
-      total_revenue: balances.filter(b => b.type === 'revenue').reduce((sum, b) => sum + b.current_balance, 0),
-      total_cogs: balances.filter(b => b.code === '5-50000').reduce((sum, b) => sum + b.current_balance, 0),
-      total_expenses: balances.filter(b => b.type === 'expense' && b.code !== '5-50000').reduce((sum, b) => sum + b.current_balance, 0),
+      cash_on_hand: balances.filter(b => b.code?.startsWith('1-100')).reduce((sum, b) => sum + (b.current_balance || 0), 0),
+      inventory_value: balances.filter(b => b.code === '1-10503').reduce((sum, b) => sum + (b.current_balance || 0), 0),
+      total_revenue: balances.filter(b => b.type === 'revenue').reduce((sum, b) => sum + (b.current_balance || 0), 0),
+      total_cogs: balances.filter(b => b.code === '5-50000').reduce((sum, b) => sum + (b.current_balance || 0), 0),
+      total_expenses: balances.filter(b => b.type === 'expense' && b.code !== '5-50000').reduce((sum, b) => sum + (b.current_balance || 0), 0),
       timestamp: new Date().toISOString(),
     };
 
@@ -40,6 +47,7 @@ export class AggregatorService {
       metadata: {
         tenant_id: tenantId,
         currency: 'IDR',
+        note: balances.length === 0 ? 'Data akuntansi belum tersedia. Mulai catat transaksi untuk mendapatkan insight.' : undefined,
       },
       pnl_snapshot: {
         revenue: summary.total_revenue,

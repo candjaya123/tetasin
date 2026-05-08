@@ -1,8 +1,9 @@
-import { Controller, Post, Body, Param, Request, UseGuards, Get } from '@nestjs/common';
+import { Controller, Post, Body, Param, Request, UseGuards, Get, Query } from '@nestjs/common';
 import { AccountingRepository } from '../repositories/accounting.repository';
 import { SupabaseService } from '../../../shared/supabase.service';
 import { JournalEntry } from '../domain/journal.domain';
 import { JwtAuthGuard } from '../../business-profile/guards/jwt-auth.guard';
+import { BudgetService } from '../services/budget.service';
 
 @Controller('api/v1/journal')
 @UseGuards(JwtAuthGuard)
@@ -10,7 +11,38 @@ export class JournalController {
   constructor(
     private readonly accountingRepository: AccountingRepository,
     private readonly supabaseService: SupabaseService,
+    private readonly budgetService: BudgetService,
   ) {}
+
+  @Get()
+  async getJournals(@Request() req: any, @Query('startDate') start?: string, @Query('endDate') end?: string) {
+    return await this.accountingRepository.getJournalEntries(req.user.tenant_id, start, end);
+  }
+
+  @Post()
+  async createJournalEntry(@Request() req: any, @Body() payload: any) {
+    const { reference_number, description, lines, date } = payload;
+    const result = await this.accountingRepository.createTransactionWithLines(
+      {
+        tenant_id: req.user.tenant_id,
+        reference_number,
+        description,
+        date,
+      },
+      lines
+    );
+
+    // Trigger Budget Alert Check (Async)
+    const currentMonth = (date || new Date().toISOString()).slice(0, 7);
+    lines.forEach((line: any) => {
+      if ((line.debit || 0) > 0) {
+        this.budgetService.checkBudgetAlerts(req.user.tenant_id, line.account_id, currentMonth)
+          .catch(err => console.error('Budget Check Error:', err));
+      }
+    });
+
+    return result;
+  }
 
   @Get('drafts')
   async getDrafts(@Request() req: any) {

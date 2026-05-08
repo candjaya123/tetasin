@@ -4,10 +4,9 @@ import { SupabaseService } from '../../shared/supabase.service';
 import { SubscriptionTier } from './tier.enum';
 import { REQUIRE_TIER_KEY } from './tier.decorator';
 
-const TIER_HIERARCHY = {
-  [SubscriptionTier.STARTER]: 0,
-  [SubscriptionTier.BUSINESS]: 1,
-  [SubscriptionTier.PRO]: 2,
+const TIER_HIERARCHY: Record<string, number> = {
+  [SubscriptionTier.TRIAL]: 0,
+  [SubscriptionTier.FULL]: 1,
 };
 
 @Injectable()
@@ -46,29 +45,49 @@ export class TierGuard implements CanActivate {
     }
 
     // 2. Get tier from tenants
-    const { data: tenant, error: tenantError } = await client
-      .from('tenants')
-      .select('tier')
-      .eq('id', profile.tenant_id)
-      .single();
+    let userTier: SubscriptionTier = SubscriptionTier.TRIAL;
+    
+    try {
+      // Try fetching with tier column
+      const { data: tenant, error: tenantError } = await client
+        .from('tenants')
+        .select('id, tier')
+        .eq('id', profile!.tenant_id)
+        .single();
 
-    if (tenantError || !tenant) {
-      throw new ForbiddenException('Tenant not found');
+      if (tenant && !tenantError) {
+        userTier = (tenant!.tier || user.user_metadata?.tier || SubscriptionTier.TRIAL) as SubscriptionTier;
+      } else {
+        // Fallback: If query failed (e.g. missing column), just check if tenant exists
+        const { data: basicTenant } = await client
+          .from('tenants')
+          .select('id')
+          .eq('id', profile!.tenant_id)
+          .single();
+        
+        if (!basicTenant) {
+          throw new ForbiddenException('Tenant not found');
+        }
+        // If tenant exists but column missing, use metadata or default
+        userTier = (user.user_metadata?.tier || SubscriptionTier.TRIAL) as SubscriptionTier;
+      }
+    } catch (e) {
+      if (e instanceof ForbiddenException) throw e;
+      // Last resort fallback
+      userTier = (user.user_metadata?.tier || SubscriptionTier.TRIAL) as SubscriptionTier;
     }
 
-    const userTier = tenant.tier as SubscriptionTier;
-
     // 3. Compare tiers using hierarchy
-    if (TIER_HIERARCHY[userTier] < TIER_HIERARCHY[requiredTier]) {
+    if ((TIER_HIERARCHY[userTier] || 0) < (TIER_HIERARCHY[requiredTier] || 0)) {
       throw new ForbiddenException(
         `Fitur ini membutuhkan langganan Tier ${requiredTier.toUpperCase()}. Tier Anda saat ini adalah ${userTier.toUpperCase()}.`
       );
     }
 
     // Attach tenant_id, tier, and role to request for downstream use
-    request.user.tenant_id = profile.tenant_id;
+    request.user.tenant_id = profile!.tenant_id;
     request.user.tier = userTier;
-    request.user.role = profile.role;
+    request.user.role = profile!.role;
 
     return true;
   }

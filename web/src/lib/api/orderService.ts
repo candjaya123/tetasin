@@ -13,15 +13,20 @@ const getHeaders = async () => {
 };
 
 export const orderService = {
-  async getOrders(type?: 'SO' | 'PO') {
-    const url = new URL(`${BACKEND_URL}/api/v1/order`);
-    if (type) url.searchParams.append('type', type);
-    
-    const response = await fetch(url.toString(), {
+  async getOrders(type: 'SO' | 'PO' = 'SO') {
+    const endpoint = type === 'PO' ? 'purchase' : 'sales';
+    const response = await fetch(`${BACKEND_URL}/api/v1/orders/${endpoint}`, {
       headers: await getHeaders(),
     });
-    if (!response.ok) throw new Error('Failed to fetch orders');
-    return response.json();
+    
+    if (response.status === 403) {
+      return []; // Return empty array for lower tiers
+    }
+    
+    if (!response.ok) throw new Error(`Failed to fetch ${type} orders`);
+    const data = await response.json();
+    // Add type to each order for UI consistency
+    return data.map((order: any) => ({ ...order, type }));
   },
 
   async getOrderById(id: string) {

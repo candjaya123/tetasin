@@ -11,6 +11,7 @@ build/
 dist/
 .next/
 out/
+.vercel
 
 # Env files
 .env
@@ -36,16 +37,48 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+*.iml
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/tumbuhin_flutter/build/
+/tumbuhin_flutter/.dart_tool/
+/tumbuhin_flutter/.flutter-plugins
+/tumbuhin_flutter/.flutter-plugins-dependencies
+/tumbuhin_flutter/.packages
+/tumbuhin_flutter/.pub-cache/
+/tumbuhin_flutter/.pub/
+
+# Android specific
+**/android/**/generated/
+**/android/app/src/main/res/drawable-*/
+**/android/app/src/main/res/mipmap-*/
+**/android/app/src/main/res/values/generated.xml
+**/android/captures/
+**/android/gradle-app.setting
+**/android/local.properties
+
+# iOS specific
+**/ios/.generated/
+**/ios/DerivedData/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.framework
+**/ios/Runner.xcworkspace/xcuserdata/
+**/ios/Pods/
+**/ios/ServiceDefinitions.json
 
 # Supabase
 supabase/.temp/
 supabase/migrations/.*
 
-# BullMQ
-# No specific ignores usually needed unless logs are stored locally
-
-# Expo
+# Misc
 .expo/
-dist/
 web-build/
-node_modules/
+scratch/

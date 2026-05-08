@@ -1,88 +1,148 @@
-# 🚀 Master Checklist Implementasi SaaS ERP & AI Tumbuhin
-*Panduan Eksekusi Step-by-Step (Dirancang khusus untuk Junior Programmer & AI Assistant agar tidak terjadi error)*
+# Tugas Implementasi: Pemisahan Ekstrem Personal vs Bisnis
 
-**Instruksi Penting Sebelum Eksekusi:**
-- Jangan lompati tahapan. Selesaikan Fase 1 sebelum masuk ke Fase 2.
-- Saat membuat fitur akuntansi, pastikan `Debit == Kredit`.
-- Jangan biarkan AI LLM memanggil database secara langsung tanpa melalui *Aggregation/Semantic Layer*.
+Dokumen ini berisi SOP (*Standard Operating Procedure*) untuk memisahkan secara total struktur data, akses UI, dan *endpoint* AI antara akun Personal dan Bisnis. Ikuti instruksi di bawah ini dengan persis.
 
 ---
 
-## 🛠️ FASE 1: ARSITEKTUR EVENT-DRIVEN & DATABASE CORE (Backend) (DONE 🚀)
-- [x] **1.1. Modifikasi Skema Tenant (Feature Flagging)**
-- [x] **1.2. Buat Tabel Business Event Core**
-- [x] **1.3. Buat Tabel Accounting Core**
-- [x] **1.4. Seeding Data Standar COA**
+## FASE 1: Isolasi Struktur COA (Backend)
 
-## 🔐 FASE 2: MONETIZATION & OPERATIONAL FRICTION (Backend, Web, Mobile) (DONE 🚀)
-- [x] **2.1. Backend Guard (Tier Middleware)**
-- [x] **2.2. Eksekusi Operational Friction (Tier 1)**
-- [x] **2.3. Lock Fitur ERP (Tier 1)**
+**1. Rombak Logika Pembuatan COA**
+*   **File Target:** `backend/src/modules/accounting/services/accounting.service.ts`
+*   **Fungsi:** `initializeCOA()`
+*   **Aksi:**
+    Di baris paling atas dari fungsi (setelah log awal), tambahkan blok kondisional `if (accountType === 'personal')`. Jika benar, **JANGAN** lakukan *query* ke `master_chart_of_accounts`. Langsung *insert* daftar akun *hardcoded* berikut ke `chart_of_accounts`, lalu `return;` (keluar dari fungsi).
+    *   **Daftar Akun Hardcode (Wajib):**
+        *   `1-10000`: Kas Tunai (Aset, Debit)
+        *   `1-10001`: Rekening Bank Utama (Aset, Debit)
+        *   `1-10002`: E-Wallet (Aset, Debit)
+        *   `2-20000`: Kartu Kredit (Kewajiban, Kredit)
+        *   `2-20001`: Cicilan / Paylater (Kewajiban, Kredit)
+        *   `3-30000`: Saldo Awal (Ekuitas, Kredit)
+        *   `4-40000`: Gaji Pokok (Pendapatan, Kredit)
+        *   `4-40001`: Bonus / THR (Pendapatan, Kredit)
+        *   `4-40002`: Pendapatan Lainnya (Pendapatan, Kredit)
+        *   `6-60000`: Beban Makan & Minum (Beban, Debit)
+        *   `6-60001`: Beban Transportasi (Beban, Debit)
+        *   `6-60002`: Tagihan & Utilitas (Beban, Debit)
+        *   `6-60003`: Belanja Bulanan (Beban, Debit)
+        *   `6-60004`: Hiburan & Lifestyle (Beban, Debit)
+        *   `6-60005`: Kesehatan (Beban, Debit)
+        *   `6-60006`: Tabungan & Investasi (Beban, Debit)
 
-## 💸 FASE 3: DOUBLE-ENTRY ACCOUNTING AUTOMATION (Backend) (DONE 🚀)
-- [x] **3.1. Buat Accounting Service**
-- [x] **3.2. Hook Transaksi Penjualan Normal**
-- [x] **3.3. Hook Retur & Diskon**
-- [x] **3.4. Pembuatan Laporan Berjenjang (Materialized View)**
+## FASE 2: Pemisahan Otak AI (Backend)
 
-## 🤖 FASE 4: UX UPSELL & PROGRESSIVE REVELATION (Web & Mobile) (DONE 🚀)
-- [x] **4.1. Pembuatan Komponen Blurred Insight**
-- [x] **4.2. Pemasangan di Dashboard Utama**
+**1. Pecah Endpoint Chat AI**
+*   **File Target:** `backend/src/modules/ai/ai.controller.ts`
+*   **Aksi:**
+    *   Ubah fungsi `@Post('chat')` yang ada menjadi `@Post('business/chat')`. Hapus semua logika terkait `account_type === 'personal'` beserta kode *fetch budget* di dalamnya. Jadikan murni untuk "CFO Virtual Bisnis".
+    *   Buat fungsi baru `@Post('personal/chat')`. Pindahkan logika persona "Asisten Perencana Keuangan Pribadi" dan *fetching budget context* ke dalam fungsi ini. Endpoint ini eksklusif untuk data personal.
 
-## 🧠 FASE 5: THE AI FINANCIAL BRAIN & MEMORY LAYER (Backend) (DONE 🚀)
-- [x] **5.1. Buat Semantic Layer (Aggregator)**
-- [x] **5.2. Pembuatan Business Memory Layer**
-- [x] **5.3. Integrasi Gemini API (Reasoning)**
-- [x] **5.4. Eksekusi Autopilot Mode (Pro ERP Tier 3)**
+## FASE 3: Isolasi Frontend Web (Next.js)
 
-## 🧪 FASE 6: TESTING & VALIDATION TAHAP 1 (DONE 🚀)
-- [x] Uji Double-Entry & Operational Friction
-- [x] Uji Semantic Layer AI
+**1. Keamanan Routing (Route Guard)**
+*   **File Target:** `web/src/app/tenant/layout.tsx`
+*   **Aksi:** Di dalam `useEffect` pengecekan *auth/tenant*, tambahkan proteksi:
+    Jika `tenantData.account_type === 'personal'` dan rute saat ini (`pathname`) mengandung `/pos`, `/inventory`, `/staff`, atau `/drafts`, otomatis arahkan pengguna (`router.push`) kembali ke `/tenant/budget` atau `/tenant`.
+
+**2. Pemisahan Komponen Chat Widget**
+*   **File Target:** `web/src/components/ai/ChatWidget.tsx` (Ganti isi sepenuhnya menjadi penyeleksi).
+*   **Aksi:** 
+    *   Buat `PersonalAiWidget.tsx` yang secara spesifik menembak API `POST /api/v1/ai/personal/chat`. Desain ikon menggunakan ikon dompet/bintang dengan warna yang berbeda (misal warna sekunder).
+    *   Buat `BusinessAiWidget.tsx` (berasal dari ChatWidget lama) yang menembak API `POST /api/v1/ai/business/chat`.
+    *   Ubah `layout.tsx` di mana Widget AI dipanggil menjadi conditonal render: `isPersonal ? <PersonalAiWidget /> : <BusinessAiWidget />`.
+
+## FASE 4: Isolasi Aplikasi Mobile (Flutter)
+
+**1. Update Endpoint Chat Personal**
+*   **File Target:** `tumbuhin_flutter/lib/features/ai/ai_chat_screen.dart`
+*   **Aksi:** Ubah tujuan HTTP POST dari `/api/v1/ai/chat` menjadi `/api/v1/ai/personal/chat`.
+
+**2. Update Endpoint Chat Bisnis**
+*   **File Target:** `tumbuhin_flutter/lib/shared/widgets/ai_chat_widget.dart` (Asisten AI di dalam layar Kasir POS).
+*   **Aksi:** Ubah tujuan HTTP POST dari `/api/v1/ai/chat` menjadi `/api/v1/ai/business/chat`.
+
+**3. Verifikasi Keamanan Shell Navigation**
+*   **File Target:** `tumbuhin_flutter/lib/shared/widgets/main_shell.dart`
+*   **Aksi:** Pastikan secara absolut (sudah dilakukan, cukup *review*) bahwa tab POS dan Inventory disembunyikan menggunakan pengecekan `if (!isPersonal)` dan pastikan `GoRouter` mengabaikan injeksi path paksa dari luar.
+
+## FASE 5: Pemisahan Entitas Database & Registrasi (Backend & Web) [DONE]
+
+- Fungsi migrasi dan auth enum tier serta `register/page.tsx` sudah dikonfigurasi.
+
+## FASE 6: Penyesuaian Data Model & UI Profil (Flutter)
+
+**1. Update Enum User Role**
+*   **File Target:** `tumbuhin_flutter/lib/shared/models/user_profile.dart`
+*   **Aksi:** Tambahkan enumerasi `personal` ke dalam `enum UserRole { manager, kasir, stok, personal }` lalu jalankan `dart run build_runner build -d` agar parser (freezed/json_serializable) tidak *error* saat menerima role personal dari backend.
+
+**2. Sembunyikan UI Bisnis di Settings**
+*   **File Target:** `tumbuhin_flutter/lib/features/settings/settings_screen.dart`
+*   **Aksi:** 
+    *   Sembunyikan menu "Kelola Staf" dan blok "Informasi Toko/Tenant" dengan pengecekan kondisi `if (profile.accountType == 'personal')`.
+    *   Pastikan tulisan profil dan pengaturan murni bersifat personal, tanpa referensi ke operasional toko.
 
 ---
-> **BAGIAN DI BAWAH INI ADALAH FASE PLATFORM PARITY (WEB & MOBILE PENYEMPURNAAN)**
+
+# Tugas Implementasi Baru: Membangun Fitur "Full" Tanpa Limitasi
+Instruksi di bawah ini difokuskan untuk mengimplementasikan fungsionalitas inti (Full Features) secara bebas tanpa mempedulikan limitasi tier (Trial/Full) terlebih dahulu.
+
+## FASE 7: Buka Akses Fitur Full & Refactor Tier (Backend & Web)
+
+**1. Bypass Tier Guard & Standardisasi Tier**
+*   **File Target:** `backend/src/core/auth/tier.guard.ts`
+*   **Aksi:** Di baris pertama dalam fungsi `canActivate`, tambahkan `return true;` untuk mem-bypass keamanan tier secara global. Ini agar proses pengembangan *frontend* fitur-fitur "Full" (seperti Multi-gudang dan Neraca) tidak terkena *error 403 Forbidden*.
+*   **File Target:** Semua Controller di backend (`warehouse.controller.ts`, `finance.controller.ts`, dll).
+*   **Aksi:** Lakukan pencarian teks `@RequireTier(SubscriptionTier.BUSINESS)` dan `@RequireTier(SubscriptionTier.PRO)`. Ubah semuanya menjadi `@RequireTier(SubscriptionTier.FULL)`.
+
+**2. Buka Akses UI Bisnis di Web**
+*   **File Target:** Semua file di `web/src/app/tenant/` dan komponen pendukungnya.
+*   **Aksi:** Hapus logika *conditional rendering* yang mengunci UI berdasarkan tier `free` atau `starter` lama (contoh: menyembunyikan tombol gudang atau menu laporan lanjut). Tampilkan semua menu bisnis secara terbuka.
+
+## FASE 8: Implementasi Fitur Full Personal (Flutter)
+
+Fitur utama Personal adalah bisa mencatat pemasukan dan pengeluaran secara kilat. Saat ini hanya ada layar untuk *melihat* (TransactionsScreen) namun belum ada fitur *input*.
+
+**1. Tambahkan Tombol Input Kilat (FAB)**
+*   **File Target:** `tumbuhin_flutter/lib/features/transactions/transactions_screen.dart`
+*   **Aksi:** Tambahkan `FloatingActionButton` besar (misalnya warna kuning primary) dengan ikon `+`. Saat di-*tap*, tombol ini akan memanggil `showModalBottomSheet` yang menampilkan form `AddTransactionBottomSheet`.
+
+**2. Buat Form Pencatatan Personal**
+*   **File Target:** `tumbuhin_flutter/lib/features/transactions/widgets/add_transaction_bottom_sheet.dart` (BUAT BARU)
+*   **Aksi:** Implementasikan sebuah BottomSheet UI.
+    *   Tambahkan *SegmentedButton* atau *Toggle* untuk memilih jenis: **Pemasukan** atau **Pengeluaran**.
+    *   Tambahkan *TextField* bertipe angka untuk Nominal (`Rp`).
+    *   Tambahkan *TextField* bertipe teks untuk Catatan/Deskripsi.
+    *   Tambahkan *Dropdown* Kategori (Pilih salah satu dari hardcode COA Fase 1 di atas, misalnya "6-60000: Beban Makan & Minum").
+    *   Tambahkan tombol **"Simpan"** yang memicu *JournalRepository* untuk mengirim data transaksi ke backend. Abaikan pengecekan limit harian atau kuota AI. Asumsikan akun ini adalah akun Full.
+
+## FASE 9: Buka Akses Fitur Full Bisnis (Flutter)
+
+**1. Hapus Gembok Tier di UI Inventory & Laporan**
+*   **File Target:** `tumbuhin_flutter/lib/features/inventory/inventory_screen.dart` dan `tumbuhin_flutter/lib/features/reports/reports_screen.dart`
+*   **Aksi:** Cari logika UI yang menyembunyikan tombol (misal: "Multi-Gudang" atau "Transfer Stok") atau *Tab* (misal: "Neraca Lanjut") berdasarkan kondisi tier tertentu. Hapus kondisi tersebut sehingga semua fitur "Full" Bisnis tampil secara *default*. Ini memastikan fungsionalitas utama bisa dites tanpa harus repot mengatur status *subscription* di *database* saat pengembangan.
+
 ---
 
-## 💻 FASE 7: WEB POS IMPLEMENTATION (Web Frontend) (DONE 🚀)
-- [x] **7.1. Buat Struktur Layout Kasir (POS) Web**
-- [x] **7.2. Implementasi Logika Keranjang (Cart State)**
-- [x] **7.3. Integrasi Checkout ke Backend**
-- [x] **7.4. Fungsi Ekspor/Cetak Struk Web**
+## FASE 10: Standardisasi Tier "Trial vs Full" & Pembersihan Akun Lama [DONE]
 
-## 💬 FASE 8: OMNI-CHANNEL AI CHAT (Web, Mobile, Backend) (DONE 🚀)
-- [x] **8.1. API Controller Chat Interaktif**
-- [x] **8.2. Floating Widget Chat (Web)**
-- [x] **8.3. Full-Screen Chat UI (Mobile App)**
+**1. Keamanan & Logika Backend (Restored)**
+- [x] Hapus bypass `return true;` di `tier.guard.ts`.
+- [x] Perbarui `TIER_HIERARCHY` di `tier.guard.ts` (Hanya TRIAL & FULL).
+- [x] Perbarui enum `SubscriptionTier` di `tier.enum.ts` (Hapus legacy tiers).
+- [x] Update seluruh Controller menggunakan `@RequireTier(SubscriptionTier.FULL)`.
 
-## 📊 FASE 9: LAPORAN FINANSIAL KOMPREHENSIF (Web Frontend) (DONE 🚀)
-- [x] **9.1. Buat Tabel Buku Besar (Ledger UI)**
-- [x] **9.2. Halaman Neraca Keuangan (Balance Sheet)**
-- [x] **9.3. Halaman Arus Kas (Cash Flow)**
+**2. UI Web (Next.js)**
+- [x] Gunakan logika `isFull = tenant?.tier === 'full'` secara ketat di `layout.tsx` dan `page.tsx`.
+- [x] Ganti nama menu `/tenant/drafts` menjadi "Validasi Transaksi AI".
+- [x] Rombak total `app/tenant/subscription/page.tsx` (Tampilan dinamis Personal vs Bisnis).
+- [x] Hapus badge tier di halaman POS.
 
-## 📦 FASE 10: ADVANCED PROCUREMENT & DOCUMENT BUILDER (Web Frontend) (DONE 🚀)
-- [x] **10.1. Halaman Tinjauan Draft AI**
-- [x] **10.2. Document Builder (PO Editor)**
-- [x] **10.3. Ekspor Dokumen Resmi (PDF)**
+**3. UI Mobile (Flutter)**
+- [x] Perbarui kartu membership di `settings_screen.dart` menjadi Trial vs Full.
+- [x] Hapus bypass `isPremium = true` di `inventory_screen.dart`.
+- [x] Aktifkan batasan ekspor di `reports_screen.dart` untuk pengguna non-Full.
 
-## 🧪 FASE 11: FINAL END-TO-END TESTING
-- [ ] **Tes Web POS:** Lakukan simulasi penjualan kasir di Web Dashboard, pastikan laporan laba rugi di web langsung berubah dalam hitungan detik (berkat *Materialized Views*).
-- [ ] **Tes AI Chatbot:** Coba tanyakan pertanyaan kompleks seperti *"Apakah ada indikasi fraud minggu ini?"* melalui Web Widget dan Mobile App secara bergantian, pastikan *history* obrolan sinkron atau respon akurat.
-- [ ] **Tes PO Autopilot & Ekspor:** Set secara manual stok satu barang ke 5 (low stock), jalankan secara paksa fungsi *cron* Autopilot, lalu pastikan draf muncul di menu Procurement Web dan bisa dicetak sebagai PDF.
+**4. Sistem Registrasi & Guest**
+- [x] Update `register/page.tsx` untuk menggunakan tier Trial/Full sejak awal.
+- [x] Update `auth_provider.dart` (Flutter) untuk tier Guest Default.
 
-## ⚙️ FASE 12: DETERMINISTIC CORE LOGIC & UI POLISH (Backend, Web, App)
-*Tujuan: Memastikan semua "otak" bisnis berjalan secara matematis dan logis tanpa bergantung pada AI. AI hanya bertindak sebagai asisten interaksi UI.*
-
-- [ ] **12.1. Deterministic Procurement (Backend)**
-  - **Aksi:** Buat `ProcurementCronService` (`@nestjs/schedule`). Job ini akan mendeteksi `current_stock <= minimum_stock` dan membuat `procurement_draft` di `business_memory` dengan rumus matematis statis tanpa memanggil LLM.
-- [ ] **12.2. Deterministic Analytics Refresh (Backend)**
-  - **Aksi:** Buat `AnalyticsCronService` yang memanggil `REFRESH MATERIALIZED VIEW CONCURRENTLY` setiap jam agar data Laba Rugi dan Neraca selalu update.
-- [ ] **12.3. Hardcoded RBAC & Staff Management (Backend & UI)**
-  - **Aksi:** Lengkapi tabel `staff_accounts`, sesuaikan otentikasi JWT untuk menolak role `cashier` mengakses rute `/api/finance`. 
-  - **Aksi UI:** Buat UI "Manajemen Staf" di Web dan Mobile App.
-- [ ] **12.4. Deterministic Promo Engine (Backend & UI)**
-  - **Aksi:** Buat modul Promotions di Backend dan integrasikan ke kalkulasi Keranjang (`Cart`) Web POS & Mobile POS agar diskon terpotong otomatis berdasarkan persentase.
-- [ ] **12.5. Frontend to Backend API Routing (Refactoring)**
-  - **Aksi:** Pindahkan semua fungsi `supabase.from(...)` yang ada di komponen Frontend (seperti `BalanceSheetPage`, `CashFlowPage`, `ProcurementDraftsPage`, dll) menjadi *fetch API* ke endpoint NestJS Backend (`/api/finance/balance-sheet`, `/api/procurement/drafts`). Frontend sama sekali tidak boleh menembak database secara langsung.
-- [ ] **12.6. UI/UX Polish (Web & App)**
-  - **Aksi Web:** Percantik halaman yang masih terlihat kaku, perbaiki navigasi antar modul.
-  - **Aksi App:** Pastikan modal AI Chat merespon secara instan dengan indikator loading yang elegan.

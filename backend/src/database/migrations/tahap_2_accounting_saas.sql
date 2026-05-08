@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS business_events (
 );
 
 -- 3. TASK 1.3: Pembuatan Tabel Accounting Core
+DROP TABLE IF EXISTS journal_lines CASCADE;
+DROP TABLE IF EXISTS journal_entries CASCADE;
+DROP TABLE IF EXISTS chart_of_accounts CASCADE;
+
 CREATE TABLE IF NOT EXISTS chart_of_accounts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,

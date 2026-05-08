@@ -2,177 +2,144 @@
 
 ![Tumbuhin Banner](https://via.placeholder.com/1200x400/FDB827/ffffff?text=Tumbuhin+ERP+Platform)
 
-Tumbuhin adalah platform **SaaS Enterprise Resource Planning (ERP)** terpadu yang dirancang untuk mendigitalkan dan mengotomatiskan operasional bisnis UMKM, mulai dari Point of Sales (POS), manajemen inventaris multi-gudang, pengadaan (procurement), hingga pencatatan akuntansi (*double-entry bookkeeping*) yang didukung oleh kecerdasan buatan (AI).
+Tumbuhin adalah platform **SaaS Enterprise Resource Planning (ERP)** terpadu yang dirancang untuk mendigitalkan dan mengotomatiskan operasional bisnis UMKM. Mulai dari Point of Sales (POS), manajemen inventaris multi-gudang, pengadaan (procurement), hingga pencatatan akuntansi (*double-entry bookkeeping*) yang didukung oleh kecerdasan buatan (AI).
 
-Visi utama dari Tumbuhin adalah **"Upload kwitansi → Otomatis jadi jurnal akuntansi"** dengan fitur *Business Health Score* dan sistem operasional yang sepenuhnya tersentralisasi dan deterministik.
-
----
-
-## 🏗️ Arsitektur Sistem (Deterministic Modular Monolith)
-
-Tumbuhin menggunakan arsitektur **Modular Monolith** dengan pendekatan **Clean Architecture** dan logika inti berbasis **Deterministik**. Arsitektur ini memastikan sistem *future-proof*, mudah di-*scale*, dan bebas dari risiko halusinasi AI pada transaksi finansial kritis.
-
-*   **💻 Web Dashboard (Admin & Tenant)**: Next.js 14 (App Router) + Tailwind CSS + Shadcn UI
-*   **📱 Mobile App (POS & Scanner)**: React Native (Expo) + NativeWind + Zustand
-*   **⚙️ Backend API**: NestJS (TypeScript) + BullMQ + PostgreSQL Unit of Work
-*   **🗄️ Database & Auth**: Supabase (PostgreSQL + JWT Auth + Row Level Security)
-*   **🧠 AI Engine**: Google Gemini 1.5 Flash (Read-Only Insights & OCR)
-*   **💳 Payment Gateway**: Midtrans (Withdrawal & Payouts)
+Visi utama dari Tumbuhin adalah **"Upload kwitansi → Otomatis jadi jurnal akuntansi"** dengan fitur *Business Health Score* dan sistem operasional yang sepenuhnya tersentralisasi.
 
 ---
 
-## 📂 Struktur Direktori Utama
+## 🏗️ Arsitektur Sistem
 
-Proyek ini menggunakan struktur monorepo yang memisahkan tanggung jawab (Seperation of Concerns) menjadi 3 pilar utama:
+Tumbuhin menggunakan arsitektur **Modular Monolith** dengan pendekatan **Clean Architecture**. Memisahkan logika bisnis inti di backend untuk memastikan konsistensi data di semua platform (Web & Mobile).
+
+*   **⚙️ Backend API**: NestJS (TypeScript) + BullMQ + PostgreSQL (Supabase)
+*   **💻 Web Dashboard**: Next.js 14 (App Router) + Tailwind CSS + Shadcn UI
+*   **📱 Mobile App**: Flutter (Dart) + Riverpod/Bloc + Clean Architecture
+*   **🧠 AI Engine**: Google Gemini 1.5 Flash (OCR & Financial Insights)
+*   **🗄️ Database & Auth**: Supabase (PostgreSQL + JWT Auth + RLS)
+*   **💳 Payment**: Midtrans Integration
+
+---
+
+## 📂 Struktur Direktori
+
+Proyek ini terbagi menjadi tiga komponen utama:
 
 ```text
 tumbuhin/
-├── backend/           # ⚙️ NestJS - Sentralisasi Logika Bisnis & Transaksi (Source of Truth)
-│   ├── src/
-│   │   ├── core/      # Core infrastructure (Auth, Guards, Interceptors, Event Bus)
-│   │   ├── modules/   # 14 Feature Modules (Sales, Accounting, Inventory, AI, dll)
-│   │   └── shared/    # Shared Services (Supabase Client, External APIs)
-│   └── package.json
-│
-├── web/               # 💻 Next.js - Web Dashboard (Management & Reporting)
-│   ├── src/
-│   │   ├── app/       # Next.js App Router (/(auth), /admin, /tenant)
-│   │   ├── components/# Reusable UI Components (Shadcn, Custom POS/Finance widgets)
-│   │   └── lib/       # API Clients (Fetch logic to NestJS Backend)
-│   └── package.json
-│
-└── app/               # 📱 React Native (Expo) - Aplikasi Mobile POS & Dashboard
-    ├── src/
-    │   ├── api/       # API Integration Layer
-    │   ├── features/  # Feature-based components (POS, Inventory, Reports)
-    │   └── store/     # Zustand state management
-    ├── app.json       # Expo configuration
-    └── package.json
+├── backend/           # ⚙️ NestJS - Sentralisasi Logika Bisnis & Transaksi
+├── web/               # 💻 Next.js - Web Dashboard untuk Management & Reporting
+└── tumbuhin_flutter/  # 📱 Flutter - Aplikasi Mobile untuk POS & Operasional
 ```
 
 ---
 
-## 🛡️ Fitur Utama & Tier Sistem
+## 🌟 Fitur Utama
 
-Sistem ini menggunakan mekanisme Role-Based Access Control (RBAC) dan Subscription Tiers untuk membatasi akses fitur.
+### 1. 🛒 Point of Sales (POS)
+Sistem kasir cerdas yang terintegrasi langsung dengan inventaris dan akuntansi.
+*   **Multi-Payment:** Tunai, QRIS, dan transfer.
+*   **Auto-Journaling:** Penjualan otomatis mencatat jurnal Debit/Kredit secara real-time.
 
-### **3-Tier Subscription Model**
-1. **Starter (Free)**: POS dasar, 1 gudang, maksimal 500 transaksi/bulan.
-2. **Business**: Multi-gudang, Manajemen Promo Otomatis, Manajemen Staf (RBAC), Laporan Laba Rugi, AI Chat Analytics.
-3. **Pro (ERP)**: Pengadaan Otomatis (Autopilot Procurement), Neraca Keuangan (Balance Sheet), Arus Kas (Cash Flow), AI OCR Scanner.
+### 2. 📦 Manajemen Inventaris
+Kontrol pergerakan barang antar gudang.
+*   **Multi-Gudang:** Kelola stok di berbagai lokasi.
+*   **BOM (Bill of Materials):** Manajemen resep dan bahan baku otomatis.
 
-### **Core Modules**
-*   **Deterministic POS**: Sistem kasir yang secara otomatis memotong stok berdasarkan resep (BOM) dan membuat jurnal ganda (Debit/Kredit) secara real-time dan transaksional.
-*   **Double-Entry Accounting**: Menggunakan `JournalEntry.validateBalance()` untuk memastikan keakuratan akuntansi 100%. Laporan dihasilkan otomatis melalui `Materialized Views` yang di-refresh berkala.
-*   **Autopilot Procurement**: Cronjob NestJS mendeteksi stok yang menipis dan membuat draf Purchase Order secara otomatis.
-*   **CFO Virtual (AI)**: Asisten cerdas yang menganalisis agregasi keuangan (`business_memory`) untuk memberikan saran strategi tanpa akses modifikasi data.
+### 3. 📈 Akuntansi Otomatis
+Sistem double-entry bookkeeping tingkat enterprise tanpa input manual rumit.
+*   **Laporan Real-time:** Neraca, Laba Rugi, dan Arus Kas tersedia seketika.
+*   **Akurasi Tinggi:** Validasi deterministik untuk memastikan balance.
 
----
-
-## 🛠️ Prasyarat (Prerequisites)
-
-Pastikan mesin Anda telah menginstal:
-1.  **Node.js** (v18.x atau v20.x direkomendasikan)
-2.  **npm** (atau Yarn/pnpm)
-3.  **Supabase CLI** (Opsional untuk testing lokal)
-4.  **Expo CLI** (`npm install -g eas-cli`)
-5.  Akun **Supabase** (Proyek cloud) & **Google AI Studio** (Gemini API Key)
-6.  **Redis** (Untuk BullMQ Message Queue di Backend)
+### 4. 🤖 AI Assistant & OCR
+Virtual CFO untuk membantu menganalisis kesehatan bisnis Anda.
+*   **Smart OCR:** Foto kwitansi dan biarkan AI membuat draf jurnalnya.
+*   **Business Insights:** Tanya jawab dengan data keuangan Anda melalui AI Chat.
 
 ---
 
-## 🚀 Panduan Instalasi & Menjalankan Proyek
+---
 
-Lakukan langkah-langkah berikut secara berurutan:
+## 🚀 Panduan Instalasi & Konfigurasi
 
-### 1. Setup Backend API (NestJS)
-Backend **wajib** dijalankan pertama kali karena Web dan Mobile bergantung penuh pada REST API ini.
+### 1. Setup Backend (NestJS)
+Backend bertindak sebagai pusat logika bisnis dan pengolahan data.
 
-```bash
-cd backend
-npm install
-cp .env.example .env
-```
+**Langkah-langkah:**
+1. Masuk ke direktori backend: `cd backend`
+2. Instal dependensi: `npm install`
+3. Buat file `.env` dan sesuaikan variabel berikut:
 
-**Konfigurasi `.env` Backend:**
 ```env
-SUPABASE_URL="https://[YOUR_PROJECT_ID].supabase.co"
-SUPABASE_SERVICE_ROLE_KEY="eyJh..." # Wajib Service Role Key
+PORT=8080
+# Supabase Configuration
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 SUPABASE_JWT_SECRET="your-jwt-secret"
-GEMINI_API_KEY="AIzaSy..." 
-REDIS_HOST="localhost"
-REDIS_PORT="6379"
+
+# Database Direct Connection
+DATABASE_URL="postgresql://postgres:password@db.your-project.supabase.co:5432/postgres"
+
+# AI & External Services
+GEMINI_API_KEY="your-gemini-api-key"
+MIDTRANS_SERVER_KEY="your-midtrans-server-key"
+MIDTRANS_CLIENT_KEY="your-midtrans-client-key"
+
+# Queue Configuration (Redis)
+USE_MOCK_REDIS=true # Set false jika menggunakan Redis asli
 ```
 
-**Jalankan Server:**
-```bash
-npm run start:dev
-# Backend beroperasi di http://localhost:3000
-```
+4. Jalankan dalam mode pengembangan: `npm run start:dev`
+
+---
 
 ### 2. Setup Web Dashboard (Next.js)
+Dashboard manajemen untuk owner dan admin tenant.
 
-```bash
-cd web
-npm install
-cp .env.example .env.local
-```
+**Langkah-langkah:**
+1. Masuk ke direktori web: `cd web`
+2. Instal dependensi: `npm install`
+3. Buat file `.env.local` dan sesuaikan variabel berikut:
 
-**Konfigurasi `.env.local` Web:**
 ```env
-NEXT_PUBLIC_SUPABASE_URL="https://[YOUR_PROJECT_ID].supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJh..." # Anon Key
-NEXT_PUBLIC_BACKEND_URL="http://localhost:3000"
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+NEXT_PUBLIC_BACKEND_URL="http://localhost:8080" # URL Backend API
+NEXT_PUBLIC_MIDTRANS_CLIENT_KEY="your-midtrans-client-key"
 ```
 
-**Jalankan Web:**
-```bash
-npm run dev
-# Web beroperasi di http://localhost:3001
-```
-
-### 3. Setup Mobile App (Expo)
-
-```bash
-cd app
-npm install
-# Konfigurasi di file .env
-```
-
-**Konfigurasi `.env` Mobile:**
-```env
-EXPO_PUBLIC_SUPABASE_URL="https://[YOUR_PROJECT_ID].supabase.co"
-EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJh..."
-EXPO_PUBLIC_BACKEND_URL="http://[IP-LOKAL-ANDA]:3000" # Wajib IP Lokal (misal 192.168.1.x) jika testing di HP fisik
-```
-
-**Jalankan Mobile:**
-```bash
-npx expo start
-```
+4. Jalankan dashboard: `npm run dev`
 
 ---
 
-## 🧠 Aturan Pengembangan (PENTING!)
+### 3. Setup Mobile App (Flutter)
+Aplikasi mobile untuk operasional kasir (POS) dan scan inventaris.
 
-Bagi pengembang yang akan berkontribusi, wajib mematuhi aturan berikut untuk menjaga stabilitas dan keamanan arsitektur:
+**Langkah-langkah:**
+1. Pastikan Flutter SDK sudah terinstal (v3.x+).
+2. Masuk ke direktori: `cd tumbuhin_flutter`
+3. Instal dependensi: `flutter pub get`
+4. Buat file `.env` di root folder `tumbuhin_flutter/` (pastikan terdaftar di `assets` pada `pubspec.yaml`):
 
-1.  **API Centralization**: Client (Web & Mobile) **TIDAK BOLEH** melakukan operasi penulisan (INSERT/UPDATE/DELETE) langsung ke Supabase (kecuali autentikasi dasar). Seluruh operasi CRUD dan logika bisnis **WAJIB** melalui REST API NestJS (`/api/v1/...`).
-2.  **Deterministic First**: Jangan menggunakan AI/LLM untuk menghitung stok, menentukan harga, atau menjurnal akuntansi. AI hanya bertindak sebagai *interface* (UX) untuk ekstraksi teks (OCR) dan merangkum insight.
-3.  **ACID Transactions**: Setiap transaksi POS yang memotong stok dan membuat jurnal **harus** dibungkus dalam `UnitOfWork.runInTransaction()` untuk mencegah data parsial jika terjadi kegagalan.
-4.  **Guards Pipeline**: Selalu gunakan dekorator keamanan berlapis pada rute Backend: `@UseGuards(JwtAuthGuard)`, `@RequireTier(SubscriptionTier.X)`, dan `@Roles(UserRole.X)`.
+```env
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_ANON_KEY="your-anon-key"
+BACKEND_URL="http://[IP_LOKAL_ANDA]:8080" # Gunakan IP lokal jika running di HP fisik
+```
+
+5. Jalankan aplikasi:
+   *   Chrome (Web): `flutter run -d chrome`
+   *   Android/iOS: `flutter run`
 
 ---
 
-## 🧪 Testing
+---
 
-Sistem ini dilengkapi dengan Master Test Case (lihat `test.md`). Untuk menjalankan tes lokal:
+## 🛡️ Aturan Pengembangan (PENTING!)
 
-```bash
-cd backend
-npm run test
-npm run test:e2e
-```
+1.  **API Centralization**: Seluruh operasi penulisan data (CUD) **WAJIB** melalui Backend API. Mobile dan Web dilarang menulis langsung ke Database Supabase.
+2.  **Deterministic Logic**: Logika perhitungan keuangan dan stok harus dikelola oleh kode (deterministik), AI hanya digunakan untuk ekstraksi data dan wawasan.
+3.  **Clean Code**: Ikuti pola Clean Architecture yang sudah diterapkan di masing-masing modul.
 
 ---
 *Dibangun untuk merevolusi operasional UMKM Indonesia.* 🇮🇩

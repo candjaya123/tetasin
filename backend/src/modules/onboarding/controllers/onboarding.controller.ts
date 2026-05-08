@@ -18,6 +18,6 @@ export class OnboardingController {
       throw new Error('Tenant ID is required for onboarding setup');
     }
 
-    return this.onboardingService.setupSystem(tenantId, body);
+    return this.onboardingService.setupSystem(tenantId, body, req.user);
   }
 }

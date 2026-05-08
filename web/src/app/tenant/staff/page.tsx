@@ -107,7 +107,7 @@ export default function StaffPage() {
               </div>
               <div className="w-64 space-y-2">
                 <Label>Pilih Peran (Role)</Label>
-                <Select value={role} onValueChange={setRole}>
+                <Select value={role} onValueChange={(val) => setRole(val || '')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

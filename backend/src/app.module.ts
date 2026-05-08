@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, Global, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ConfigModule } from '@nestjs/config';
 import { SupabaseStrategy } from './core/auth/supabase.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { APP_GUARD } from '@nestjs/core';
@@ -9,6 +10,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { SupabaseService } from './shared/supabase.service';
 import { TierGuard } from './core/auth/tier.guard';
 import { RoleGuard } from './core/auth/role.guard';
+import { JwtAuthGuard } from './modules/business-profile/guards/jwt-auth.guard';
 import { SalesModule } from './modules/sales/sales.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { BusinessProfileModule } from './modules/business-profile/business-profile.module';
@@ -24,6 +26,7 @@ import { PromoModule } from './modules/promo/promo.module';
 import { InsightModule } from './modules/insight/insight.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { CoreModule } from './core/core.module';
 
 import { LoggerModule } from 'nestjs-pino';
 import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
@@ -31,6 +34,7 @@ import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
 @Global()
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     PassportModule,
     LoggerModule.forRoot({
       pinoHttp: {
@@ -43,21 +47,12 @@ import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
       },
     }),
     BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
-      },
-    }),
-    BullModule.registerQueue({
-      name: 'event-processor-queue',
-      defaultJobOptions: {
-        attempts: 5,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-        removeOnComplete: true,
-      },
+      connection: process.env.USE_MOCK_REDIS === 'true' 
+        ? new (require('ioredis-mock'))() 
+        : {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
+          },
     }),
     CqrsModule,
     SalesModule,
@@ -72,6 +67,7 @@ import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
     InsightModule,
     ProcurementModule,
     InventoryModule,
+    CoreModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
@@ -81,7 +77,7 @@ import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
     SupabaseService,
     {
       provide: APP_GUARD,
-      useClass: AuthGuard('supabase'),
+      useClass: JwtAuthGuard,
     },
     {
       provide: APP_GUARD,

@@ -10,7 +10,7 @@ export class ProcurementController {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   @Get('drafts')
-  @RequireTier(SubscriptionTier.PRO)
+  @RequireTier(SubscriptionTier.FULL)
   async getDrafts(@Request() req: any) {
     const client = this.supabaseService.getClient();
     const { data, error } = await client
@@ -34,7 +34,7 @@ export class ProcurementController {
   }
 
   @Post('approve-draft')
-  @RequireTier(SubscriptionTier.PRO)
+  @RequireTier(SubscriptionTier.FULL)
   async approveDraft(@Request() req: any, @Body() payload: any) {
     const client = this.supabaseService.getClient();
 

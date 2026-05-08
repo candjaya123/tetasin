@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Request, UseGuards, BadRequestException } from '@nestjs/common';
 import { ReportService } from '../../services/report/report.service';
 import { JwtAuthGuard } from '../../../business-profile/guards/jwt-auth.guard';
 
@@ -8,14 +8,16 @@ export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
   @Get('dashboard')
-  async getDashboard(@Request() req: any) {
+  async getDashboard(@Request() req: any, @Query('startDate') start?: string, @Query('endDate') end?: string) {
     const tenantId = req.user.tenant_id;
-    return await this.reportService.getDashboardSummary(tenantId);
+    if (!tenantId) throw new BadRequestException('Tenant ID tidak ditemukan. Pastikan profil bisnis sudah lengkap.');
+    return await this.reportService.getDashboardSummary(tenantId, start, end);
   }
 
   @Get('accounting/accounts')
   async getAccounts(@Request() req: any) {
     const tenantId = req.user.tenant_id;
+    if (!tenantId) throw new BadRequestException('Tenant ID tidak ditemukan.');
     return await this.reportService.getAccountingAccounts(tenantId);
   }
 
@@ -25,8 +27,14 @@ export class ReportController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ) {
-    // tenantId from JWT user metadata
     const tenantId = req.user.tenant_id || req.user.entity_id; 
+    if (!tenantId) throw new BadRequestException('Tenant ID tidak ditemukan.');
     return await this.reportService.getIncomeStatement(tenantId, startDate, endDate);
+  }
+
+  @Get('sales')
+  async getSales(@Request() req: any, @Query('startDate') start?: string, @Query('endDate') end?: string) {
+    const tenantId = req.user.tenant_id;
+    return await this.reportService.getSalesReport(tenantId, start, end);
   }
 }

@@ -118,7 +118,7 @@ export default function PromosPage() {
               </div>
               <div className="space-y-2">
                 <Label>Tipe Diskon</Label>
-                <Select value={type} onValueChange={setType}>
+                <Select value={type} onValueChange={(val) => setType(val || '')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

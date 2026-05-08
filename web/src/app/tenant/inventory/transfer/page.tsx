@@ -112,7 +112,7 @@ export default function TransferPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Gudang Asal</Label>
-                  <Select value={fromId} onValueChange={setFromId}>
+                  <Select value={fromId} onValueChange={(v) => setFromId(v || '')}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Gudang Asal" />
                     </SelectTrigger>
@@ -129,7 +129,7 @@ export default function TransferPage() {
                   </div>
                   <div className="flex-1 space-y-2">
                     <Label>Gudang Tujuan</Label>
-                    <Select value={toId} onValueChange={setToId}>
+                    <Select value={toId} onValueChange={(v) => setToId(v || '')}>
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih Gudang Tujuan" />
                       </SelectTrigger>
@@ -145,7 +145,7 @@ export default function TransferPage() {
 
               <div className="space-y-2">
                 <Label>Pilih Produk</Label>
-                <Select value={productId} onValueChange={setProductId}>
+                <Select value={productId} onValueChange={(v) => setProductId(v || '')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih Produk" />
                   </SelectTrigger>

@@ -52,7 +52,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/tenant', request.url))
     }
 
-    if (request.nextUrl.pathname.startsWith('/tenant') && !['tenant', 'super_admin'].includes(profile.role)) {
+    if (request.nextUrl.pathname.startsWith('/tenant') && !['manager', 'kasir', 'stok', 'super_admin'].includes(profile.role)) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

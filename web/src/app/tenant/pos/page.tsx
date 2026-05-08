@@ -9,7 +9,11 @@ import {
   ShoppingBag, 
   Search, 
   Plus, 
-  Loader2
+  Loader2,
+  Scan,
+  Crown,
+  Sparkles,
+  Zap
 } from "lucide-react";
 import { Cart } from '@/components/pos/Cart';
 import { Receipt } from '@/components/pos/Receipt';
@@ -163,6 +167,17 @@ export default function PosPage() {
     }).format(value);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchTerm) {
+      if (filteredProducts.length === 1) {
+        addToCart(filteredProducts[0]);
+        setSearchTerm('');
+      }
+    }
+  };
+
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[600px]">
@@ -177,17 +192,18 @@ export default function PosPage() {
       <div className="flex-grow space-y-6 overflow-hidden flex flex-col">
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-grow max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Scan className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input 
-              placeholder="Cari produk..." 
-              className="pl-10 h-11 border-none shadow-sm bg-white"
+              placeholder="Cari nama atau barcode..." 
+              className="pl-10 h-11 border-none shadow-sm bg-white focus-visible:ring-primary"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" className="bg-white border-none shadow-sm">Kategori</Button>
-            <Button variant="outline" className="bg-white border-none shadow-sm">Favorit</Button>
+          <div className="flex items-center gap-3">
+
+            <Button variant="outline" className="bg-white border-none shadow-sm rounded-xl">Kategori</Button>
           </div>
         </div>
 
@@ -250,9 +266,6 @@ export default function PosPage() {
         tenantName={tenant?.tenants?.name}
         referenceNumber={lastOrder?.reference}
       />
-    </div>
-  );
-}
     </div>
   );
 }

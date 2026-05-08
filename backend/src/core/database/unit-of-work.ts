@@ -4,7 +4,7 @@ import { Pool, PoolClient } from 'pg';
 @Injectable()
 export class UnitOfWork {
   private readonly logger = new Logger(UnitOfWork.name);
-  private pool: Pool;
+  public pool: Pool;
 
   constructor() {
     this.pool = new Pool({

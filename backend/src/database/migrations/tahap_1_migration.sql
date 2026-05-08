@@ -80,6 +80,17 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Customers
+CREATE TABLE IF NOT EXISTS customers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    address TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Sales Order (SO)
 CREATE TABLE IF NOT EXISTS sales_orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
