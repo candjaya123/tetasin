@@ -25,7 +25,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    // Use a small delay or postFrameCallback to set length based on account type if needed,
+    // but here we can just use a fixed length and filter.
+    // Better: check account type in build.
   }
 
   @override
@@ -38,6 +40,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
   Widget build(BuildContext context) {
     final dateRange = ref.watch(reportDateRangeProvider);
     final dateFormat = DateFormat('dd MMM yyyy');
+    final authState = ref.watch(authProvider);
+    final isPersonal = (authState.profile?.accountType ?? 'business') == 'personal';
+
+    final tabs = [
+      if (!isPersonal) const Tab(text: 'Jurnal'),
+      if (!isPersonal) const Tab(text: 'Buku Besar'),
+      if (!isPersonal) const Tab(text: 'Neraca Saldo'),
+      if (!isPersonal) const Tab(text: 'Penjualan'),
+      if (!isPersonal) const Tab(text: 'Laba Rugi'),
+      const Tab(text: 'Arus Kas'),
+      if (!isPersonal) const Tab(text: 'Stok'),
+      if (!isPersonal) const Tab(text: 'Neraca'),
+    ];
+
+    _tabController = TabController(length: tabs.length, vsync: this);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -46,7 +63,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Laporan Keuangan',
+              isPersonal ? 'Laporan Keuangan Pribadi' : 'Laporan Keuangan Bisnis',
               style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             Text(
@@ -75,25 +92,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
           indicatorWeight: 3,
           labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 13),
           unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13),
-          tabs: const [
-            Tab(text: 'Jurnal'),
-            Tab(text: 'Buku Besar'),
-            Tab(text: 'Neraca Saldo'),
-            Tab(text: 'Penjualan'),
-            Tab(text: 'Laba Rugi'),
-            Tab(text: 'Stok'),
-            Tab(text: 'Neraca'),
-          ],
+          tabs: tabs,
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildTabContent(ref.watch(journalProvider), (data) => JournalTab(entries: data)),
-          const LedgerTab(),
-          _buildTabContent(ref.watch(balanceSheetProvider), (data) => TrialBalanceTab(items: data)),
-          _buildTabContent(ref.watch(salesReportProvider), (data) => SalesTab(sales: data)),
-          ref.watch(incomeStatementProvider).when(
+          if (!isPersonal) _buildTabContent(ref.watch(journalProvider), (data) => JournalTab(entries: data)),
+          if (!isPersonal) const LedgerTab(),
+          if (!isPersonal) _buildTabContent(ref.watch(balanceSheetProvider), (data) => TrialBalanceTab(items: data)),
+          if (!isPersonal) _buildTabContent(ref.watch(salesReportProvider), (data) => SalesTab(sales: data)),
+          if (!isPersonal) ref.watch(incomeStatementProvider).when(
             data: (data) => IncomeStatementTab(data: data),
             loading: () => ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -105,8 +114,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
               onRetry: () => ref.refresh(incomeStatementProvider),
             ),
           ),
-          _buildTabContent(ref.watch(stockReportProvider), (data) => StockTab(items: data)),
-          _buildTabContent(ref.watch(balanceSheetProvider), (data) => BalanceSheetTab(items: data)),
+          const CashFlowTab(),
+          if (!isPersonal) _buildTabContent(ref.watch(stockReportProvider), (data) => StockTab(items: data)),
+          if (!isPersonal) _buildTabContent(ref.watch(balanceSheetProvider), (data) => BalanceSheetTab(items: data)),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -171,15 +181,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
 
   Future<void> _exportCurrentTab() async {
     final currentIndex = _tabController.index;
-    final authState = ref.read(authProvider);
     
-    if (authState.tenant?.tier != 'full') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fitur Ekspor tersedia untuk pengguna Full')),
-      );
-      return;
-    }
-
+    // Unified model: no more tier paywall
     try {
       List<List<dynamic>> rows = [];
       String fileName = 'Laporan';

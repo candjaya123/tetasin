@@ -188,134 +188,43 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="pricing" className="py-24 relative">
-          <div className="container mx-auto px-6">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-black text-secondary mb-6 tracking-tight">Harga yang Transparan</h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-medium">Investasi terbaik untuk masa depan finansial Anda. Pilih paket yang sesuai dengan kebutuhan Anda.</p>
-            </div>
-
-            <div className="space-y-20">
-              {/* Personal Pricing */}
-              <div>
-                <div className="flex items-center gap-4 mb-10 justify-center">
-                  <div className="h-px bg-border flex-grow max-w-[100px]"></div>
-                  <h3 className="text-2xl font-black text-primary uppercase tracking-[0.2em]">Personal Plan</h3>
-                  <div className="h-px bg-border flex-grow max-w-[100px]"></div>
-                </div>
-                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  <div className="bg-white rounded-3xl p-8 border border-border shadow-xl shadow-slate-200/50 flex flex-col">
-                    <div className="mb-8">
-                      <h3 className="text-2xl font-black text-secondary">Tumbuhin Trial</h3>
-                      <p className="text-sm font-bold text-muted-foreground mt-1 mb-6">Pencatatan Dasar</p>
-                      <div className="flex items-end gap-2">
-                        <span className="text-5xl font-black text-secondary tracking-tighter">Rp 0</span>
-                        <span className="text-muted-foreground font-bold mb-2">Selamanya</span>
-                      </div>
-                    </div>
-                    <div className="flex-grow space-y-4 mb-8">
-                      {["Input Pemasukan & Pengeluaran", "Laporan Ringkasan Bulanan", "Katalog Aset Dasar", "Akses Mobile App"].map((f, j) => (
-                        <div key={j} className="flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-primary" />
-                          <span className="font-bold text-secondary">{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Link href="/register?type=personal&tier=trial">
-                      <Button className="w-full h-14 font-black rounded-xl text-lg bg-muted text-secondary hover:bg-muted/80">
-                        Mulai Gratis
-                      </Button>
-                    </Link>
-                  </div>
-                  <div className="relative bg-white rounded-3xl p-8 border border-primary shadow-2xl shadow-primary/20 flex flex-col">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
-                      Paling Populer
-                    </div>
-                    <div className="mb-8">
-                      <h3 className="text-2xl font-black text-secondary">Tumbuhin Full</h3>
-                      <p className="text-sm font-bold text-muted-foreground mt-1 mb-6">Wealth Management AI</p>
-                      <div className="flex items-end gap-2">
-                        <span className="text-5xl font-black text-secondary tracking-tighter">Rp 29rb</span>
-                        <span className="text-muted-foreground font-bold mb-2">/ bulan</span>
-                      </div>
-                    </div>
-                    <div className="flex-grow space-y-4 mb-8">
-                      {["Analisa Kekayaan AI", "Sistem Anggaran Pintar", "Export Laporan Lengkap", "Bebas Iklan", "Prioritas Support"].map((f, j) => (
-                        <div key={j} className="flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-primary" />
-                          <span className="font-bold text-secondary">{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Link href="/register?type=personal&tier=full">
-                      <Button className="w-full h-14 font-black rounded-xl text-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/30">
-                        Pilih Paket Full
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+        {/* Transparency Section */}
+        <section id="pricing" className="py-24 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px]"></div>
+          
+          <div className="container mx-auto px-6 relative z-10">
+            <div className="bg-white rounded-[3rem] p-12 md:p-20 border border-border shadow-2xl shadow-slate-200/50 text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-widest mb-8">
+                <Crown className="w-4 h-4" />
+                <span>Full Access for Everyone</span>
               </div>
-
-              {/* Business Pricing */}
-              <div>
-                <div className="flex items-center gap-4 mb-10 justify-center">
-                  <div className="h-px bg-border flex-grow max-w-[100px]"></div>
-                  <h3 className="text-2xl font-black text-secondary uppercase tracking-[0.2em]">Business Plan</h3>
-                  <div className="h-px bg-border flex-grow max-w-[100px]"></div>
-                </div>
-                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  <div className="bg-white rounded-3xl p-8 border border-border shadow-xl shadow-slate-200/50 flex flex-col">
-                    <div className="mb-8">
-                      <h3 className="text-2xl font-black text-secondary">Tumbuhin Trial</h3>
-                      <p className="text-sm font-bold text-muted-foreground mt-1 mb-6">Operasional Dasar</p>
-                      <div className="flex items-end gap-2">
-                        <span className="text-5xl font-black text-secondary tracking-tighter">Rp 0</span>
-                        <span className="text-muted-foreground font-bold mb-2">Selamanya</span>
-                      </div>
-                    </div>
-                    <div className="flex-grow space-y-4 mb-8">
-                      {["Point of Sale (POS) Standar", "Manajemen 1 Gudang", "Katalog Produk & Stok", "Laporan Penjualan Harian"].map((f, j) => (
-                        <div key={j} className="flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-primary" />
-                          <span className="font-bold text-secondary">{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Link href="/register?type=business&tier=trial">
-                      <Button className="w-full h-14 font-black rounded-xl text-lg bg-muted text-secondary hover:bg-muted/80">
-                        Mulai Gratis
-                      </Button>
-                    </Link>
+              
+              <h2 className="text-4xl md:text-6xl font-black text-secondary mb-8 tracking-tight max-w-4xl mx-auto leading-tight">
+                Satu Platform. <br /> Tanpa Batasan. Tanpa Biaya Tersembunyi.
+              </h2>
+              
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 font-medium leading-relaxed">
+                Kami percaya alat finansial yang hebat harus bisa diakses oleh siapa saja. Tumbuhin kini hadir dengan model <strong>Full Access</strong>. Tidak ada lagi fitur yang dikunci di balik paywall atau limitasi paket.
+              </p>
+              
+              <div className="grid md:grid-cols-3 gap-8 mb-16">
+                {[
+                  { title: "Semua Fitur Terbuka", desc: "Dari POS hingga Laporan Neraca, semua bisa diakses tanpa terkecuali." },
+                  { title: "Tanpa Limit Data", desc: "Input transaksi, produk, dan gudang sebanyak yang Anda butuhkan." },
+                  { title: "AI Assistant Gratis", desc: "Konsultasi dengan CFO Virtual atau Planner AI tanpa batas harian." }
+                ].map((item, i) => (
+                  <div key={i} className="p-6 rounded-2xl bg-slate-50 border border-slate-100 text-left">
+                    <h4 className="font-black text-secondary mb-2">{item.title}</h4>
+                    <p className="text-sm text-muted-foreground font-medium">{item.desc}</p>
                   </div>
-                  <div className="relative bg-secondary rounded-3xl p-8 border border-primary shadow-2xl shadow-primary/20 flex flex-col">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
-                      Solusi Terbaik
-                    </div>
-                    <div className="mb-8">
-                      <h3 className="text-2xl font-black text-white">Tumbuhin Full</h3>
-                      <p className="text-sm font-bold text-slate-400 mt-1 mb-6">ERP Otonom & AI Analyst</p>
-                      <div className="flex items-end gap-2">
-                        <span className="text-5xl font-black text-white tracking-tighter">Rp 99rb</span>
-                        <span className="text-slate-400 font-bold mb-2">/ bulan</span>
-                      </div>
-                    </div>
-                    <div className="flex-grow space-y-4 mb-8 text-slate-200">
-                      {["Multi-Gudang & Transfer Stok", "Manajemen Staf & RBAC", "Accounting Engine Otomatis", "AI Business Analyst", "Laporan Keuangan Lengkap"].map((f, j) => (
-                        <div key={j} className="flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-primary" />
-                          <span className="font-bold">{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Link href="/register?type=business&tier=full">
-                      <Button className="w-full h-14 font-black rounded-xl text-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/30 border-none">
-                        Pilih Paket Full
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+                ))}
               </div>
+              
+              <Link href="/register">
+                <Button size="lg" className="h-16 px-12 text-xl bg-secondary hover:bg-secondary/90 font-black rounded-2xl shadow-xl shadow-secondary/20 text-white transition-all hover:scale-105">
+                  Mulai Gunakan Full Access
+                </Button>
+              </Link>
             </div>
           </div>
         </section>

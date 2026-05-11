@@ -1,6 +1,6 @@
 import { createClient } from '../supabase/client';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 const getHeaders = async () => {
   const supabase = createClient();
@@ -45,5 +45,54 @@ export const reportService = {
       headers: await getHeaders(),
     });
     return handleResponse(response, 'Failed to fetch income statement');
+  },
+
+  async getBalanceSheet(endDate?: string) {
+    const response = await fetch(`${BACKEND_URL}/api/v1/reports/balance-sheet?endDate=${endDate || ''}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response, 'Failed to fetch balance sheet');
+  },
+
+  async getCashFlow(startDate: string, endDate: string) {
+    const response = await fetch(`${BACKEND_URL}/api/v1/reports/cash-flow?startDate=${startDate}&endDate=${endDate}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response, 'Failed to fetch cash flow');
+  },
+
+  async getJournal(startDate: string, endDate: string) {
+    const response = await fetch(`${BACKEND_URL}/api/v1/reports/journal?startDate=${startDate}&endDate=${endDate}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response, 'Failed to fetch journal');
+  },
+
+  async getLedger(accountId: string, startDate: string, endDate: string) {
+    const response = await fetch(`${BACKEND_URL}/api/v1/reports/ledger?accountId=${accountId}&startDate=${startDate}&endDate=${endDate}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response, 'Failed to fetch ledger');
+  },
+
+  async getTrialBalance(endDate: string) {
+    const response = await fetch(`${BACKEND_URL}/api/v1/reports/trial-balance?endDate=${endDate}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response, 'Failed to fetch trial balance');
+  },
+
+  async getSalesReport(startDate?: string, endDate?: string) {
+    const response = await fetch(`${BACKEND_URL}/api/v1/reports/sales?startDate=${startDate || ''}&endDate=${endDate || ''}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response, 'Failed to fetch sales report');
+  },
+
+  async getStockReport() {
+    const response = await fetch(`${BACKEND_URL}/api/v1/reports/stock`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response, 'Failed to fetch stock report');
   }
 };

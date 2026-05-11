@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/api/api_provider.dart';
 import 'package:dio/dio.dart';
+import '../auth/providers/auth_provider.dart';
 
 class AiChatScreen extends ConsumerStatefulWidget {
   const AiChatScreen({super.key});
@@ -21,15 +22,25 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   @override
   void initState() {
     super.initState();
-    _messages.add({
-      'role': 'ai',
-      'text': 'Halo! Saya asisten finansial Anda. Ada yang bisa saya bantu hari ini?'
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final isPersonal = ref.read(authProvider).profile?.accountType == 'personal';
+      setState(() {
+        _messages.add({
+          'role': 'ai',
+          'text': isPersonal 
+              ? 'Halo! Saya asisten finansial pribadi Anda. Siap membantu mengatur anggaran dan menabung!' 
+              : 'Halo! Saya CFO Virtual Anda. Siap menganalisa performa dan strategi bisnis Anda!'
+        });
+      });
     });
   }
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+
+    final isPersonal = ref.read(authProvider).profile?.accountType == 'personal';
+    final endpoint = isPersonal ? '/api/v1/ai/personal/chat' : '/api/v1/ai/business/chat';
 
     setState(() {
       _messages.add({'role': 'user', 'text': text});
@@ -40,7 +51,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
     try {
       final dio = ref.read(apiClientProvider).dio;
-      final response = await dio.post('/api/v1/ai/personal/chat', data: {
+      final response = await dio.post(endpoint, data: {
         'prompt': text,
       });
 

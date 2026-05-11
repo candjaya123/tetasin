@@ -98,7 +98,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final productsAsync = ref.watch(inventoryProductsProvider);
     final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     final authState = ref.watch(authProvider);
-    final isFull = authState.tenant?.tier == 'full';
+    final isFull = true; // Always full in unified model
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -242,7 +242,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     gradient: const [Color(0xFFFF9A9E), Color(0xFFFAD0C4)],
                     onTap: () => context.push('/inventory/opname'),
                   ),
-                  if (isFull) ...[
                     const SizedBox(width: 12),
                     _QuickActionCard(
                       title: 'Transfer',
@@ -250,11 +249,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       gradient: const [Color(0xFF00B09B), Color(0xFF96C93D)],
                       onTap: () => context.push('/inventory/transfer'),
                     ),
-                  ],
-                  if (!isFull) ...[
-                    const SizedBox(width: 12),
-                    _UpgradeCard(onTap: () => context.push('/settings')),
-                  ],
                 ],
               ),
             ),

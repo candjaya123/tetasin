@@ -13,22 +13,21 @@ export class AutopilotService {
   ) {}
 
   /**
-   * Menjalankan pengecekan stok otomatis setiap tengah malam untuk Tier Pro.
+   * Menjalankan pengecekan stok otomatis setiap tengah malam untuk seluruh pengguna Full Access.
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runInventoryAutopilot() {
-    this.logger.log('Starting Inventory Autopilot check for Pro tenants...');
+    this.logger.log('Starting Inventory Autopilot check for all tenants (Full Access)...');
     const client = this.supabaseService.getClient();
 
-    // 1. Ambil tenant dengan tier Pro
-    const { data: proTenants } = await client
+    // 1. Ambil semua tenant (Autopilot kini untuk semua)
+    const { data: tenants } = await client
       .from('tenants')
-      .select('id')
-      .eq('subscription_tier', 'pro');
+      .select('id');
 
-    if (!proTenants) return;
+    if (!tenants) return;
 
-    for (const tenant of proTenants) {
+    for (const tenant of tenants) {
       try {
         await this.checkAndDraftPO(tenant.id);
       } catch (err) {

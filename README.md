@@ -2,144 +2,118 @@
 
 ![Tumbuhin Banner](https://via.placeholder.com/1200x400/FDB827/ffffff?text=Tumbuhin+ERP+Platform)
 
-Tumbuhin adalah platform **SaaS Enterprise Resource Planning (ERP)** terpadu yang dirancang untuk mendigitalkan dan mengotomatiskan operasional bisnis UMKM. Mulai dari Point of Sales (POS), manajemen inventaris multi-gudang, pengadaan (procurement), hingga pencatatan akuntansi (*double-entry bookkeeping*) yang didukung oleh kecerdasan buatan (AI).
-
-Visi utama dari Tumbuhin adalah **"Upload kwitansi → Otomatis jadi jurnal akuntansi"** dengan fitur *Business Health Score* dan sistem operasional yang sepenuhnya tersentralisasi.
+**Tumbuhin** adalah platform **Multi-Tenant SaaS Enterprise Resource Planning (ERP)** terpadu yang dirancang untuk mendigitalkan seluruh siklus operasional UMKM Indonesia. Dari manajemen kasir (POS), inventaris multi-gudang, pengadaan (procurement), hingga pencatatan akuntansi otomatis (*double-entry bookkeeping*) yang didukung oleh kecerdasan buatan (AI).
 
 ---
 
-## 🏗️ Arsitektur Sistem
+## 🏗️ Arsitektur & Teknologi
 
-Tumbuhin menggunakan arsitektur **Modular Monolith** dengan pendekatan **Clean Architecture**. Memisahkan logika bisnis inti di backend untuk memastikan konsistensi data di semua platform (Web & Mobile).
+Tumbuhin dibangun dengan prinsip **Modular Monolith** dan **Clean Architecture** untuk menjamin skalabilitas tanpa kompleksitas mikroservis yang berlebihan di tahap awal.
 
-*   **⚙️ Backend API**: NestJS (TypeScript) + BullMQ + PostgreSQL (Supabase)
-*   **💻 Web Dashboard**: Next.js 14 (App Router) + Tailwind CSS + Shadcn UI
-*   **📱 Mobile App**: Flutter (Dart) + Riverpod/Bloc + Clean Architecture
-*   **🧠 AI Engine**: Google Gemini 1.5 Flash (OCR & Financial Insights)
-*   **🗄️ Database & Auth**: Supabase (PostgreSQL + JWT Auth + RLS)
-*   **💳 Payment**: Midtrans Integration
+### ⚙️ Backend (NestJS)
+- **Framework**: NestJS (TypeScript)
+- **Pola**: Service-Repository Pattern (Strict Separation)
+- **Database**: PostgreSQL (via Supabase) + Drizzle/Raw SQL for complex aggregations.
+- **Queue**: BullMQ + Redis for asynchronous background jobs (AI Processing, Reports).
+- **Precision**: `Decimal.js` untuk seluruh kalkulasi finansial (Mencegah floating point errors).
+
+### 💻 Web Dashboard (Next.js)
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Tailwind CSS + Shadcn UI
+- **State**: React Query + Server Actions
+- **Roles**: Multi-tier dashboards (Owner, Manager, Cashier, Stock).
+
+### 📱 Mobile App (Flutter)
+- **Framework**: Flutter (Dart)
+- **State Management**: Riverpod
+- **Pattern**: Clean Architecture (Layered: Data -> Domain -> Presentation)
+- **Features**: POS, Receipt Scanner, Real-time stock updates.
+
+### 🧠 AI Engine (Google Gemini)
+- **Model**: Gemini 2.5 Flash
+- **Capabilities**: OCR Receipt Scanning, Natural Language Financial Chat (CFO), Intelligent restock recommendations.
 
 ---
 
-## 📂 Struktur Direktori
-
-Proyek ini terbagi menjadi tiga komponen utama:
+## 📂 Struktur Proyek
 
 ```text
 tumbuhin/
-├── backend/           # ⚙️ NestJS - Sentralisasi Logika Bisnis & Transaksi
-├── web/               # 💻 Next.js - Web Dashboard untuk Management & Reporting
-└── tumbuhin_flutter/  # 📱 Flutter - Aplikasi Mobile untuk POS & Operasional
+├── backend/           # ⚙️ NestJS - Business Logic, Accounting Engine, AI RAG
+├── web/               # 💻 Next.js - Admin & Manager Dashboard (ERP Hub)
+├── tumbuhin_flutter/  # 📱 Flutter - Mobile POS & Operational App
+└── docs/              # 📚 Technical Blueprints & Architectural Decisions
 ```
 
 ---
 
-## 🌟 Fitur Utama
+## 🌟 Fitur Utama (Core Domains)
 
-### 1. 🛒 Point of Sales (POS)
-Sistem kasir cerdas yang terintegrasi langsung dengan inventaris dan akuntansi.
-*   **Multi-Payment:** Tunai, QRIS, dan transfer.
-*   **Auto-Journaling:** Penjualan otomatis mencatat jurnal Debit/Kredit secara real-time.
+### 1. 🛒 Omnichannel POS
+Sistem kasir yang sinkron antara Web dan Mobile.
+- **Auto-Journaling**: Penjualan otomatis mencatat Debit (Kas) dan Kredit (Pendapatan/Persediaan).
+- **Tax & Promo**: Perhitungan pajak (PPN 11%) dan diskon secara deterministik.
 
-### 2. 📦 Manajemen Inventaris
-Kontrol pergerakan barang antar gudang.
-*   **Multi-Gudang:** Kelola stok di berbagai lokasi.
-*   **BOM (Bill of Materials):** Manajemen resep dan bahan baku otomatis.
+### 2. 📦 Inventaris & Produksi (BOM)
+- **Multi-Warehouse**: Pelacakan stok di berbagai lokasi fisik.
+- **Product Recipes (BOM)**: Penjualan produk jadi otomatis memotong stok bahan baku berdasarkan resep.
+- **Stock Opname & Transfer**: Alur validasi pergerakan barang yang ketat.
 
-### 3. 📈 Akuntansi Otomatis
-Sistem double-entry bookkeeping tingkat enterprise tanpa input manual rumit.
-*   **Laporan Real-time:** Neraca, Laba Rugi, dan Arus Kas tersedia seketika.
-*   **Akurasi Tinggi:** Validasi deterministik untuk memastikan balance.
+### 3. ⚖️ Akuntansi Double-Entry Standar ERP
+- **Engine Akuntansi**: Sistem Jurnal Umum, Buku Besar (Ledger), dan Neraca Saldo.
+- **Laporan Otomatis**: Laba Rugi, Neraca, dan Arus Kas dihasilkan secara real-time.
+- **Tenant Isolation**: Isolasi data berbasis `tenant_id` dan Supabase Row Level Security (RLS).
 
-### 4. 🤖 AI Assistant & OCR
-Virtual CFO untuk membantu menganalisis kesehatan bisnis Anda.
-*   **Smart OCR:** Foto kwitansi dan biarkan AI membuat draf jurnalnya.
-*   **Business Insights:** Tanya jawab dengan data keuangan Anda melalui AI Chat.
-
----
+### 4. 🤖 AI Virtual CFO
+- **"Upload Receipt → Journal"**: Scan struk fisik dan biarkan AI mengekstraksi data menjadi draft jurnal.
+- **Financial Advisory**: Analisis kesehatan bisnis berdasarkan data historis melalui chat.
 
 ---
 
-## 🚀 Panduan Instalasi & Konfigurasi
+## 👥 Profil Pengguna: Personal vs Bisnis
 
-### 1. Setup Backend (NestJS)
-Backend bertindak sebagai pusat logika bisnis dan pengolahan data.
-
-**Langkah-langkah:**
-1. Masuk ke direktori backend: `cd backend`
-2. Instal dependensi: `npm install`
-3. Buat file `.env` dan sesuaikan variabel berikut:
-
-```env
-PORT=8080
-# Supabase Configuration
-SUPABASE_URL="https://your-project.supabase.co"
-SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
-SUPABASE_JWT_SECRET="your-jwt-secret"
-
-# Database Direct Connection
-DATABASE_URL="postgresql://postgres:password@db.your-project.supabase.co:5432/postgres"
-
-# AI & External Services
-GEMINI_API_KEY="your-gemini-api-key"
-MIDTRANS_SERVER_KEY="your-midtrans-server-key"
-MIDTRANS_CLIENT_KEY="your-midtrans-client-key"
-
-# Queue Configuration (Redis)
-USE_MOCK_REDIS=true # Set false jika menggunakan Redis asli
-```
-
-4. Jalankan dalam mode pengembangan: `npm run start:dev`
+Platform ini mendukung dua mode penggunaan utama dalam satu basis kode:
+- **Mode Personal**: Fokus pada pelacakan pengeluaran sederhana, anggaran, dan arus kas pribadi.
+- **Mode Bisnis**: Full ERP suite termasuk inventaris, POS, dan akuntansi B2B lengkap.
 
 ---
 
-### 2. Setup Web Dashboard (Next.js)
-Dashboard manajemen untuk owner dan admin tenant.
+## 🛡️ Aturan Pengembangan (Strict Rules)
 
-**Langkah-langkah:**
-1. Masuk ke direktori web: `cd web`
-2. Instal dependensi: `npm install`
-3. Buat file `.env.local` dan sesuaikan variabel berikut:
+Bagi pengembang yang bergabung, wajib mematuhi aturan berikut (Detail di `docs/ai_rules.md`):
 
-```env
-NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
-NEXT_PUBLIC_BACKEND_URL="http://localhost:8080" # URL Backend API
-NEXT_PUBLIC_MIDTRANS_CLIENT_KEY="your-midtrans-client-key"
-```
-
-4. Jalankan dashboard: `npm run dev`
+1. **Service-Repository Pattern**: Controller dilarang memanggil Repository secara langsung. Gunakan Service sebagai orkestrator.
+2. **Database Isolation**: Seluruh kueri wajib menyertakan filter `tenant_id`. Data leak antar tenant adalah pelanggaran keamanan fatal.
+3. **Deterministic Calculations**: Jangan biarkan AI menghitung angka. Gunakan `Decimal.js` di backend untuk seluruh operasi matematika.
+4. **API First**: Mobile dan Web tidak boleh menulis langsung ke database (Bypass API). Seluruh mutasi data harus melalui Backend NestJS.
 
 ---
 
-### 3. Setup Mobile App (Flutter)
-Aplikasi mobile untuk operasional kasir (POS) dan scan inventaris.
+## 🚀 Instalasi Cepat
 
-**Langkah-langkah:**
-1. Pastikan Flutter SDK sudah terinstal (v3.x+).
-2. Masuk ke direktori: `cd tumbuhin_flutter`
-3. Instal dependensi: `flutter pub get`
-4. Buat file `.env` di root folder `tumbuhin_flutter/` (pastikan terdaftar di `assets` pada `pubspec.yaml`):
+### Prerequisites
+- Node.js v18+
+- Flutter SDK v3.10+
+- Redis (atau gunakan `USE_MOCK_REDIS=true` di .env)
+- Supabase Account
 
-```env
-SUPABASE_URL="https://your-project.supabase.co"
-SUPABASE_ANON_KEY="your-anon-key"
-BACKEND_URL="http://[IP_LOKAL_ANDA]:8080" # Gunakan IP lokal jika running di HP fisik
-```
+### Setup
+1. **Backend**: `cd backend && npm install && npm run start:dev`
+2. **Web**: `cd web && npm install && npm run dev`
+3. **Mobile**: `cd tumbuhin_flutter && flutter pub get && flutter run`
 
-5. Jalankan aplikasi:
-   *   Chrome (Web): `flutter run -d chrome`
-   *   Android/iOS: `flutter run`
+*Pastikan seluruh file `.env` sudah dikonfigurasi berdasarkan template di masing-masing folder.*
 
 ---
 
+## 🗺️ Roadmap & Status
+
+- [x] Phase 1: Core Modular Architecture
+- [x] Phase 2: Accounting Engine & Journaling
+- [x] Phase 3: AI CFO Integration (Gemini)
+- [x] Phase 4: Inventory BOM & Multi-Warehouse
+- [x] Phase 5: Personal vs Business Profile Split
+- [/] Phase 6: Final End-to-End Testing & Polish
+
 ---
-
-## 🛡️ Aturan Pengembangan (PENTING!)
-
-1.  **API Centralization**: Seluruh operasi penulisan data (CUD) **WAJIB** melalui Backend API. Mobile dan Web dilarang menulis langsung ke Database Supabase.
-2.  **Deterministic Logic**: Logika perhitungan keuangan dan stok harus dikelola oleh kode (deterministik), AI hanya digunakan untuk ekstraksi data dan wawasan.
-3.  **Clean Code**: Ikuti pola Clean Architecture yang sudah diterapkan di masing-masing modul.
-
----
-*Dibangun untuk merevolusi operasional UMKM Indonesia.* 🇮🇩
+*Dibuat untuk merevolusi UMKM Indonesia dengan teknologi Enterprise yang terjangkau.* 🇮🇩

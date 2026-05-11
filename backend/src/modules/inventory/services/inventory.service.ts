@@ -1,7 +1,6 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InventoryRepository } from '../repositories/inventory.repository';
 import { SupabaseService } from '../../../shared/supabase.service';
-import { SubscriptionTier } from '../../../core/auth/tier.enum';
 
 @Injectable()
 export class InventoryService {
@@ -96,34 +95,16 @@ export class InventoryService {
       query = query.ilike('name', `%${search.trim()}%`);
     }
 
-    console.log(`Fetching products for tenant ${tenantId} with search: ${search}`);
     const { data, error } = await query;
-    if (error) {
-      console.error('Error fetching products:', error);
-      throw error;
-    }
-    console.log(`Found ${data?.length || 0} products`);
+    if (error) throw error;
     return data;
   }
-
 
   async createProductWithRecipe(user: any, data: any) {
     const client = this.supabaseService.getClient();
     const { p_name, p_selling_price, p_recipe, p_barcode, p_image_url, p_stock } = data;
     const tenantId = user.tenant_id;
 
-    if (user.tier === SubscriptionTier.TRIAL) {
-      const { count, error: countError } = await client
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId);
-      
-      if (countError) throw countError;
-      if (count && count >= 150) {
-        throw new ForbiddenException('Limit 150 produk tercapai untuk Tier FREE. Silakan upgrade ke Tier BUSINESS.');
-      }
-    }
-    
     const { data: product, error: prodError } = await client
       .from('products')
       .insert({
@@ -172,7 +153,6 @@ export class InventoryService {
     const client = this.supabaseService.getClient();
     const { p_name, p_selling_price, p_recipe, p_barcode, p_image_url, p_stock } = data;
     
-    // 1. Update Product
     const { error: prodError } = await client
       .from('products')
       .update({
@@ -188,16 +168,12 @@ export class InventoryService {
     
     if (prodError) throw prodError;
 
-    // 2. Delete existing recipe
-    const { error: delError } = await client
+    await client
       .from('product_recipes')
       .delete()
       .eq('product_id', productId)
       .eq('tenant_id', tenantId);
-      
-    if (delError) throw delError;
 
-    // 3. Insert new recipe
     if (p_recipe && p_recipe.length > 0) {
       const recipeData = p_recipe.map((r: any) => ({
         tenant_id: tenantId,
@@ -215,7 +191,6 @@ export class InventoryService {
 
   async deleteProduct(id: string, tenantId: string) {
     const client = this.supabaseService.getClient();
-    console.log(`Deleting product ${id} for tenant ${tenantId}`);
     const { error, count } = await client
       .from('products')
       .delete({ count: 'exact' })
@@ -223,11 +198,7 @@ export class InventoryService {
       .eq('tenant_id', tenantId);
     
     if (error) throw error;
-    if (count === 0) {
-      console.error(`Product ${id} not found or doesn't belong to tenant ${tenantId}`);
-      throw new Error('Produk tidak ditemukan atau Anda tidak memiliki akses.');
-    }
-    console.log(`Product ${id} deleted successfully`);
+    if (count === 0) throw new Error('Produk tidak ditemukan atau Anda tidak memiliki akses.');
   }
 
   async getBills(tenantId: string) {
@@ -330,9 +301,6 @@ export class InventoryService {
 
   async stockTransfer(tenantId: string, payload: any) {
     const client = this.supabaseService.getClient();
-    // Assuming you have an RPC or table for stock transfers
-    // For now we just insert into a `stock_transfers` log or update stock directly
-    // This requires an RPC 'transfer_stock' on the database
     const { error } = await client.rpc('transfer_stock', {
       p_tenant_id: tenantId,
       p_from_warehouse: payload.from_warehouse_id,
@@ -347,7 +315,6 @@ export class InventoryService {
 
   async stockOpname(tenantId: string, payload: any) {
     const client = this.supabaseService.getClient();
-    // Assuming an RPC 'stock_opname' to adjust physical vs system stock
     const { error } = await client.rpc('stock_opname', {
       p_tenant_id: tenantId,
       p_warehouse_id: payload.warehouse_id,

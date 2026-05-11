@@ -178,7 +178,7 @@ class _OrderCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '#${order.id.substring(0, 8).toUpperCase()}',
+                    '#${(order.id.length > 8 ? order.id.substring(0, 8) : order.id).toUpperCase()}',
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 16,

@@ -52,6 +52,11 @@ final coaProvider = FutureProvider<List<dynamic>>((ref) async {
   return ref.watch(reportServiceProvider).getCOA();
 });
 
+final cashFlowProvider = FutureProvider<List<CashFlowItem>>((ref) async {
+  final range = ref.watch(reportDateRangeProvider);
+  return ref.watch(reportServiceProvider).getCashFlow(start: range.start, end: range.end);
+});
+
 // Filter state
 final reportDateRangeProvider = StateProvider<({DateTime start, DateTime end})>((ref) {
   final now = DateTime.now();

@@ -126,6 +126,18 @@ class TransactionsScreen extends ConsumerWidget {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const AddTransactionBottomSheet(),
+          );
+        },
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add_rounded, size: 28, color: AppColors.onPrimary),
+      ),
     );
   }
 }

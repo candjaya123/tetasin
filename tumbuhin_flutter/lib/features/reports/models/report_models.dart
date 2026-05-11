@@ -199,13 +199,62 @@ class BalanceSheetItem {
 
   factory BalanceSheetItem.fromJson(Map<String, dynamic> json) {
     return BalanceSheetItem(
-      accountId: json['account_id'],
-      code: json['code'],
-      name: json['name'],
-      type: json['type'],
+      accountId: json['account_id'] ?? '',
+      code: json['code'] ?? '',
+      name: json['name'] ?? '',
+      type: json['type'] ?? '',
       totalDebit: (json['total_debit'] ?? 0.0).toDouble(),
       totalCredit: (json['total_credit'] ?? 0.0).toDouble(),
       currentBalance: (json['current_balance'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
+class CashFlowItem {
+  final String id;
+  final DateTime date;
+  final String description;
+  final double inflow;
+  final double outflow;
+
+  CashFlowItem({
+    required this.id,
+    required this.date,
+    required this.description,
+    required this.inflow,
+    required this.outflow,
+  });
+
+  factory CashFlowItem.fromJson(Map<String, dynamic> json) {
+    return CashFlowItem(
+      id: json['id'] ?? '',
+      date: DateTime.parse(json['date'] ?? json['created_at']),
+      description: json['description'] ?? '',
+      inflow: (json['inflow'] ?? 0.0).toDouble(),
+      outflow: (json['outflow'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
+class PersonalSummary {
+  final double totalInflow;
+  final double totalOutflow;
+  final double netCashFlow;
+  final int transactionCount;
+
+  PersonalSummary({
+    required this.totalInflow,
+    required this.totalOutflow,
+    required this.netCashFlow,
+    required this.transactionCount,
+  });
+
+  factory PersonalSummary.fromJson(Map<String, dynamic> json) {
+    return PersonalSummary(
+      totalInflow: (json['total_inflow'] ?? 0.0).toDouble(),
+      totalOutflow: (json['total_outflow'] ?? 0.0).toDouble(),
+      netCashFlow: (json['net_cash_flow'] ?? 0.0).toDouble(),
+      transactionCount: json['transaction_count'] ?? 0,
     );
   }
 }

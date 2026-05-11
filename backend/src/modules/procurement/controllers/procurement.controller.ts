@@ -1,8 +1,6 @@
 import { Controller, Get, Post, Body, Request, UseGuards } from '@nestjs/common';
 import { SupabaseService } from '../../../shared/supabase.service';
 import { JwtAuthGuard } from '../../business-profile/guards/jwt-auth.guard';
-import { RequireTier } from '../../../core/auth/tier.decorator';
-import { SubscriptionTier } from '../../../core/auth/tier.enum';
 
 @Controller('api/v1/procurement')
 @UseGuards(JwtAuthGuard)
@@ -10,7 +8,6 @@ export class ProcurementController {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   @Get('drafts')
-  @RequireTier(SubscriptionTier.FULL)
   async getDrafts(@Request() req: any) {
     const client = this.supabaseService.getClient();
     const { data, error } = await client
@@ -34,7 +31,6 @@ export class ProcurementController {
   }
 
   @Post('approve-draft')
-  @RequireTier(SubscriptionTier.FULL)
   async approveDraft(@Request() req: any, @Body() payload: any) {
     const client = this.supabaseService.getClient();
 

@@ -8,7 +8,6 @@ import { PassportModule } from '@nestjs/passport';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { SupabaseService } from './shared/supabase.service';
-import { TierGuard } from './core/auth/tier.guard';
 import { RoleGuard } from './core/auth/role.guard';
 import { JwtAuthGuard } from './modules/business-profile/guards/jwt-auth.guard';
 import { SalesModule } from './modules/sales/sales.module';
@@ -78,10 +77,6 @@ import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: TierGuard,
     },
     {
       provide: APP_GUARD,

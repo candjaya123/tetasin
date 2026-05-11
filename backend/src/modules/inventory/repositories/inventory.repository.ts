@@ -72,4 +72,16 @@ export class InventoryRepository {
     });
     if (error) throw error;
   }
+
+  async getStockReport(tenantId: string) {
+    const client = this.supabaseService.getClient();
+    const { data, error } = await client
+      .from('products')
+      .select('id, name, sku, stock, price')
+      .eq('tenant_id', tenantId)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data;
+  }
 }

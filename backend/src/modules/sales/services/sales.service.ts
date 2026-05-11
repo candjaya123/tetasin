@@ -7,9 +7,6 @@ import { AccountingRepository } from '../../accounting/repositories/accounting.r
 import { UnitOfWork } from '../../../core/database/unit-of-work';
 import { EventBusService } from '../../../core/events/event-bus.service';
 import { SupabaseService } from '../../../shared/supabase.service';
-import { SubscriptionTier } from '../../../core/auth/tier.enum';
-import { ForbiddenException } from '@nestjs/common';
-
 @Injectable()
 export class SalesService {
   private readonly logger = new Logger(SalesService.name);
@@ -25,24 +22,6 @@ export class SalesService {
 
   async processSale(user: any, payload: ProcessSaleDto) {
     const client = this.supabaseService.getClient();
-
-    if (user.tier === SubscriptionTier.TRIAL) {
-      const firstDayOfMonth = new Date();
-      firstDayOfMonth.setDate(1);
-      firstDayOfMonth.setHours(0, 0, 0, 0);
-
-      const { count, error: countError } = await client
-        .from('journal_entries')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', user.tenant_id)
-        .gte('created_at', firstDayOfMonth.toISOString());
-
-      if (countError) throw countError;
-      if (count && count >= 500) {
-        throw new ForbiddenException('Limit 500 transaksi per bulan tercapai untuk Tier STARTER. Silakan upgrade ke Tier BUSINESS.');
-      }
-    }
-
     payload.entity_id = user.entity_id || user.tenant_id;
     console.log(`Processing sale for user: ${user.id}, tenant: ${payload.entity_id}`);
 
@@ -88,7 +67,7 @@ export class SalesService {
         const itemsToProcess = [];
 
         for (const item of payload.items) {
-          totalSaleAmount += item.price * item.quantity;
+          totalSaleAmount += (Number(item.price) * Number(item.quantity));
           console.log(`Fetching product data for: ${item.product_id}`);
           const product = await this.inventoryRepository.getProductWithRecipe(
             item.product_id,
@@ -136,8 +115,8 @@ export class SalesService {
         for (const { item, product } of itemsToProcess) {
           if (product.product_recipes) {
             for (const recipe of product.product_recipes) {
-              const requiredQty = recipe.quantity_needed * item.quantity;
-              const materialHpp = recipe.raw_materials.unit_price * requiredQty;
+              const requiredQty = Number(recipe.quantity_needed) * Number(item.quantity);
+              const materialHpp = Number(recipe.raw_materials.unit_price) * requiredQty;
               totalHppAmount += materialHpp;
 
               console.log(`Deducting ${requiredQty} of ${recipe.raw_material_id}`);
@@ -146,14 +125,15 @@ export class SalesService {
           }
         }
 
-        const totalNetSale = totalSaleAmount - (payload.discount_amount || 0);
+        const discountAmount = Number(payload.discount_amount || 0);
+        const totalNetSale = totalSaleAmount - discountAmount;
         const journalLines = [];
 
         journalLines.push({ account_id: paymentAccountId, debit: totalNetSale, credit: 0 });
         journalLines.push({ account_id: revenueAccountId, debit: 0, credit: totalSaleAmount });
 
-        if (payload.discount_amount && discountAccountId) {
-          journalLines.push({ account_id: discountAccountId, debit: payload.discount_amount, credit: 0 });
+        if (discountAmount > 0 && discountAccountId) {
+          journalLines.push({ account_id: discountAccountId, debit: discountAmount, credit: 0 });
         }
 
         if (totalHppAmount > 0) {
@@ -164,15 +144,13 @@ export class SalesService {
         }
 
         console.log('Creating journal entry...');
-        const transactionData = {
-          tenant_id: payload.entity_id,
-          reference_number: `POS-${Date.now()}`,
-          transaction_type: 'sales',
-          description: `Penjualan POS #${payload.items.length} item`,
-        };
-        const journal = await this.accountingRepository.createTransactionWithLines(
-          transactionData,
-          journalLines,
+        const journal = await this.accountingService.createJournalEntry(
+          payload.entity_id as string,
+          {
+            reference_number: `POS-${Date.now()}`,
+            description: `Penjualan POS #${payload.items.length} item`,
+            lines: journalLines,
+          },
           dbClient
         );
 
@@ -181,7 +159,7 @@ export class SalesService {
         console.log('Emitting SaleCreated event...');
         try {
           await this.eventBus.emit({
-            tenant_id: payload.entity_id,
+            tenant_id: payload.entity_id as string,
             event_type: 'SaleCreated',
             payload: { journalId: journal.id, totalAmount: totalSaleAmount },
           });

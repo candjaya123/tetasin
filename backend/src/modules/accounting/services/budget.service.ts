@@ -67,7 +67,7 @@ export class BudgetService {
     const start = `${month}-01`;
     const end = `${month}-31`;
 
-    const results = await Promise.all(budgets.map(async (budget) => {
+    const results = await Promise.all((budgets as any[]).map(async (budget) => {
       let current_spent = 0;
 
       try {
@@ -86,7 +86,7 @@ export class BudgetService {
           .lte(`journal_entries.${dateCol}`, end);
 
         if (!lineError && lines) {
-          current_spent = lines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0);
+          current_spent = (lines as any[]).reduce((sum, line: any) => sum + (Number(line.debit) || 0), 0);
         }
       } catch (e) {
         this.logger.warn(`Failed to calculate spending for account ${budget.account_id}: ${e.message}`);
@@ -216,7 +216,7 @@ export class BudgetService {
       .gte(`journal_entries.${dateCol}`, start)
       .lte(`journal_entries.${dateCol}`, end);
 
-    const current_spent = lines?.reduce((sum, line) => sum + (Number(line.debit) || 0), 0) || 0;
+    const current_spent = ((lines as any[]) || []).reduce((sum, line: any) => sum + (Number(line.debit) || 0), 0);
     const percentage = budget.limit_amount > 0 ? (current_spent / budget.limit_amount) * 100 : 0;
 
     if (percentage >= 80) {

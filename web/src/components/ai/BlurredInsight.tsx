@@ -1,46 +1,34 @@
 'use client';
 
 import React from 'react';
-import { Lock, Zap } from 'lucide-react';
+import { Zap, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface BlurredInsightProps {
   title: string;
-  teaserText: string;
-  lockedText: string;
-  tierRequired: 'Business' | 'Pro';
+  content: string; // Changed from teaserText/lockedText
 }
 
 export const BlurredInsight: React.FC<BlurredInsightProps> = ({
   title,
-  teaserText,
-  lockedText,
-  tierRequired,
+  content,
 }) => {
   return (
-    <Card className="relative overflow-hidden border-amber-200 bg-amber-50/30">
+    <Card className="relative overflow-hidden border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors group">
+      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+        <Sparkles className="w-12 h-12 text-primary" />
+      </div>
       <CardContent className="p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="w-4 h-4 text-amber-600" />
-          <h4 className="font-bold text-amber-900 text-sm uppercase tracking-wider">{title}</h4>
-        </div>
-        
-        <p className="text-slate-800 font-medium mb-2">{teaserText}</p>
-        
-        <div className="relative">
-          <p className="text-slate-400 blur-[4px] select-none">
-            {lockedText}
-          </p>
-          
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl shadow-sm border border-amber-100 flex items-center gap-2">
-              <Lock className="w-3 h-3 text-amber-600" />
-              <span className="text-xs font-bold text-amber-900">
-                Upgrade ke {tierRequired} untuk membuka analisa ini
-              </span>
-            </div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 bg-primary/20 rounded-lg text-primary">
+            <Zap className="w-4 h-4" />
           </div>
+          <h4 className="font-black text-primary text-xs uppercase tracking-[0.2em]">{title}</h4>
         </div>
+        
+        <p className="text-slate-700 font-bold leading-relaxed">
+          {content}
+        </p>
       </CardContent>
     </Card>
   );

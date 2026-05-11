@@ -35,12 +35,22 @@ export class JwtAuthGuard implements CanActivate {
         app_metadata: payload.app_metadata
       };
 
-      // Fetch and inject tenant_id and account_type globally for all controllers
+      // Fetch and inject tenant_id, account_type, and tier globally for all controllers
       const client = this.supabaseService.getClient();
-      const { data: profile } = await client.from('profiles').select('tenant_id, account_type').eq('id', payload.sub).single();
+      const { data: profile, error: profileError } = await client
+        .from('profiles')
+        .select('tenant_id, account_type, role')
+        .eq('id', payload.sub)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('JwtAuthGuard: Profile fetch error:', profileError);
+      }
+      
       if (profile) {
         request.user.tenant_id = profile.tenant_id;
-        request.user.account_type = profile.account_type;
+        request.user.account_type = profile.account_type || 'business';
+        request.user.role = profile.role || 'owner';
       }
       
       return true;

@@ -54,61 +54,61 @@ export default function InventoryPage() {
   return (
     <div className="space-y-8 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Manajemen Inventaris</h1>
-          <p className="text-slate-500 font-medium">Kelola stok barang dan resep produk jualan Anda.</p>
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Manajemen Inventaris</h1>
+          <p className="text-sm sm:text-base text-slate-500 font-medium">Kelola stok barang dan resep produk jualan Anda.</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Link href="/tenant/inventory/transfer">
-            <Button variant="outline" className="flex gap-2 rounded-xl border-slate-200 font-bold">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          <Link href="/tenant/inventory/transfer" className="flex-grow sm:flex-grow-0">
+            <Button variant="outline" className="w-full flex gap-2 rounded-xl border-slate-200 font-bold text-xs sm:text-sm h-10 sm:h-11">
               <ArrowRightLeft className="w-4 h-4" />
-              Transfer
+              <span className="hidden xs:inline">Transfer</span>
+              <span className="xs:hidden">Tf</span>
             </Button>
           </Link>
-          <Link href="/tenant/inventory/warehouses">
-            <Button variant="outline" className="flex gap-2 rounded-xl border-slate-200 font-bold">
+          <Link href="/tenant/inventory/warehouses" className="flex-grow sm:flex-grow-0">
+            <Button variant="outline" className="w-full flex gap-2 rounded-xl border-slate-200 font-bold text-xs sm:text-sm h-10 sm:h-11">
               <MapPin className="w-4 h-4" />
               Gudang
             </Button>
           </Link>
           <Button 
-            className="flex gap-2 bg-primary hover:bg-primary/90 rounded-xl font-bold shadow-lg"
+            className="flex-grow sm:flex-grow-0 flex gap-2 bg-primary hover:bg-primary/90 rounded-xl font-bold shadow-lg text-xs sm:text-sm h-10 sm:h-11"
             onClick={() => setIsAddModalOpen(true)}
           >
             <Plus className="w-4 h-4" />
-            Tambah Produk
+            Produk
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-none shadow-sm bg-primary/5">
-          <CardContent className="p-6">
-            <p className="text-xs font-black uppercase tracking-widest text-primary/60 mb-1">Total Produk</p>
-            <p className="text-3xl font-black text-primary">{products.length}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <Card className="border-none shadow-sm bg-primary/5 rounded-[1.5rem]">
+          <CardContent className="p-5 sm:p-6">
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Produk</p>
+            <p className="text-2xl sm:text-3xl font-black text-primary">{products.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-sm bg-slate-50">
-          <CardContent className="p-6">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Produk dg Resep</p>
-            <p className="text-3xl font-black text-slate-700">
+        <Card className="border-none shadow-sm bg-slate-50 rounded-[1.5rem]">
+          <CardContent className="p-5 sm:p-6">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Produk dg Resep</p>
+            <p className="text-2xl sm:text-3xl font-black text-slate-700">
               {products.filter(p => p.product_recipes?.length > 0).length}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-sm bg-slate-50">
-          <CardContent className="p-6">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Total Kategori</p>
-            <p className="text-3xl font-black text-slate-700">
+        <Card className="border-none shadow-sm bg-slate-50 rounded-[1.5rem]">
+          <CardContent className="p-5 sm:p-6">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Kategori</p>
+            <p className="text-2xl sm:text-3xl font-black text-slate-700">
               {new Set(products.map(p => p.category).filter(Boolean)).size || 1}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-none shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden">
-        <CardHeader className="bg-white border-b border-slate-50 flex flex-row items-center justify-between">
-          <CardTitle className="text-lg font-black text-slate-800">Daftar Barang & Produk</CardTitle>
+        <CardHeader className="bg-white border-b border-slate-50 flex flex-row items-center justify-between p-5 sm:p-6">
+          <CardTitle className="text-base sm:text-lg font-black text-slate-800">Daftar Barang & Produk</CardTitle>
           <Button variant="ghost" size="sm" className="gap-2 text-slate-400">
             <Filter className="w-4 h-4" />
             Filter
@@ -118,11 +118,11 @@ export default function InventoryPage() {
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow className="border-none">
-                <TableHead className="font-black text-slate-400 uppercase tracking-widest text-[10px] pl-6">Nama Produk</TableHead>
-                <TableHead className="font-black text-slate-400 uppercase tracking-widest text-[10px]">Barcode</TableHead>
-                <TableHead className="font-black text-slate-400 uppercase tracking-widest text-[10px]">Resep</TableHead>
-                <TableHead className="font-black text-slate-400 uppercase tracking-widest text-[10px] text-right">Harga Jual</TableHead>
-                <TableHead className="font-black text-slate-400 uppercase tracking-widest text-[10px] text-right pr-6"></TableHead>
+                <TableHead className="font-black text-slate-400 uppercase tracking-widest text-[9px] sm:text-[10px] pl-4 sm:pl-6">Nama Produk</TableHead>
+                <TableHead className="hidden xs:table-cell font-black text-slate-400 uppercase tracking-widest text-[9px] sm:text-[10px]">Barcode</TableHead>
+                <TableHead className="hidden sm:table-cell font-black text-slate-400 uppercase tracking-widest text-[9px] sm:text-[10px]">Resep</TableHead>
+                <TableHead className="font-black text-slate-400 uppercase tracking-widest text-[9px] sm:text-[10px] text-right">Harga Jual</TableHead>
+                <TableHead className="font-black text-slate-400 uppercase tracking-widest text-[9px] sm:text-[10px] text-right pr-4 sm:pr-6"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -150,18 +150,18 @@ export default function InventoryPage() {
               ) : (
                 products.map((p) => (
                   <TableRow key={p.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
-                    <TableCell className="py-4 pl-6">
+                    <TableCell className="py-3 sm:py-4 pl-4 sm:pl-6">
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-700">{p.name}</span>
-                        <span className="text-[10px] text-slate-400 uppercase tracking-tight">{p.category || 'General'}</span>
+                        <span className="font-bold text-slate-700 text-xs sm:text-sm">{p.name}</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-tight">{p.category || 'General'}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <code className="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">
+                    <TableCell className="hidden xs:table-cell">
+                      <code className="text-[9px] sm:text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">
                         {p.barcode || 'N/A'}
                       </code>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-1">
                         <div className={`w-2 h-2 rounded-full ${p.product_recipes?.length > 0 ? 'bg-green-500' : 'bg-slate-300'}`} />
                         <span className="text-xs font-bold text-slate-500">
@@ -169,11 +169,11 @@ export default function InventoryPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-black text-slate-700">
+                    <TableCell className="text-right font-black text-slate-700 text-xs sm:text-sm">
                       Rp {p.selling_price?.toLocaleString() || p.price?.toLocaleString() || 0}
                     </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <Button variant="ghost" size="icon" className="hover:bg-slate-100 rounded-lg">
+                    <TableCell className="text-right pr-4 sm:pr-6">
+                      <Button variant="ghost" size="icon" className="hover:bg-slate-100 rounded-lg w-8 h-8 sm:w-10 sm:h-10">
                         <MoreHorizontal className="w-4 h-4 text-slate-400" />
                       </Button>
                     </TableCell>

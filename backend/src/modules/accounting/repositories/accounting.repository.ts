@@ -233,11 +233,11 @@ export class AccountingRepository {
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false });
 
-    if (startDate) query = query.gte('date', startDate);
-    if (endDate) query = query.lte('date', endDate);
+    if (startDate && startDate.length >= 10) query = query.gte('date', startDate.slice(0, 10));
+    if (endDate && endDate.length >= 10) query = query.lte('date', endDate.slice(0, 10));
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     return data;
   }
 
@@ -322,11 +322,188 @@ export class AccountingRepository {
         expenses,
         net_profit: revenue - expenses,
         low_stock_count: lowStockCount,
-        expense_ratio: revenue > 0 ? (expenses / revenue) : 0
+        expense_ratio: revenue > 0 ? expenses / revenue : 0
       };
     } catch (globalErr) {
       console.error('Global error in getReportSummary:', globalErr.message);
       return { revenue: 0, expenses: 0, net_profit: 0, low_stock_count: 0, expense_ratio: 0 };
     }
+  }
+
+  async getAccountBalances(tenantId: string, startDate?: string, endDate?: string) {
+    const pool = this.supabaseService.getPool();
+    if (!pool) throw new Error('Database pool not available for aggregation');
+
+    const query = `
+      SELECT 
+        a.id, a.code, a.name, a.type,
+        SUM(jl.debit) as total_debit,
+        SUM(jl.credit) as total_credit
+      FROM chart_of_accounts a
+      LEFT JOIN journal_lines jl ON a.id = jl.account_id
+      LEFT JOIN journal_entries je ON jl.entry_id = je.id
+      WHERE a.tenant_id = $1 
+        AND (je.date >= $2 OR $2 IS NULL)
+        AND (je.date <= $3 OR $3 IS NULL)
+      GROUP BY a.id, a.code, a.name, a.type
+      ORDER BY a.code ASC
+    `;
+
+    const res = await pool.query(query, [tenantId, startDate || null, endDate || null]);
+    return res.rows.map(row => ({
+      ...row,
+      total_debit: row.total_debit || '0',
+      total_credit: row.total_credit || '0'
+    }));
+  }
+
+  async getAccountBalanceAtDate(tenantId: string, accountId: string, date: string) {
+    const pool = this.supabaseService.getPool();
+    if (!pool) throw new Error('Database pool not available');
+
+    const query = `
+      SELECT 
+        SUM(jl.debit) - SUM(jl.credit) as balance
+      FROM journal_lines jl
+      JOIN journal_entries je ON jl.entry_id = je.id
+      WHERE je.tenant_id = $1 
+        AND jl.account_id = $2
+        AND je.date < $3
+    `;
+
+    const res = await pool.query(query, [tenantId, accountId, date]);
+    return res.rows[0]?.balance || 0;
+  }
+
+  async getAccountingAccounts(tenantId: string) {
+    const client = this.supabaseService.getClient();
+    const { data, error } = await client
+      .from('chart_of_accounts')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('code', { ascending: true });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getSalesReport(tenantId: string, startDate?: string, endDate?: string) {
+    const client = this.supabaseService.getClient();
+    let query = client
+      .from('journal_entries')
+      .select(`
+        id,
+        created_at,
+        reference_doc,
+        description,
+        journal_lines!inner (
+          debit,
+          credit,
+          chart_of_accounts!inner (
+            code
+          )
+        )
+      `)
+      .eq('tenant_id', tenantId)
+      .ilike('journal_lines.chart_of_accounts.code', '4%') // All revenue
+      .order('created_at', { ascending: false });
+
+    if (startDate) query = query.gte('created_at', startDate);
+    if (endDate) query = query.lte('created_at', endDate);
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async getJournalEntriesWithLines(tenantId: string, startDate: string, endDate: string) {
+    const client = this.supabaseService.getClient();
+    const { data, error } = await client
+      .from('journal_entries')
+      .select(`
+        id,
+        date,
+        description,
+        reference_number,
+        journal_lines (
+          id,
+          account_id,
+          debit,
+          credit,
+          chart_of_accounts (
+            name,
+            code
+          )
+        )
+      `)
+      .eq('tenant_id', tenantId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getLedgerLines(tenantId: string, accountId: string, startDate: string, endDate: string) {
+    const client = this.supabaseService.getClient();
+    const { data, error } = await client
+      .from('journal_lines')
+      .select(`
+        id,
+        debit,
+        credit,
+        journal_entries!inner (
+          date,
+          description,
+          reference_number
+        )
+      `)
+      .eq('account_id', accountId)
+      .eq('journal_entries.tenant_id', tenantId)
+      .gte('journal_entries.date', startDate)
+      .lte('journal_entries.date', endDate)
+      .order('journal_entries.date', { ascending: true });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async createAccount(tenantId: string, accountData: any) {
+    const client = this.supabaseService.getClient();
+    const { data, error } = await client
+      .from('chart_of_accounts')
+      .insert({ ...accountData, tenant_id: tenantId })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateAccount(tenantId: string, accountId: string, accountData: any) {
+    const client = this.supabaseService.getClient();
+    const { data, error } = await client
+      .from('chart_of_accounts')
+      .update(accountData)
+      .eq('id', accountId)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteAccount(tenantId: string, accountId: string) {
+    const client = this.supabaseService.getClient();
+    const { error } = await client
+      .from('chart_of_accounts')
+      .delete()
+      .eq('id', accountId)
+      .eq('tenant_id', tenantId);
+
+    if (error) throw error;
+    return true;
   }
 }

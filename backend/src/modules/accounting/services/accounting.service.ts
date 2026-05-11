@@ -1,11 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { SupabaseService } from '../../../shared/supabase.service';
 import { AccountingRepository } from '../repositories/accounting.repository';
+import { Decimal } from 'decimal.js';
 
 @Injectable()
 export class AccountingService {
   private readonly logger = new Logger(AccountingService.name);
 
-  constructor(private readonly accountingRepository: AccountingRepository) {}
+  constructor(
+    private readonly accountingRepository: AccountingRepository,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
   /**
    * Menghasilkan entri jurnal double-entry.
@@ -16,17 +21,21 @@ export class AccountingService {
     reference_number: string;
     description: string;
     lines: { account_id: string; debit: number; credit: number }[];
-  }) {
+  }, dbClient?: any) {
     this.logger.log(`Creating journal entry for tenant: ${tenantId}, ref: ${payload.reference_number}`);
 
     // 1. Validasi Persamaan Dasar Akuntansi (Debit == Kredit)
-    const totalDebit = payload.lines.reduce((sum, line) => sum + (line.debit || 0), 0);
-    const totalCredit = payload.lines.reduce((sum, line) => sum + (line.credit || 0), 0);
+    let totalDebit = new Decimal(0);
+    let totalCredit = new Decimal(0);
 
-    // Gunakan toleransi kecil untuk floating point
-    if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      this.logger.error(`Journal imbalance: Debit (${totalDebit}) != Credit (${totalCredit})`);
-      throw new Error(`Entri jurnal tidak seimbang: Debit (${totalDebit}) != Kredit (${totalCredit})`);
+    payload.lines.forEach(line => {
+      totalDebit = totalDebit.plus(new Decimal(line.debit || 0));
+      totalCredit = totalCredit.plus(new Decimal(line.credit || 0));
+    });
+
+    if (!totalDebit.equals(totalCredit)) {
+      this.logger.error(`Journal imbalance: Debit (${totalDebit.toString()}) != Credit (${totalCredit.toString()})`);
+      throw new Error(`Entri jurnal tidak seimbang: Debit (${totalDebit.toString()}) != Kredit (${totalCredit.toString()})`);
     }
 
     // 2. Simpan via Repository
@@ -36,7 +45,8 @@ export class AccountingService {
         reference_number: payload.reference_number,
         description: payload.description,
       },
-      payload.lines
+      payload.lines,
+      dbClient
     );
 
     return entry;
@@ -45,8 +55,8 @@ export class AccountingService {
   /**
    * Menginisialisasi COA untuk tenant baru berdasarkan master table di DB
    */
-  async initializeCOA(tenantId: string, tier: string, industry?: string, scale?: string, accountType: string = 'business') {
-    this.logger.log(`Initializing COA for tenant: ${tenantId}, tier: ${tier}, industry: ${industry}, scale: ${scale}, type: ${accountType}`);
+  async initializeCOA(tenantId: string, industry?: string, scale?: string, accountType: string = 'business') {
+    this.logger.log(`Initializing COA for tenant: ${tenantId}, industry: ${industry}, scale: ${scale}, type: ${accountType}`);
     
     const client = this.accountingRepository.getClient();
     
@@ -114,12 +124,6 @@ export class AccountingService {
           (code.startsWith('2-2') && normalBalance === 'credit') // Hutang Jangka Panjang
         )) {
           continue;
-        }
-
-        // 4. Tier filtering (Legacy fallback)
-        if (tier === 'starter' && !industry) {
-          const importantCodes = ['1-10000', '1-10002', '1-10003', '4-40000', '4-40001', '6-60000', '6-60100', '6-60200'];
-          if (!importantCodes.includes(code)) continue;
         }
 
         accountsToInsert.push({

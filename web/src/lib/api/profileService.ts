@@ -1,6 +1,6 @@
 import { createClient } from '../supabase/client';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 const getHeaders = async () => {
   const supabase = createClient();

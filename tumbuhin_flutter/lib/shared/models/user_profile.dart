@@ -7,6 +7,7 @@ enum UserRole {
   manager,
   kasir,
   stok,
+  personal,
 }
 
 @freezed

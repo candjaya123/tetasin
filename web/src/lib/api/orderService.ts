@@ -20,7 +20,7 @@ export const orderService = {
     });
     
     if (response.status === 403) {
-      return []; // Return empty array for lower tiers
+      return []; 
     }
     
     if (!response.ok) throw new Error(`Failed to fetch ${type} orders`);

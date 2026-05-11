@@ -200,21 +200,22 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildTierCard(BuildContext context, Tenant? tenant, bool isPersonal) {
-    final isFull = tenant?.tier == 'full';
+    // Transition to unified model: everything is Full
+    const isFull = true; 
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isFull ? [AppColors.black, const Color(0xFF2D2D2D)] : [AppColors.primary, const Color(0xFFFEDD33)],
+        gradient: const LinearGradient(
+          colors: [AppColors.black, Color(0xFF2D2D2D)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: (isFull ? Colors.black : AppColors.primary).withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -230,9 +231,9 @@ class SettingsScreen extends ConsumerWidget {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  isFull ? Icons.auto_awesome_rounded : Icons.star_rounded,
-                  color: isFull ? AppColors.primary : AppColors.black,
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.primary,
                   size: 24,
                 ),
               ),
@@ -242,18 +243,20 @@ class SettingsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Membership ${isFull ? 'Full' : 'Trial'}',
+                      'Membership Full Access',
                       style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
-                        color: isFull ? AppColors.white : AppColors.black,
+                        color: AppColors.white,
                       ),
                     ),
                     Text(
-                      isFull ? 'Akses penuh seluruh fitur AI' : isPersonal ? 'Fitur dasar anggaran personal' : 'Fitur dasar platform Tumbuhin',
+                      isPersonal 
+                        ? 'Akses penuh fitur AI Planner & Budgeting' 
+                        : 'Akses penuh ekosistem ERP & AI Analyst',
                       style: GoogleFonts.outfit(
                         fontSize: 12,
-                        color: (isFull ? AppColors.white : AppColors.black).withValues(alpha: 0.7),
+                        color: AppColors.white.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -261,28 +264,6 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          if (!isFull) ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  final urlStr = dotenv.env['WEB_URL'] ?? 'https://tumbuhin.com';
-                  final url = Uri.parse('$urlStr/tenant/subscription');
-                  if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                    if (context.mounted) _showNotImplemented(context);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.black,
-                  foregroundColor: AppColors.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Upgrade ke Full', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
         ],
       ),
     );

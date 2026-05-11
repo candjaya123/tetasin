@@ -4,8 +4,6 @@ import { ForecastingService } from './services/forecasting.service';
 import { JwtAuthGuard } from '../business-profile/guards/jwt-auth.guard';
 import { SupabaseService } from '../../shared/supabase.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { RequireTier } from '../../core/auth/tier.decorator';
-import { SubscriptionTier } from '../../core/auth/tier.enum';
 
 @Controller('api/v1/ai')
 @UseGuards(JwtAuthGuard)
@@ -98,7 +96,6 @@ export class AiController {
   }
 
   @Post('scan-receipt')
-  @RequireTier(SubscriptionTier.FULL)
   @UseInterceptors(FileInterceptor('image'))
   async scanReceipt(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new Error('No image uploaded');

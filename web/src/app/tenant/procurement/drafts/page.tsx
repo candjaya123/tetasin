@@ -84,7 +84,6 @@ export default function ProcurementDraftsPage() {
             <FileText className="w-8 h-8 text-primary" />
             AI Procurement
           </h1>
-          <div className="bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md">Tier Pro</div>
         </div>
         <p className="text-slate-500 font-medium">Tinjau usulan pembelian barang yang dirakit oleh AI Autopilot</p>
       </div>

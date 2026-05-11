@@ -90,4 +90,14 @@ class ReportService {
   Future<void> createExpense(Map<String, dynamic> data) async {
     await _apiClient.dio.post('/api/v1/journal', data: data);
   }
+
+  Future<List<CashFlowItem>> getCashFlow({DateTime? start, DateTime? end}) async {
+    final response = await _apiClient.dio.get('/api/v1/finance/cash-flow', queryParameters: {
+      if (start != null) 'startDate': '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}',
+      if (end != null) 'endDate': '${end.year}-${end.month.toString().padLeft(2, '0')}-${end.day.toString().padLeft(2, '0')}',
+    });
+    final data = response.data;
+    if (data == null || data is! List) return [];
+    return data.map((cf) => CashFlowItem.fromJson(cf)).toList();
+  }
 }

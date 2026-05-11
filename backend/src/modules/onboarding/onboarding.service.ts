@@ -17,20 +17,8 @@ export class OnboardingService {
     const client = this.supabaseService.getClient();
     const accountType = userInfo?.account_type || userInfo?.user_metadata?.account_type || 'business';
 
-    // Fetch tenant tier
-    const { data: tenant, error: tenantError } = await client
-      .from('tenants')
-      .select('tier')
-      .eq('id', tenantId)
-      .single();
-
-    if (tenantError) {
-      this.logger.error(`Failed to fetch tenant tier: ${tenantError.message}`);
-      throw new Error(`Gagal mengambil data tenant: ${tenantError.message}`);
-    }
-
     // 1. Initialize COA from Master Table via AccountingService
-    await this.accountingService.initializeCOA(tenantId, tenant.tier || 'starter', input.industry, input.scale, accountType);
+    await this.accountingService.initializeCOA(tenantId, input.industry, input.scale, accountType);
 
     // 2. Update Profile & Tenant metadata
     await client.from('tenants').update({ account_type: accountType }).eq('id', tenantId);

@@ -73,7 +73,13 @@ export default function TenantLayout({
   useEffect(() => {
     if (!loading && tenant) {
       const isPersonal = tenant.account_type === 'personal';
-      const businessRoutes = ['/tenant/pos', '/tenant/inventory', '/tenant/staff', '/tenant/drafts'];
+      const businessRoutes = [
+        '/tenant/pos', 
+        '/tenant/inventory', 
+        '/tenant/staff', 
+        '/tenant/drafts', 
+        '/tenant/finance'
+      ];
       
       if (isPersonal && businessRoutes.some(route => pathname.startsWith(route))) {
         router.push('/tenant');
@@ -109,24 +115,23 @@ export default function TenantLayout({
   }
 
   const isPersonal = tenant?.account_type === 'personal';
-  const isFull = tenant?.tier === 'full';
 
   const menuItems = isPersonal ? [
     { name: 'Dashboard', href: '/tenant', icon: LayoutDashboard, show: true },
     { name: 'Pemasukan', href: '/tenant/income', icon: ArrowUpRight, show: true },
     { name: 'Pengeluaran', href: '/tenant/expense', icon: ArrowDownRight, show: true },
     { name: 'Anggaran', href: '/tenant/budget', icon: Wallet, show: true },
-    { name: 'Transaksi', href: '/tenant/transactions', icon: History, show: true },
+    { name: 'Laporan', href: '/tenant/transactions', icon: FileText, show: true },
     { name: 'Pengaturan', href: '/tenant/settings', icon: Settings, show: true },
   ] : [
     { name: 'Dashboard', href: '/tenant', icon: LayoutDashboard, show: true },
     { name: 'Kasir POS', href: '/tenant/pos', icon: ShoppingBag, show: true },
     { name: 'Produk & Stok', href: '/tenant/inventory', icon: Package, show: true },
-    { name: 'Manajemen Staf', href: '/tenant/staff', icon: User, show: isFull },
-    { name: 'Validasi Transaksi AI', href: '/tenant/drafts', icon: FileText, show: isFull },
+    { name: 'Manajemen Staf', href: '/tenant/staff', icon: User, show: true },
+    { name: 'Validasi Transaksi AI', href: '/tenant/drafts', icon: FileText, show: true },
+    { name: 'Laporan Keuangan', href: '/tenant/finance', icon: FileText, show: true },
     { name: 'Transaksi', href: '/tenant/transactions', icon: History, show: true },
     { name: 'Penarikan Dana', href: '/tenant/withdrawal', icon: Wallet, show: true },
-    { name: 'Langganan', href: '/tenant/subscription', icon: Crown, show: true },
     { name: 'Pengaturan', href: '/tenant/settings', icon: Settings, show: true },
   ].filter(item => item.show);
 
@@ -157,14 +162,14 @@ export default function TenantLayout({
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-border transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-64 sm:w-72 bg-white border-r border-border transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex flex-col h-full">
-          <div className="p-8 flex items-center justify-between">
+          <div className="p-6 sm:p-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground font-black text-xl shadow-lg shadow-primary/20">T</div>
-              <span className="text-2xl font-black text-secondary tracking-tight">Tumbuhin</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground font-black text-lg sm:text-xl shadow-lg shadow-primary/20">T</div>
+              <span className="text-xl sm:text-2xl font-black text-secondary tracking-tight">Tumbuhin</span>
             </div>
             <button className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors" onClick={() => setIsSidebarOpen(false)}>
               <X className="w-5 h-5 text-slate-500" />
@@ -207,24 +212,24 @@ export default function TenantLayout({
       {/* Main Content */}
       <div className="flex-grow flex flex-col overflow-hidden relative">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-border flex items-center justify-between px-8 z-30">
-          <div className="flex items-center gap-4">
-            <button className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors mr-2" onClick={() => setIsSidebarOpen(true)}>
+        <header className="h-16 md:h-20 bg-white border-b border-border flex items-center justify-between px-4 sm:px-8 z-30">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors" onClick={() => setIsSidebarOpen(true)}>
               <Menu className="w-6 h-6 text-slate-600" />
             </button>
-            <h1 className="text-xl font-black text-secondary hidden md:block">
+            <h1 className="text-lg md:text-xl font-black text-secondary truncate max-w-[180px] sm:max-w-none">
               {currentPageTitle}
             </h1>
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3 sm:gap-5">
             <button 
               onClick={() => router.push('/tenant/settings')} 
-              className="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all relative"
+              className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all relative"
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute top-2.5 right-2.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[10px] text-white flex items-center justify-center font-black">
+                <span className="absolute top-2 right-2 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white text-[9px] text-white flex items-center justify-center font-black">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -236,7 +241,7 @@ export default function TenantLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-grow overflow-y-auto p-8 md:p-12 bg-background">
+        <main className="flex-grow overflow-y-auto p-4 sm:p-8 md:p-12 bg-background">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

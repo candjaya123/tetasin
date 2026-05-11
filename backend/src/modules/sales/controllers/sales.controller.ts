@@ -23,8 +23,8 @@ export class SalesController {
     // Actually, I should update the DTO and Service to handle `payment_method` or map it here.
     const methodMap: Record<string, string> = {
       'Tunai': '1-10000',
-      'Transfer': '1-10002',
-      'E-Wallet': '1-10003'
+      'Transfer': '1-10001',
+      'E-Wallet': '1-10002'
     };
     // We can pass the mapped code back to the payload so SalesService can use it.
     // Since SalesService expects payment_account_id, we can't just pass the code there.

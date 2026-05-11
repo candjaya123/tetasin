@@ -4,6 +4,7 @@ import { SupabaseService } from '../../../shared/supabase.service';
 import { JournalEntry } from '../domain/journal.domain';
 import { JwtAuthGuard } from '../../business-profile/guards/jwt-auth.guard';
 import { BudgetService } from '../services/budget.service';
+import { AccountingService } from '../services/accounting.service';
 
 @Controller('api/v1/journal')
 @UseGuards(JwtAuthGuard)
@@ -12,6 +13,7 @@ export class JournalController {
     private readonly accountingRepository: AccountingRepository,
     private readonly supabaseService: SupabaseService,
     private readonly budgetService: BudgetService,
+    private readonly accountingService: AccountingService,
   ) {}
 
   @Get()
@@ -22,14 +24,14 @@ export class JournalController {
   @Post()
   async createJournalEntry(@Request() req: any, @Body() payload: any) {
     const { reference_number, description, lines, date } = payload;
-    const result = await this.accountingRepository.createTransactionWithLines(
+    const result = await this.accountingService.createJournalEntry(
+      req.user.tenant_id,
       {
-        tenant_id: req.user.tenant_id,
+        date,
         reference_number,
         description,
-        date,
-      },
-      lines
+        lines,
+      }
     );
 
     // Trigger Budget Alert Check (Async)
@@ -108,7 +110,15 @@ export class JournalController {
       description: l.description || 'AI Extracted Transaction',
     }));
 
-    const transactionId = await this.accountingRepository.createTransactionWithLines(transactionData, linesData);
+    const result = await this.accountingService.createJournalEntry(
+      draft.tenant_id,
+      {
+        reference_number: transactionData.reference_number,
+        description: 'Approved from Draft',
+        lines: linesData,
+      }
+    );
+    const transactionId = result.id;
 
     // 4. Update Draft Status
     await client.from('drafts').update({ status: 'approved' }).eq('id', draftId);

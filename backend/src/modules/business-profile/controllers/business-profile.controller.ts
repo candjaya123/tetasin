@@ -34,7 +34,7 @@ export class BusinessProfileController {
         });
 
         // Seed COA for new tenant
-        await this.accountingService.initializeCOA(newTenantId, 'starter', undefined, undefined, accountType);
+        await this.accountingService.initializeCOA(newTenantId, 'starter', undefined, accountType);
 
         const { data: newProfile, error: insertError } = await client
           .from('profiles')
@@ -72,7 +72,7 @@ export class BusinessProfileController {
         });
         
         // Seed COA
-        await this.accountingService.initializeCOA(newTenantId, 'starter', undefined, undefined, accountType);
+        await this.accountingService.initializeCOA(newTenantId, 'starter', undefined, accountType);
 
         const { data: updatedProfile } = await client
           .from('profiles')
@@ -87,7 +87,7 @@ export class BusinessProfileController {
       if (data.account_type === 'personal') {
         const { data: accounts } = await client.from('accounts').select('id').eq('tenant_id', data.tenant_id).limit(1);
         if (!accounts || accounts.length === 0) {
-          await this.accountingService.initializeCOA(data.tenant_id, 'starter', undefined, undefined, 'personal');
+          await this.accountingService.initializeCOA(data.tenant_id, 'starter', undefined, 'personal');
         }
       }
 
@@ -99,7 +99,7 @@ export class BusinessProfileController {
           account_type: accountType
         });
         // Seed COA if tenant was missing
-        await this.accountingService.initializeCOA(data.tenant_id, 'starter', undefined, undefined, accountType);
+        await this.accountingService.initializeCOA(data.tenant_id, 'starter', undefined, accountType);
       }
     }
     return data;

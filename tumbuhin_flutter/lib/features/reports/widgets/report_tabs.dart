@@ -532,3 +532,78 @@ class BalanceSheetTab extends StatelessWidget {
     );
   }
 }
+
+class CashFlowTab extends ConsumerWidget {
+  const CashFlowTab({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cashFlowAsync = ref.watch(cashFlowProvider);
+    final currency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    return cashFlowAsync.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.account_balance_wallet_outlined, size: 64, color: AppColors.lightGrey.withValues(alpha: 0.5)),
+                const SizedBox(height: 16),
+                Text(
+                  'Tidak ada data arus kas',
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: AppColors.mediumGrey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            final isOutflow = item.outflow > 0;
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: (isOutflow ? Colors.red : Colors.green).withValues(alpha: 0.1),
+                  child: Icon(
+                    isOutflow ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                    color: isOutflow ? Colors.red : Colors.green,
+                    size: 18,
+                  ),
+                ),
+                title: Text(
+                  item.description,
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                subtitle: Text(
+                  DateFormat('dd MMM yyyy').format(item.date),
+                  style: GoogleFonts.outfit(fontSize: 12),
+                ),
+                trailing: Text(
+                  isOutflow ? '- ${currency.format(item.outflow)}' : currency.format(item.inflow),
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w900,
+                    color: isOutflow ? Colors.red : Colors.green,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+      loading: () => ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 8,
+        itemBuilder: (context, index) => const ListTile(title: Text('Loading...')),
+      ),
+      error: (e, _) => Center(child: Text('Error: $e')),
+    );
+  }
+}
