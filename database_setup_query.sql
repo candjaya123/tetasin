@@ -1286,3 +1286,117 @@ ADD COLUMN accounting_assumptions JSONB DEFAULT '[]'::jsonb;
 
 
 
+
+-- PHASE 1: OCR + AI TRANSACTION ENTRY TABLES
+
+-- 1. Merchant Mappings: Stores learned mappings per tenant
+CREATE TABLE IF NOT EXISTS public.merchant_mappings (
+    id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    tenant_id       UUID NOT NULL, -- References tenants(id) or entities(id)
+    merchant_name   TEXT NOT NULL,           -- normalized lowercase
+    merchant_alias  TEXT[],                  -- alternative names detected
+    default_category TEXT,                   -- last approved category
+    default_account_id UUID REFERENCES public.accounts(id),
+    default_tags    TEXT[],
+    approval_count  INTEGER DEFAULT 0,       -- times user approved this mapping
+    last_used_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(tenant_id, merchant_name)
+);
+
+-- 2. Receipt Scans: Records of images and AI extraction results
+CREATE TABLE IF NOT EXISTS public.receipt_scans (
+    id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    tenant_id       UUID NOT NULL,
+    uploaded_by     UUID NOT NULL REFERENCES auth.users(id),
+    image_url       TEXT NOT NULL,            -- Supabase Storage URL
+    status          TEXT NOT NULL DEFAULT 'processing',
+                    -- 'processing' | 'completed' | 'failed'
+    raw_ocr_text    TEXT,                     -- Full extracted text
+    extracted_data  JSONB,                    -- Structured extraction result
+    ai_model_used   TEXT,                     -- 'gemini-2.0-flash'
+    processing_time_ms INTEGER,              -- Performance tracking
+    error_message   TEXT,                     -- If status='failed'
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Draft Transactions: AI-generated, pending user review
+CREATE TABLE IF NOT EXISTS public.draft_transactions (
+    id                  UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    tenant_id           UUID NOT NULL,
+    receipt_scan_id     UUID REFERENCES public.receipt_scans(id) ON DELETE SET NULL,
+    created_by          UUID NOT NULL REFERENCES auth.users(id),
+    status              TEXT NOT NULL DEFAULT 'ready',
+                        -- 'processing' | 'ready' | 'approved' | 'rejected' | 'expired'
+
+    -- Extracted / recommended fields (user-editable)
+    merchant_name       TEXT,
+    transaction_date    TIMESTAMPTZ,
+    total_amount        NUMERIC(15,2),
+    subtotal            NUMERIC(15,2),
+    tax_amount          NUMERIC(15,2),
+    discount_amount     NUMERIC(15,2) DEFAULT 0,
+    currency            TEXT DEFAULT 'IDR',
+    payment_method      TEXT, 
+    receipt_number      TEXT,
+    category            TEXT,
+    notes               TEXT,
+    tags                TEXT[],
+
+    -- AI recommendation metadata
+    ai_recommendations  JSONB NOT NULL DEFAULT '{}',
+
+    -- Account mapping
+    debit_account_id    UUID REFERENCES public.accounts(id),
+    credit_account_id   UUID REFERENCES public.accounts(id),
+
+    -- Line items
+    line_items          JSONB DEFAULT '[]',
+
+    -- User corrections tracking (for learning)
+    user_corrections    JSONB DEFAULT '{}',
+
+    -- Approval metadata
+    approved_at         TIMESTAMPTZ,
+    approved_by         UUID REFERENCES auth.users(id),
+    resulting_journal_id UUID REFERENCES public.journal_entries(id),
+
+    -- Rejection metadata
+    rejected_at         TIMESTAMPTZ,
+    rejection_reason    TEXT,
+
+    expires_at          TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days'),
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. Enable RLS
+ALTER TABLE public.merchant_mappings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.receipt_scans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.draft_transactions ENABLE ROW LEVEL SECURITY;
+
+-- 5. RLS Policies
+DO  
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'tenant_isolation_merchant_mappings') THEN
+        CREATE POLICY tenant_isolation_merchant_mappings ON public.merchant_mappings
+            FOR ALL USING (tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid()));
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'tenant_isolation_receipt_scans') THEN
+        CREATE POLICY tenant_isolation_receipt_scans ON public.receipt_scans
+            FOR ALL USING (tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid()));
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'tenant_isolation_draft_transactions') THEN
+        CREATE POLICY tenant_isolation_draft_transactions ON public.draft_transactions
+            FOR ALL USING (tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid()));
+    END IF;
+END ;
+
+-- 6. Indexes
+CREATE INDEX IF NOT EXISTS idx_merchant_mappings_tenant ON public.merchant_mappings(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_receipt_scans_tenant ON public.receipt_scans(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_draft_transactions_tenant ON public.draft_transactions(tenant_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_draft_transactions_status ON public.draft_transactions(status) WHERE status = 'ready';

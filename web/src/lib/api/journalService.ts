@@ -63,7 +63,6 @@ export const journalService = {
       if (!response.ok) {
         const errorBody = await response.text().catch(() => 'Cannot read body');
         console.error(`[journalService] HTTP ${response.status}:`, errorBody);
-        // Return empty array instead of crashing the UI
         return [];
       }
 
@@ -72,5 +71,13 @@ export const journalService = {
       console.error('[journalService] Network error fetching transactions:', err);
       return [];
     }
+  },
+
+  async getCOA() {
+    const response = await fetch(`${BACKEND_URL}/api/v1/finance/coa`, {
+      headers: await getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch COA');
+    return response.json();
   }
 };

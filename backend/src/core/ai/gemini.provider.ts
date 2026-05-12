@@ -22,15 +22,27 @@ export class GeminiProvider implements AIProvider {
 
     const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-    const prompt = `Ekstrak informasi dari gambar struk/nota ini.
+    const prompt = `Ekstrak informasi dari gambar struk/nota ini (Bahasa Indonesia).
     Kembalikan dalam format JSON murni:
     {
-      "vendor_name": { "value": string, "confidence": "high"|"medium"|"low" },
+      "merchant": { "value": string, "confidence": "high"|"medium"|"low" },
+      "transaction_date": { "value": string (ISO8601), "confidence": "high"|"medium"|"low" },
       "total_amount": { "value": number, "confidence": "high"|"medium"|"low" },
-      "date": { "value": string, "confidence": "high"|"medium"|"low" },
-      "suggested_coa": { "value": string, "confidence": "high"|"medium"|"low" }
+      "subtotal": { "value": number, "confidence": "high"|"medium"|"low" },
+      "tax_amount": { "value": number, "confidence": "high"|"medium"|"low" },
+      "discount_amount": { "value": number, "confidence": "high"|"medium"|"low" },
+      "currency": { "value": string, "confidence": "high"|"medium"|"low" },
+      "payment_method": { "value": string, "confidence": "high"|"medium"|"low" },
+      "receipt_number": { "value": string, "confidence": "high"|"medium"|"low" },
+      "line_items": [
+        { "name": string, "quantity": number, "unit_price": number, "total": number, "confidence": "high"|"medium"|"low" }
+      ],
+      "suggested_category": { "value": string, "confidence": "high"|"medium"|"low" },
+      "suggested_account_code": { "value": string, "confidence": "high"|"medium"|"low" },
+      "suggested_tags": string[],
+      "raw_text": string
     }
-    Berikan keyakinan "low" jika tulisan buram atau meragukan. Kembalikan HANYA JSON.`;
+    Optimasi untuk struk Indonesia. Berikan keyakinan "low" jika meragukan. Kembalikan HANYA JSON.`;
 
     const result = await model.generateContent([
       prompt,

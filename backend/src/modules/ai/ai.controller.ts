@@ -94,21 +94,4 @@ export class AiController {
       throw new InternalServerErrorException(`AI Error: ${e?.message}`);
     }
   }
-
-  @Post('scan-receipt')
-  @UseInterceptors(FileInterceptor('image'))
-  async scanReceipt(@UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new Error('No image uploaded');
-
-    try {
-      const result = await this.gemini.extractReceipt(file.buffer, file.mimetype);
-      return result;
-    } catch (e: any) {
-      if (e?.message === 'AI_RATE_LIMIT' || e?.message?.includes('quota')) {
-        throw new HttpException('Kuota AI sedang tinggi. Mohon coba lagi nanti.', HttpStatus.TOO_MANY_REQUESTS);
-      }
-      throw new InternalServerErrorException(`Receipt scan error: ${e?.message}`);
-    }
-  }
 }
-

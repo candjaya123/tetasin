@@ -82,8 +82,11 @@ CREATE INDEX idx_coa_tenant_id ON chart_of_accounts(tenant_id);
 
 ### 2.3 Products & Inventory
 
+> **Status Note:** The base `products` table represents current production schema. The **Universal Product Engine** extension tables (`product_behaviors`, `product_variants`, `tenant_industry_profiles`) are **planned** — see `docs/product_engine_upgrade.md` and `docs/adr/004_universal_product_engine.md` for the full migration plan.
+
 ```sql
 -- Products: Items sold to customers
+-- CURRENT PRODUCTION SCHEMA
 CREATE TABLE products (
     id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     tenant_id      UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -106,6 +109,149 @@ CREATE TABLE products (
 CREATE INDEX idx_products_tenant_id ON products(tenant_id);
 CREATE INDEX idx_products_barcode ON products(barcode);
 
+-- PLANNED: Universal Product Engine Extension (Phase 0 of upgrade)
+-- Add product_type discriminator — backward compatible (default = 'physical')
+CREATE TYPE product_type AS ENUM (
+  'physical', 'service', 'digital', 'custom_price', 
+  'weighted', 'composite', 'hybrid'
+);
+ALTER TABLE products 
+  ADD COLUMN product_type    product_type NOT NULL DEFAULT 'physical',
+  ADD COLUMN base_price_unit TEXT,           -- 'per_kg', 'per_gram', 'per_hour', 'per_item'
+  ADD COLUMN track_stock     BOOLEAN DEFAULT TRUE;
+CREATE INDEX idx_products_type_tenant ON products(tenant_id, product_type) WHERE is_active = TRUE;
+
+-- PLANNED: Product Behaviors Extension Table
+-- Type-specific metadata, schema-validated at application layer
+CREATE TABLE product_behaviors (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id    UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  product_id   UUID NOT NULL UNIQUE REFERENCES products(id) ON DELETE CASCADE,
+  product_type product_type NOT NULL,
+  metadata     JSONB NOT NULL DEFAULT '{}',
+  -- Schema per type (validated in ProductBehaviorEngine):
+  -- physical:     {}
+  -- service:      { duration_minutes: int, bookable: bool, requires_staff: bool }
+  -- digital:      { delivery_method: 'code'|'link', download_limit: int|null }
+  -- custom_price: { min_price: decimal, max_price: decimal|null }
+  -- weighted:     { price_per_unit: decimal, weight_unit: 'kg'|'gram'|'liter' }
+  -- composite:    { components: [{ product_id, quantity }] }
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_product_behaviors_tenant ON product_behaviors(tenant_id);
+
+-- PLANNED: Product Variants Table (for serial/batch/IMEI tracking)
+CREATE TABLE product_variants (
+  id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id      UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  product_id     UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  variant_type   TEXT NOT NULL,  -- 'serial'|'batch'|'imei'
+  sku            TEXT,
+  attributes     JSONB NOT NULL DEFAULT '{}',
+  -- serial:     { serial_number: 'SN-001', status: 'available'|'sold', sold_at: timestamp }
+  -- batch:      { batch_number: 'B-2026-01', expiry_date: date, stock: 100 }
+  -- imei:       { imei: '123456789012345', status: 'available'|'sold', warranty_until: date }
+  current_stock  NUMERIC(15,3) DEFAULT 0,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_product_variants_product ON product_variants(product_id);
+CREATE INDEX idx_product_variants_tenant ON product_variants(tenant_id);
+
+-- PLANNED: Product Variant Groups (retail/FnB dimension variants — Size, Color, etc.)
+-- See ADR-006
+CREATE TABLE product_variant_groups (
+  id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id      UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  product_id     UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  name           TEXT NOT NULL,           -- "Size", "Color", "Dosage"
+  is_required    BOOLEAN DEFAULT TRUE,
+  allow_multiple BOOLEAN DEFAULT FALSE,
+  display_order  INTEGER DEFAULT 0,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_variant_groups_product ON product_variant_groups(product_id);
+
+-- PLANNED: Product Variant Options (the selectable choices per group)
+-- DECISION (2026-05-12): current_stock is ALWAYS independent per option (NOT NULL)
+CREATE TABLE product_variant_options (
+  id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id      UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  group_id       UUID NOT NULL REFERENCES product_variant_groups(id) ON DELETE CASCADE,
+  product_id     UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  name           TEXT NOT NULL,           -- "S", "M", "L", "Red", "50mg"
+  price_delta    NUMERIC(15,2) DEFAULT 0, -- +/- from base selling_price
+  cost_delta     NUMERIC(15,2) DEFAULT 0,
+  sku_suffix     TEXT,                    -- e.g. "RED-M"
+  current_stock  NUMERIC(15,3) NOT NULL DEFAULT 0, -- ALWAYS independent; products.current_stock ignored
+  display_order  INTEGER DEFAULT 0,
+  is_active      BOOLEAN DEFAULT TRUE,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_variant_options_group ON product_variant_options(group_id);
+CREATE INDEX idx_variant_options_product ON product_variant_options(product_id);
+
+-- PLANNED: Product Add-on Groups (named buckets of selectable extras)
+-- DECISION (2026-05-12): per-product only — no shared addon_templates table
+-- DECISION (2026-05-12): is_promo_eligible flag enables hybrid promo targeting
+-- See ADR-006
+CREATE TABLE product_addon_groups (
+  id                UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id         UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  product_id        UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  name              TEXT NOT NULL,          -- "Extra Toppings", "Warranty Options"
+  is_required       BOOLEAN DEFAULT FALSE,
+  min_selections    INTEGER DEFAULT 0,
+  max_selections    INTEGER DEFAULT 1,      -- 0 = unlimited
+  is_promo_eligible BOOLEAN DEFAULT TRUE,   -- if false, promo engine skips this group
+  display_order     INTEGER DEFAULT 0,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_addon_groups_product ON product_addon_groups(product_id);
+
+-- PLANNED: Product Add-ons (individual selectable extras per group)
+CREATE TABLE product_addons (
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  group_id        UUID NOT NULL REFERENCES product_addon_groups(id) ON DELETE CASCADE,
+  product_id      UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  name            TEXT NOT NULL,
+  price           NUMERIC(15,2) NOT NULL DEFAULT 0,
+  cost_price      NUMERIC(15,2) DEFAULT 0,
+  track_stock     BOOLEAN DEFAULT FALSE,
+  current_stock   NUMERIC(15,3),
+  raw_material_id UUID REFERENCES raw_materials(id), -- F&B: deducts ingredient stock
+  display_order   INTEGER DEFAULT 0,
+  is_active       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_addons_group ON product_addons(group_id);
+CREATE INDEX idx_addons_product ON product_addons(product_id);
+
+-- PLANNED: Extend sale_items to snapshot variant+addon selections at time of sale
+-- DECISION: selected_addons includes promo_discount field for hybrid promo support
+ALTER TABLE sale_items
+  ADD COLUMN selected_variants JSONB DEFAULT '[]',
+  -- [{ group_id, group_name, option_id, option_name, price_delta }]
+  ADD COLUMN selected_addons   JSONB DEFAULT '[]';
+  -- [{ addon_id, group_id, addon_name, qty, unit_price, total, raw_material_id?, promo_discount? }]
+
+
+-- PLANNED: Tenant Industry Profile
+CREATE TYPE industry_type AS ENUM (
+  'retail', 'fnb', 'grocery', 'pharmacy',
+  'electronics', 'manufacturing', 'service', 'hybrid', 'general'
+);
+CREATE TABLE tenant_industry_profiles (
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tenant_id       UUID NOT NULL UNIQUE REFERENCES tenants(id) ON DELETE CASCADE,
+  industry_type   industry_type NOT NULL DEFAULT 'general',
+  sub_industries  TEXT[] DEFAULT '{}',
+  config          JSONB DEFAULT '{}',
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Raw Materials: Ingredients / components
 CREATE TABLE raw_materials (
     id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -121,6 +267,8 @@ CREATE TABLE raw_materials (
 );
 
 -- Product Recipes: BOM (Bill of Materials)
+-- NOTE: In the Universal Product Engine, recipes migrate to product_behaviors
+-- metadata for product_type='composite'. This table remains for backward compatibility.
 CREATE TABLE product_recipes (
     id                UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     tenant_id         UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -300,6 +448,7 @@ GROUP BY jl.tenant_id, DATE_TRUNC('month', je.transaction_date);
 3. **Add composite indexes** on all high-traffic tables
 4. **Standardize soft-delete:** Add `deleted_at TIMESTAMPTZ` to all core tables, filter in queries
 5. **Add `created_by` / `updated_by`** audit columns to `transactions`, `journal_entries`, `purchase_orders`
+6. **Universal Product Engine Phase 0:** Add `product_type` column + `product_behaviors` + `product_variants` + `tenant_industry_profiles` tables (see `docs/product_engine_upgrade.md`)
 
 ---
 
@@ -312,3 +461,4 @@ GROUP BY jl.tenant_id, DATE_TRUNC('month', je.transaction_date);
 | Implement DB migration tooling (Flyway or Liquibase) | Current ad-hoc SQL migrations are not reproducible |
 | Enable pgAudit for compliance | Track all DML on financial tables |
 | Schema versioning | Every schema change tracked with migration number and rollback script |
+| Migrate `product_recipes` to `product_behaviors` composite type | Unify BOM/recipe under Universal Product Engine (Phase 5) |

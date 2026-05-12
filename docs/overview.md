@@ -35,6 +35,8 @@
 |---|---|
 | **Point of Sale (POS)** | Real-time sales processing with automatic journal entry creation |
 | **Inventory Management** | Multi-warehouse stock tracking, raw materials, product recipes, stock transfers, opnames |
+| **Universal Product Engine** | 🔄 *Planned (Phase 13)* — Multi-industry product type system: Physical, Service, Digital, Weighted, Composite, Custom Price, Hybrid |
+| **Industry Profile** | 🔄 *Planned (Phase 13)* — Tenant-level industry configuration (Retail, F&B, Grocery, Pharmacy, Electronics, Manufacturing, Service) |
 | **Accounting (Double-Entry)** | Automated double-entry bookkeeping via Chart of Accounts (COA); journal, ledger, trial balance |
 | **Procurement** | Sales Orders (SO), Purchase Orders (PO), vendor management, automated restock drafts |
 | **Financial Reporting** | Income statement, balance sheet, cash flow, ledger balances |
@@ -156,6 +158,7 @@ External Integrations:
 | 10 | Advanced procurement & document builder | ✅ Complete |
 | 11 | Final end-to-end testing | ⬜ Pending |
 | 12 | Deterministic core logic & UI polish | ✅ Complete |
+| 13 | Universal Product Engine — multi-industry support | 🔄 Planning (see `docs/product_engine_upgrade.md`) |
 
 ---
 

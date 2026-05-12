@@ -75,14 +75,15 @@ tumbuhin/
 │   │   │   ├── business-profile/
 │   │   │   ├── erp/
 │   │   │   ├── insight/
-│   │   │   ├── inventory/
+│   │   │   ├── inventory/      ← EXTEND: ProductBehaviorEngine, StockEngine
+│   │   │   ├── industry/       ← NEW: IndustryFlagService, tenant profile
 │   │   │   ├── onboarding/
 │   │   │   ├── order/
 │   │   │   ├── procurement/
 │   │   │   ├── promo/
 │   │   │   ├── recovery/
 │   │   │   ├── report/
-│   │   │   ├── sales/
+│   │   │   ├── sales/          ← EXTEND: use ProductBehaviorEngine
 │   │   │   └── warehouse/
 │   │   └── shared/             ← Shared utilities, SupabaseService
 │   └── test/
@@ -186,6 +187,12 @@ Incoming HTTP Request
 
 ### Priority 5 — Add API Versioning Header Support
 - Support `Accept: application/vnd.tumbuhin.v1+json` in addition to URL versioning
+
+### Priority 6 — Universal Product Engine (Phase 13)
+- Implement `product_type` discriminator and `ProductBehaviorEngine`
+- Add `product_behaviors`, `product_variants`, `tenant_industry_profiles` tables
+- Extend `SalesService.processSale()` to use behavior engine per line item
+- See full plan: `docs/product_engine_upgrade.md`, `docs/adr/004_universal_product_engine.md`, `docs/adr/005_industry_profile_config.md`
 
 ---
 
