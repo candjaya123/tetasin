@@ -1,112 +1,75 @@
-# ADR-002: Supabase as Database, Auth, and Storage Platform
+# ADR-002: Supabase as Platform Foundation
 
-**Status:** Accepted  
-**Date:** 2026-05-11  
-**Authors:** Platform Engineering Team  
-**Reviewers:** Technical Lead, Security Lead
-
----
-
-## Context
-
-Tumbuhin requires a database that supports:
-- Multi-tenant data isolation (Row Level Security)
-- JWT-based authentication integrated with the database
-- Managed hosting (small team, no dedicated DBA)
-- Real-time capabilities for future live POS updates
-- File storage for receipts and avatars
-
-We needed to decide between a fully managed database solution versus self-hosted PostgreSQL plus separate auth and storage services.
+**Status:** Accepted
+**Date:** 2026-05-11
+**Authors:** Platform Engineering Team
 
 ---
 
 ## Decision
 
-We chose **Supabase** as the unified platform for:
-- PostgreSQL database (managed)
-- JWT authentication (Supabase Auth)
-- Row Level Security (RLS) for multi-tenant isolation
-- File storage (Supabase Storage)
-- Edge Functions for webhook processing
+Use **Supabase** as the platform foundation for PostgreSQL, authentication, row-level security, and file storage.
 
----
+## Context
 
-## Alternatives Considered
+The platform requires:
+- Multi-tenant relational database with strict isolation
+- JWT-based authentication integrated with the database
+- Row-level security to enforce tenant isolation at DB layer
+- File storage for receipt images and avatars
+- Managed infrastructure (small team, no dedicated DBA)
 
-### Option A: Self-Hosted PostgreSQL + Separate Auth (Rejected)
+## Implementation
 
-**Pros:**
-- Full control over DB configuration and extensions
-- Lower long-term cost at scale
+### Authentication
 
-**Cons:**
-- Requires DBA expertise to manage backups, replication, tuning
-- Need to build and maintain auth service separately
-- RLS is available but requires manual setup and management
-- Storage requires separate service (S3 + CloudFront)
-- Higher operational burden for small team
-
-**Verdict:** Too much operational overhead for current team size.
-
-### Option B: Supabase (Chosen)
-
-**Pros:**
-- Managed PostgreSQL with automatic backups
-- Built-in JWT auth (email/password + OAuth)
-- RLS enforced at DB level — second line of defense
-- Built-in file storage with CDN
-- Service Role Key allows backend to bypass RLS for server-side operations
-- Real-time subscriptions available when needed
-- Local development via Supabase CLI
-
-**Cons:**
-- Vendor lock-in — migrating away is non-trivial
-- Service Role Key is a high-privilege credential that must be protected
-- Connection pooling requires configuration at scale
-- Limited to PostgreSQL — no NoSQL option if needed
-
----
-
-## Tradeoffs
-
-| Concern | Decision |
-|---|---|
-| **Vendor lock-in** | Acceptable: Supabase is open source, self-hosting is possible if needed |
-| **Service Role Key security** | Backend-only, never exposed to clients, rotated every 6 months |
-| **RLS performance** | Backend uses Service Role Key (bypasses RLS) — RLS only for client-side queries |
-| **Connection pooling** | Supabase provides pgBouncer; may need Supavisor at scale |
-| **Cost at scale** | Re-evaluate at 10k tenants — may migrate to dedicated PostgreSQL |
-
----
-
-## Implementation Details
-
-**Security model:**
-- Backend API: Uses `SUPABASE_SERVICE_ROLE_KEY` — bypasses RLS, queries by tenant_id explicitly
-- Client (direct queries): Uses `SUPABASE_ANON_KEY` — subject to RLS policies
-- Auth: JWT issued by Supabase Auth, validated by `SupabaseStrategy` in backend
-- RLS: Enabled on all tables, uses `SECURITY DEFINER` functions to prevent infinite recursion
-
-**Connection architecture:**
-```
-Backend → Service Role Key → PostgreSQL (all data, any tenant — controlled by code)
-Client  → Anon Key + JWT  → PostgreSQL (own tenant data only — enforced by RLS)
+```typescript
+// Backend validates Supabase JWTs via SupabaseStrategy (Passport)
+// Service Role Key used only in backend — never exposed to client
+const client = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 ```
 
----
+### Row-Level Security
 
-## Long-Term Implications
+```sql
+-- Every tenant-scoped table has RLS + policy
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
-- At 50k+ concurrent connections, will need Supavisor or PgBouncer tuning
-- Supabase Realtime will be critical for live POS dashboard feature (Year 2)
-- If Supabase pricing becomes prohibitive, self-hosting Supabase on Kubernetes is viable
-- All DB interactions through Supabase client — no ORM needed (raw SQL via RPC for complex operations)
+CREATE POLICY tenant_isolation ON transactions
+  FOR ALL USING (tenant_id = get_auth_tenant_id());
 
----
+-- get_auth_tenant_id() uses SECURITY DEFINER to avoid recursion
+CREATE OR REPLACE FUNCTION get_auth_tenant_id() RETURNS UUID AS $$
+  SELECT tenant_id FROM profiles WHERE id = auth.uid() LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+```
 
-## Review Date
+### File Storage
 
-Re-evaluate when:
-- Monthly Supabase cost exceeds $2,000
-- Connection pooling becomes a bottleneck
-- Team wants to use a DB feature not supported by Supabase
+```
+Buckets:
+  receipt-scans/   → tenant receipt images (RLS enforced, 90-day TTL)
+  avatars/         → user/business avatars (public read, tenant-scoped writes)
+```
+
+## Access Rules
+
+| Client | Access Level | Key Used |
+|---|---|---|
+| Backend API | Full read/write + admin | `SUPABASE_SERVICE_ROLE_KEY` |
+| Web frontend | Auth session management only | `SUPABASE_ANON_KEY` |
+| Flutter mobile | Auth session management only | `SUPABASE_ANON_KEY` |
+
+**Never:** Frontend clients call `from()` / `.select()` directly for business data. All business data access routes through `/api/v1/*` backend endpoints.
+
+## RLS as Defense-in-Depth
+
+The backend enforces `tenant_id` filtering on every query via application code. RLS is a **second defense layer** — it catches any query that mistakenly omits the tenant filter. Both layers are mandatory.
+
+## Supabase Edge Functions
+
+Used for:
+- Midtrans webhook processing (subscription upgrade callbacks)
+- `handle_new_user()` trigger on user registration (auto-provision tenant + profile + COA)
+
+Not used for: general business logic (that belongs in the NestJS backend).

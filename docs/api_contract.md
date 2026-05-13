@@ -1,34 +1,21 @@
 # Tumbuhin — API Contract
 
-> **Document Purpose:** Defines backend/frontend communication standards — endpoint structure, request/response format, authentication, pagination, filtering, error standards, and API versioning.
+> **Document Purpose:** Defines backend/frontend communication standards — endpoint structure, request/response format, authentication, pagination, filtering, error standards, and versioning.
 > **Who Should Read This:** All frontend and backend engineers, QA, and AI coding assistants.
-> **Why It Matters:** Inconsistent API contracts are the #1 cause of frontend/backend integration failures.
 
 ---
 
-## 1. Current Problems
-
-| Problem | Severity | Description |
-|---|---|---|
-| No formal API versioning policy | 🔴 High | URL has `/api/v1/` but no deprecation strategy |
-| Inconsistent response envelopes | 🟡 Medium | Some return `{ data, meta }`, others return raw arrays |
-| No standard pagination format | 🟡 Medium | Different endpoints use different pagination |
-| Error codes not standardized | 🟡 Medium | Some return HTTP status + string, others return structured errors |
-| Missing OpenAPI/Swagger documentation | 🟡 Medium | No machine-readable contract |
-
----
-
-## 2. Base URL
+## 1. Base URL
 
 ```
 Production:  https://api.tumbuhin.com/api/v1
 Staging:     https://staging-api.tumbuhin.com/api/v1
-Local Dev:   http://localhost:3000/api/v1
+Local Dev:   http://localhost:3001/api/v1
 ```
 
 ---
 
-## 3. Authentication
+## 2. Authentication
 
 All authenticated endpoints require:
 
@@ -38,9 +25,11 @@ Content-Type: application/json
 X-Trace-Id: <uuid>
 ```
 
+Public endpoints are explicitly decorated with `@Public()` and require no token.
+
 ---
 
-## 4. Standard Response Envelope
+## 3. Standard Response Envelope
 
 **Success:**
 ```json
@@ -65,16 +54,18 @@ X-Trace-Id: <uuid>
 }
 ```
 
+All responses — success and error — are wrapped in this envelope. No endpoint returns a raw array or raw object.
+
 ---
 
-## 5. HTTP Status Codes
+## 4. HTTP Status Codes
 
-| Status | When to Use |
+| Status | When |
 |---|---|
 | `200 OK` | GET, successful PUT/PATCH |
 | `201 Created` | POST that creates a resource |
 | `204 No Content` | DELETE |
-| `400 Bad Request` | Validation error, business rule violation |
+| `400 Bad Request` | Validation error |
 | `401 Unauthorized` | Missing or invalid JWT |
 | `403 Forbidden` | Wrong tier or role |
 | `404 Not Found` | Non-existent resource |
@@ -85,7 +76,7 @@ X-Trace-Id: <uuid>
 
 ---
 
-## 6. Pagination
+## 5. Pagination
 
 ```
 GET /api/v1/transactions?page=1&per_page=20&sort=created_at&order=desc
@@ -100,15 +91,15 @@ GET /api/v1/transactions?page=1&per_page=20&sort=created_at&order=desc
 
 ---
 
-## 7. Core Endpoints
+## 6. Core Endpoints
 
-### 7.1 Sales / POS
+### 6.1 Sales / POS
 
 ```
-POST   /api/v1/sales
-GET    /api/v1/sales
-GET    /api/v1/sales/:id
-PATCH  /api/v1/sales/:id/void
+POST   /api/v1/sales                → Create sale (idempotent)
+GET    /api/v1/sales                → List sales
+GET    /api/v1/sales/:id            → Get single sale
+PATCH  /api/v1/sales/:id/void       → Void a sale
 ```
 
 **POST /api/v1/sales — Request:**
@@ -134,7 +125,7 @@ PATCH  /api/v1/sales/:id/void
 }
 ```
 
-### 7.2 Inventory
+### 6.2 Inventory
 
 ```
 GET    /api/v1/inventory/products
@@ -147,7 +138,7 @@ POST   /api/v1/inventory/raw-materials
 POST   /api/v1/inventory/stock-adjustment
 ```
 
-### 7.3 Finance & Accounting
+### 6.3 Finance & Accounting
 
 ```
 GET    /api/v1/accounting/journal-entries
@@ -157,15 +148,14 @@ POST   /api/v1/accounting/coa
 GET    /api/v1/finance/ledger
 GET    /api/v1/finance/trial-balance
 GET    /api/v1/finance/income-statement
-GET    /api/v1/finance/balance-sheet
+GET    /api/v1/finance/balance-sheet         ← Pro tier only
 GET    /api/v1/finance/cash-flow
 ```
 
-### 7.4 AI
+### 6.4 AI
 
 ```
 POST   /api/v1/ai/chat               ← Business tier+
-POST   /api/v1/ai/scan-receipt       ← Pro tier only
 GET    /api/v1/ai/insights
 ```
 
@@ -181,17 +171,32 @@ GET    /api/v1/ai/insights
 }
 ```
 
-### 7.5 Procurement
+### 6.5 Receipt OCR (ADR-007)
+
+```
+POST   /api/v1/receipt/scan                   ← Upload image, returns scan_id (Business+)
+GET    /api/v1/receipt/scan/:id               ← Poll scan status + result
+POST   /api/v1/receipt/drafts                 ← Create manual draft (no receipt)
+GET    /api/v1/receipt/drafts                 ← List draft transactions
+GET    /api/v1/receipt/drafts/:id             ← Get single draft with AI recommendations
+PATCH  /api/v1/receipt/drafts/:id             ← Edit draft fields
+POST   /api/v1/receipt/drafts/:id/approve     ← Approve → create real transaction + journal
+POST   /api/v1/receipt/drafts/:id/reject      ← Reject draft
+GET    /api/v1/receipt/merchants              ← List learned merchant mappings
+```
+
+### 6.6 Procurement
 
 ```
 GET    /api/v1/procurement/purchase-orders
 POST   /api/v1/procurement/purchase-orders
 PATCH  /api/v1/procurement/purchase-orders/:id/approve
+PATCH  /api/v1/procurement/purchase-orders/:id/fulfill
 GET    /api/v1/procurement/drafts
 GET    /api/v1/procurement/sales-orders
 ```
 
-### 7.6 Other Modules
+### 6.7 Other Modules
 
 ```
 GET    /api/v1/promo
@@ -204,11 +209,12 @@ GET    /api/v1/business-profile/staff
 POST   /api/v1/business-profile/staff
 POST   /api/v1/withdrawal/request
 GET    /api/v1/withdrawal/balance
+GET    /api/v1/health                         ← Public, no auth
 ```
 
 ---
 
-## 8. Tier Rejection Response
+## 7. Tier Rejection Response
 
 ```json
 {
@@ -225,60 +231,44 @@ GET    /api/v1/withdrawal/balance
 
 ---
 
-## 9. Idempotency
+## 8. Idempotency
 
 ```http
 POST /api/v1/sales
 Idempotency-Key: <client-generated-uuid>
 ```
 
-Implemented on `/api/v1/sales` and `/api/v1/journal` via `IdempotencyMiddleware`. 24-hour TTL.
+Implemented on `/api/v1/sales` and `/api/v1/journal` via `IdempotencyMiddleware`. 24-hour TTL. Returns `409 Conflict` on duplicate key with original response body.
 
 ---
 
-## 10. Rate Limiting
+## 9. Rate Limiting
 
 | Endpoint Group | Limit |
 |---|---|
-| `POST /api/v1/ai/*` | 60 requests/hour per tenant |
+| `POST /api/v1/receipt/scan` | 60 requests/hour per tenant |
+| `POST /api/v1/ai/chat` | 60 requests/hour per tenant |
 | `POST /api/v1/sales` | 300 requests/minute per tenant |
 | `GET /api/v1/finance/*` | 30 requests/minute per tenant |
 | All other | 300 requests/minute |
 
 ---
 
-## 11. Error Codes Reference
+## 10. Error Codes Reference
 
-| Code | Description |
-|---|---|
-| `UNAUTHORIZED` | Invalid or expired JWT |
-| `TIER_RESTRICTION` | Feature not available at current subscription tier |
-| `ROLE_RESTRICTION` | User role insufficient |
-| `INSUFFICIENT_STOCK` | Not enough inventory |
-| `JOURNAL_IMBALANCE` | Debits ≠ Credits |
-| `DUPLICATE_REQUEST` | Idempotency key already used |
-| `TRANSACTION_LIMIT` | Monthly transaction limit reached (Starter) |
-| `VALIDATION_ERROR` | DTO validation failed |
-| `NOT_FOUND` | Resource does not exist |
-| `INTERNAL_ERROR` | Unhandled server error |
-
----
-
-## 12. Refactor Direction
-
-1. Apply `ResponseInterceptor` uniformly across all controllers
-2. Add `@nestjs/swagger` decorators to all DTOs
-3. Implement `@nestjs/throttler` for rate limiting
-4. Add `Sunset` header to deprecated endpoints
-5. Generate OpenAPI spec as part of CI pipeline
-
----
-
-## 13. Long-Term Recommendations
-
-| Recommendation | Rationale |
-|---|---|
-| Publish versioned OpenAPI spec | Machine-readable contract for SDK generation |
-| Add API gateway (Kong / AWS) | Centralized rate limiting and routing |
-| Flutter SDK auto-generated from OpenAPI | Type-safe client |
-| Webhook support for domain events | Third-party integration |
+| Code | HTTP | Description |
+|---|---|---|
+| `UNAUTHORIZED` | 401 | Invalid or expired JWT |
+| `TIER_RESTRICTION` | 403 | Feature not available at current subscription tier |
+| `ROLE_RESTRICTION` | 403 | User role insufficient |
+| `INSUFFICIENT_STOCK` | 422 | Not enough inventory |
+| `JOURNAL_IMBALANCE` | 422 | Debits ≠ Credits |
+| `DUPLICATE_REQUEST` | 409 | Idempotency key already used |
+| `TRANSACTION_LIMIT` | 422 | Monthly transaction limit reached (Starter) |
+| `VALIDATION_ERROR` | 400 | DTO validation failed |
+| `NOT_FOUND` | 404 | Resource does not exist |
+| `AI_RATE_LIMIT` | 429 | Gemini API rate limit hit |
+| `OCR_FAILED` | 422 | Receipt image could not be processed |
+| `DRAFT_ALREADY_APPROVED` | 409 | Draft is already in approved state |
+| `MISSING_ACCOUNT_MAPPING` | 422 | Draft requires debit + credit account before approval |
+| `INTERNAL_ERROR` | 500 | Unhandled server error |

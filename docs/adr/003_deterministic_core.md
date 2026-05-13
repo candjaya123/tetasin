@@ -1,132 +1,128 @@
-# ADR-003: Deterministic Business Logic — AI as Interface, Not Decision-Maker
+# ADR-003: Deterministic Core
 
-**Status:** Accepted  
-**Date:** 2026-05-11  
-**Authors:** Platform Engineering Team  
-**Reviewers:** CTO, Product Lead, AI Lead
-
----
-
-## Context
-
-Tumbuhin's core value proposition includes an "AI CFO" feature that analyzes financial data and provides insights. In early versions, there was consideration of using AI (Gemini) to:
-- Calculate financial statements
-- Determine how much stock to reorder
-- Decide on promotion eligibility
-- Process and commit financial transactions
-
-However, this approach presented serious risks for a financial ERP system.
+**Status:** Accepted
+**Date:** 2026-05-11
+**Authors:** Platform Engineering Team
 
 ---
 
 ## Decision
 
-We adopted **Deterministic Core** principle:
+All financial computation is **deterministic** — performed by typed TypeScript code using exact arithmetic. AI is used exclusively for communication and recommendation, never for financial computation or execution.
 
-> All business logic that affects financial state, inventory, or pricing is implemented as deterministic mathematical code (PostgreSQL + TypeScript). AI is restricted to reading aggregated data and generating human-readable explanations.
+## The Invariant
 
-**AI Allowed:**
-- ✅ Read `ledger_balances` materialized view and summarize
-- ✅ Answer user questions about their own business data
-- ✅ Scan receipts (OCR) and draft journal entries for human review
-- ✅ Generate financial forecasts as advisory text
-- ✅ Suggest procurement quantities as draft (requires human approval)
+> "AI reads data, explains it, and suggests. Humans confirm. Systems execute."
 
-**AI Forbidden:**
-- ❌ Calculate financial statements (P&L, Balance Sheet, Cash Flow)
-- ❌ Execute or commit transactions
-- ❌ Modify database records
-- ❌ Determine final selling prices or discounts
-- ❌ Make autonomous procurement decisions
+No financial record is ever created, modified, or deleted by AI autonomously.
 
----
+## Financial Computation Rules
 
-## Alternatives Considered
-
-### Option A: AI-Driven Core (Rejected)
-
-Allow Gemini to calculate financial statements and make procurement decisions.
-
-**Pros:**
-- More dynamic and "intelligent" responses
-- Less code to write for business logic
-
-**Cons:**
-- LLMs hallucinate — financial data cannot have hallucination errors
-- Non-deterministic: same input may produce different outputs on different runs
-- Cannot be audited or explained legally
-- Impossible to guarantee double-entry balance (Debit = Credit) with LLM
-- Regulatory risk: financial statements must be mathematically accurate
-- Latency: Gemini adds 1–3 seconds to every calculation
-
-**Verdict:** Unacceptable for a financial system. A single hallucinated journal entry could corrupt a tenant's entire accounting records.
-
-### Option B: Deterministic Core + AI Interface (Chosen)
-
-All math is done in PostgreSQL/TypeScript. Gemini only reads pre-computed results and explains them.
-
-**Pros:**
-- Financial data is always accurate (ACID transactions, validated balance)
-- AI provides value-added communication layer (summarization, forecasting)
-- Clear boundary: any bug in business logic is in deterministic code — easy to debug
-- Regulatory-safe: AI output is labeled as "advisory" not "computed"
-- Performance: financial calculations run in SQL, not waiting for LLM
-
-**Cons:**
-- More code required for deterministic business logic
-- AI cannot "understand" complex business rules (must be pre-computed)
-- Limits AI autonomy — human approval required for all AI-suggested actions
-
----
-
-## Implementation
+### Rule 1: Exact Arithmetic Only
 
 ```typescript
-// AiController — AI reads from pre-computed aggregations only
-async chat(dto: ChatDto, context: TenantContext) {
-  // 1. Fetch pre-computed financial summary (deterministic SQL)
-  const financialSummary = await this.aggregator.getSemanticFinancialSummary(context.tenantId);
-  
-  // 2. Retrieve memory context (past interactions)
-  const memories = await this.memory.getRelevantMemories(context.tenantId, dto.prompt);
-  
-  // 3. Pass data + question to Gemini for explanation only
-  const explanation = await this.gemini.generateContent(
-    buildCFOPrompt(financialSummary, memories, dto.prompt)
-  );
-  
-  // 4. Return explanation — AI has not touched any data
-  return { response: explanation };
+// ✅ CORRECT: Exact integer arithmetic (amounts in IDR cents, or Numeric(15,2))
+const totalAmount = items.reduce((sum, item) =>
+  sum + (item.unit_price * item.quantity) - item.discount, 0
+);
+
+// ❌ FORBIDDEN: Floating point in financial calculations
+const total = 0.1 + 0.2; // = 0.30000000000000004 — unacceptable
+```
+
+### Rule 2: Journal Balance Validation (Sacred Invariant)
+
+```typescript
+// Enforced in AccountingService.createJournalEntry() — NEVER bypass
+const totalDebit = lines.reduce((s, l) => s + l.debit, 0);
+const totalCredit = lines.reduce((s, l) => s + l.credit, 0);
+
+if (Math.abs(totalDebit - totalCredit) >= 0.01) {
+  throw new UnprocessableEntityException({
+    code: 'JOURNAL_IMBALANCE',
+    message: 'Journal entry debits must equal credits',
+    details: { totalDebit, totalCredit, difference: Math.abs(totalDebit - totalCredit) },
+  });
 }
 ```
 
-The `getSemanticFinancialSummary()` is a pure PostgreSQL query on `ledger_balances` — the materialized view that is refreshed hourly by a deterministic cron job.
+### Rule 3: ACID for All Financial Writes
 
----
+```typescript
+// ALL financial writes: sales, journals, stock deductions, draft approvals
+return this.unitOfWork.runInTransaction(async (client) => {
+  const tx = await this.salesRepo.create(dto, client);
+  await this.inventoryRepo.deductStock(dto.items, client);
+  const journal = await this.accountingService.createJournalEntry(journalDto, client);
+  return { transaction_id: tx.id, journal_id: journal.id };
+});
+```
 
-## Tradeoffs
+### Rule 4: Promotions Computed Deterministically
 
-| Concern | Decision |
-|---|---|
-| **AI accuracy** | Acceptable lower accuracy for non-critical insights; zero tolerance for financial calculation errors |
-| **AI autonomy** | Human-in-the-loop for all AI-suggested actions (procurement, journal drafts) |
-| **Development velocity** | More backend code required; justified by data integrity requirement |
-| **User experience** | AI provides conversational interface over correct data — better UX than AI-generated but wrong numbers |
+```typescript
+// DiscountEngine.apply() — pure function, same input = same output
+function applyDiscount(cartItems: CartItem[], promo: Promo): DiscountResult {
+  // Rule-based evaluation — no randomness, no AI
+  if (promo.type === 'percentage') {
+    return { discount: cartItems.total * (promo.value / 100) };
+  }
+  if (promo.type === 'fixed') {
+    return { discount: Math.min(promo.value, cartItems.total) };
+  }
+}
+```
 
----
+## AI Layer Boundaries
 
-## Long-Term Implications
+### What AI CAN do
 
-- As LLMs improve (structured output, function calling, verification), the AI boundary can be gradually expanded
-- OCR receipt scanning (scan → draft journal) is the safest expansion: AI creates a draft, human reviews and confirms
-- Autonomous procurement restock (AI creates PO draft, human approves) is the next expansion candidate
-- Full AI autonomy for financial decisions is not planned within a 5-year horizon
+```typescript
+// 1. Read aggregated financial data
+const summary = await this.aggregator.getSemanticFinancialSummary(tenantId);
 
----
+// 2. Generate natural language explanations
+const insight = await this.gemini.generateContent(systemPrompt + summary);
 
-## Review Date
+// 3. Extract structured data from images (OCR)
+const extraction = await this.gemini.extractReceipt(imageBuffer, mimeType);
 
-Re-evaluate this decision when:
-- LLM structured outputs prove mathematically reliable in production financial systems
-- An industry-standard verification layer for LLM financial calculations is available
-- Regulatory framework for AI-generated financial statements is established in Indonesia
+// 4. Recommend accounts, categories, tags
+return { suggestedCategory: extraction.suggested_category.value };
+```
+
+### What AI CANNOT do
+
+```typescript
+// ❌ AI cannot create transactions
+gemini.createTransaction(data); // Forbidden
+
+// ❌ AI cannot approve drafts
+gemini.approveDraft(draftId);   // Forbidden
+
+// ❌ AI cannot modify financial records
+gemini.updateJournal(journalId, changes); // Forbidden
+
+// ❌ AI-suggested data cannot be committed without human approval
+// Every AI output creates a DRAFT — user approval is mandatory
+```
+
+## Report Generation
+
+Financial statements are computed from journal lines — not from AI summaries:
+
+```sql
+-- Income Statement (deterministic SQL aggregation)
+SELECT
+  coa.type,
+  SUM(jl.debit) - SUM(jl.credit) AS net_balance
+FROM journal_lines jl
+JOIN journal_entries je ON je.id = jl.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jl.account_id
+WHERE je.tenant_id = $1
+  AND je.status = 'posted'
+  AND je.transaction_date BETWEEN $2 AND $3
+GROUP BY coa.type;
+```
+
+AI may **explain** this output. It does not **produce** it.

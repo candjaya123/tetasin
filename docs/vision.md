@@ -1,127 +1,123 @@
-# Tumbuhin — Product Vision & Engineering Direction
+# Tumbuhin — Platform Vision & Roadmap
 
-> **Document Purpose:** Defines the long-term product and engineering direction to ensure short-term decisions don't compromise long-term growth.
-> **Who Should Read This:** CTO, Product Manager, Technical Lead, Senior Engineers.
-> **Why It Matters:** Without a shared north star, teams optimize locally and create global fragility.
-
----
-
-## 1. Product Vision Statement
-
-**"Tumbuhin will be the operating system for Indonesian SMEs — the single platform that replaces the cashier book, the Excel spreadsheet, the accountant's manual ledger, and the WhatsApp order tracking, all in one mobile-first, AI-augmented system."**
+> **Document Purpose:** Long-term product vision, evolution goals, and strategic roadmap.
+> **Who Should Read This:** Engineering leadership, product management, and senior engineers.
 
 ---
 
-## 2. Current Problems
+## 1. Three-Year Vision
 
-| Problem | Impact |
-|---|---|
-| Vision not formally documented — decisions made ad-hoc | Architectural drift, feature sprawl |
-| No long-term API versioning strategy | Future breaking changes will impact clients |
-| AI role unclear to new contributors — risk of AI being used for business logic | Data integrity and hallucination risk |
-| No documented product roadmap beyond Phase 12 | Teams have no strategic context for prioritization |
-| Upsell / monetization not fully tied to product feature flags in code | Revenue leakage from unpaid feature access |
+Tumbuhin becomes the **default financial operating system for Indonesian SMEs** — replacing paper notebooks, spreadsheets, and isolated apps with a single AI-augmented platform that handles POS, inventory, procurement, accounting, and financial intelligence.
 
----
+### 1.1 Year 1 — Foundation (Complete)
+> "One platform that reliably runs a single-store Indonesian SME."
 
-## 3. Ideal Structure — Long-Term Product Architecture
+- Multi-tenant modular monolith (NestJS + Supabase)
+- Real-time POS with automatic double-entry journaling
+- Multi-warehouse inventory management
+- Full procurement lifecycle (SO → PO → fulfillment)
+- AI Financial CFO (Gemini-powered chat + insights)
+- OCR receipt scanning (photo → journal)
+- Web dashboard + Flutter mobile app
+- Three subscription tiers (Starter / Business / Pro)
 
-### 3.1 The 3-Layer Platform Model
+### 1.2 Year 2 — Scale
+> "One platform for multi-branch franchise operations."
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 3: Intelligence Layer                                 │
-│  ─────────────────────────────────────────────────────────  │
-│  AI CFO · Forecasting · Smart Alerts · Procurement Autopilot│
-│  (Advisory Only — Never Executes Transactions)              │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ Reads from
-┌──────────────────────────▼──────────────────────────────────┐
-│  Layer 2: Business Engine Layer                              │
-│  ─────────────────────────────────────────────────────────  │
-│  POS · Inventory · Accounting · Procurement · Promotions    │
-│  (Deterministic — All math is exact, ACID transactions)     │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ Persists to
-┌──────────────────────────▼──────────────────────────────────┐
-│  Layer 1: Data & Infrastructure Layer                        │
-│  ─────────────────────────────────────────────────────────  │
-│  PostgreSQL · RLS · BullMQ · Redis · Supabase Auth          │
-│  (Immutable audit trail, multi-tenant isolation)            │
-└─────────────────────────────────────────────────────────────┘
-```
+- Consolidated multi-branch reporting (Pro+)
+- Franchise owner dashboard (manages N branches)
+- Payroll and staff attendance integration
+- B2B ordering portal (supplier integration)
+- Expanded AI: predictive restock, cash flow forecasting
+- E-commerce integrations (Tokopedia, Shopee)
+- Open API for third-party integrations
 
-### 3.2 The 5-Year Product Evolution
+### 1.3 Year 3 — Ecosystem
+> "The financial intelligence backbone for 100,000 Indonesian SMEs."
 
-| Year | Focus |
-|---|---|
-| **Year 1 (Current)** | Core operational platform: POS, Inventory, Accounting, AI chat |
-| **Year 2** | Franchise tier: multi-branch management, consolidated reporting, franchise dashboard |
-| **Year 3** | Ecosystem: Open API for integrations, marketplace plugins, supplier network |
-| **Year 4** | Intelligence: Predictive inventory, demand forecasting, automated PO execution |
-| **Year 5** | Financial Services: Embedded lending, insurance, business credit scoring |
+- Developer marketplace (partner apps on Tumbuhin platform)
+- Embedded lending (revenue-based financing via bank partnerships)
+- Industry-specific vertical modules (pharmacy, manufacturing, F&B)
+- Regional expansion (SEA markets)
+- Kafka-based event streaming for real-time analytics
+- Multi-region active-passive deployment
 
 ---
 
-## 4. Engineering Vision
+## 2. Product Pillars
 
-### 4.1 Platform Engineering Goals
+### Pillar 1: Deterministic ERP Engine
+All business computations — pricing, stock deduction, journaling, reporting — are **mathematically exact and reproducible**. No probabilistic or AI-based logic in financial execution.
 
-1. **API-First:** Every feature must be accessible via the backend API. No feature-only-in-UI.
-2. **AI-Augmented, Not AI-Driven:** AI reads data, explains it, and suggests. Humans confirm. Systems execute.
-3. **Tenant-Native:** Multi-tenancy is not an afterthought — it is baked into every data model, query, and policy.
-4. **Event-Complete:** Every business action produces a domain event. The event log is the source of truth for audit, analytics, and async processing.
-5. **Idempotent by Default:** All write operations must be idempotent. Duplicate requests must be safe.
+### Pillar 2: AI as Interface, Not Decision Maker
+AI (Gemini) handles:
+- Explaining financial data in natural language
+- Extracting structured data from receipt images
+- Generating insights and recommendations
+- Answering business questions via chat
 
-### 4.2 Scalability Goals
+AI does NOT:
+- Execute transactions
+- Modify database records
+- Make autonomous decisions affecting financial integrity
 
-| Milestone | Target |
-|---|---|
-| Phase 1 | 1,000 active tenants (Full tier), 50k transactions/day |
-| Phase 2 | 10,000 tenants, 100+ Franchise accounts, 500k transactions/day |
-| Phase 3 | 100,000 tenants, 1,000+ Franchise accounts — requires microservice extraction |
+### Pillar 3: Tenant-Native Multi-Tenancy
+Every data record, every API call, every report is **naturally scoped to a single tenant**. The platform is built from the ground up for isolation — not retrofitted.
 
-### 4.3 Technical Evolution Goals
+### Pillar 4: API-First Architecture
+Every feature is available via the REST API before building UI. The backend API is the product — Web and Flutter are just clients.
 
-| Goal | Strategy |
-|---|---|
-| Sub-100ms P99 API response | Redis caching on hot reads, DB indexing, materialized views |
-| Zero-downtime deployments | Blue-green via Docker + health checks |
-| Full observability | OpenTelemetry traces + structured Pino logs + Grafana dashboards |
-| 80% test coverage | Unit + integration + E2E test suite (Jest + Playwright) |
-| AI cost control | Token budgeting per tenant, rate limiting on AI endpoints |
+### Pillar 5: Universal Product Engine
+A single unified product modeling system handles **all SME industry types** — retail, F&B, pharmacy, electronics, manufacturing, services — without separate code paths or special-casing. Product behaviors are declared via `product_type` + `product_behaviors` tables.
 
 ---
 
-## 5. Refactor Direction
+## 3. Architecture Evolution Path
 
-### Short-Term (0–3 months)
-- [ ] Resolve enum mismatch — align DB to `'free', 'full', 'franchise'`
-- [ ] Migrate all direct Supabase frontend calls to backend API
-- [ ] Standardize auth guard chain
-- [ ] Implement comprehensive E2E test suite for critical flows
-
-### Medium-Term (3–9 months)
-- [ ] Build Franchise dashboard — multi-branch overview and consolidated reports
-- [ ] Implement branch-linking system (franchise_account_id FK on tenants)
-- [ ] Add Redis caching layer for `ledger_balances` and `report` endpoints
-- [ ] Implement OpenTelemetry distributed tracing
-- [ ] Define and publish internal API versioning policy
-- [ ] Build feature flag system for tier-based feature access
-
-### Long-Term (9–24 months)
-- [ ] Extract AI module into independent service
-- [ ] Build open API documentation (Swagger/OpenAPI 3.0)
-- [ ] Introduce GraphQL for complex reporting queries including cross-branch aggregation
-- [ ] Implement Supabase Realtime for live POS updates
-- [ ] Build plugin/integration marketplace
+| Stage | Trigger | Change |
+|---|---|---|
+| **Modular Monolith** (current) | Team < 15, tenants < 10k | NestJS single process, 15 modules |
+| **Modular Monolith + Workers** | BullMQ saturating API CPU | Extract BullMQ worker to separate process (`npm run worker`) |
+| **Extract AI Service** | AI compute cost > 30% of total | AI module → standalone Python/Node service |
+| **Extract Report Service** | Read queries slowing writes | Report module → CQRS read replica pattern |
+| **Kubernetes** | Traffic spikes unpredictable | HPA, ingress controller, pod autoscaling |
+| **Microservices** | Team > 15, tenants > 10k | Module boundaries allow clean extraction |
 
 ---
 
-## 6. Long-Term Recommendations
+## 4. Technology Evolution
 
-1. **Adopt ADR (Architecture Decision Records):** Document every significant architectural decision in `docs/adr/` to prevent institutional knowledge loss.
-2. **Invest in Developer Experience (DX):** Onboarding should take < 30 minutes with one `docker compose up` command.
-3. **Build for AI-Assisted Development:** All code must be self-documenting, module boundaries explicit, and conventions enforced by tooling (linters, generators).
-4. **Financial Data is Sacred:** Double-entry integrity, immutable event logs, and ACID guarantees must never be compromised for performance shortcuts.
-5. **Mobile-First, API-Only:** The backend is a product, not an implementation detail. Every endpoint is a public contract.
+| Capability | Today | Year 2 | Year 3 |
+|---|---|---|---|
+| Event Bus | BullMQ (Redis) | BullMQ + persistent event log | Kafka |
+| Database | Supabase (single region) | Read replica for analytics | Multi-region, partitioned |
+| Caching | Redis (reports) | Redis cluster | Distributed cache |
+| AI | Gemini 2.0 Flash | Gemini + fine-tuned domain model | On-prem option for compliance |
+| Observability | Pino logs + Grafana | Full distributed tracing (OpenTelemetry) | Multi-region observability |
+| Mobile | Flutter (iOS/Android) | Flutter + web PWA | Native features per platform |
+
+---
+
+## 5. Non-Negotiable Engineering Principles (Permanent)
+
+These principles do NOT change as the platform evolves:
+
+1. **Financial data integrity above all** — `|debit - credit| < 0.01` always enforced
+2. **AI never writes to database** — AI is read + suggest only, forever
+3. **Human approval for AI-generated financial entries** — OCR drafts require explicit user approval
+4. **Tenant isolation at every layer** — RLS + `tenant_id` filtering + JWT context
+5. **ACID for financial transactions** — `UnitOfWork.runInTransaction()` never bypassed
+6. **Deterministic pricing** — promotions, discounts, taxes are computed exactly
+7. **API-first** — every feature has an API endpoint before building UI
+8. **Module boundaries** — cross-module service coupling forbidden; use EventBusService
+
+---
+
+## 6. Open Questions (Product Decisions Pending)
+
+| Question | Options | Deadline |
+|---|---|---|
+| Payroll module — build vs integrate | Build vs Gadjian/Talenta API | Q3 2026 |
+| Inventory forecasting | Deterministic reorder point vs AI prediction | Q4 2026 |
+| E-commerce channel sync | Direct integration vs middleware (e.g., DaaS) | Q2 2027 |
+| On-premise AI for sensitive tenants | Self-hosted LLM vs Gemini with DPA | 2027 |

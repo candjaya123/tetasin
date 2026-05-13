@@ -1,62 +1,91 @@
-# Tumbuhin — Deployment & Infrastructure
+# Tumbuhin — Deployment & Operations
 
-> **Document Purpose:** Defines deployment strategy, environments, CI/CD pipeline, containerization, monitoring, logging, backup, and rollback procedures.
-> **Who Should Read This:** DevOps engineers, backend engineers, technical leads.
-> **Why It Matters:** Reliable operations are essential for a SaaS platform. Deployment failures directly impact tenant revenue.
-
----
-
-## 1. Current Problems
-
-| Problem | Severity | Description |
-|---|---|---|
-| No formal CI/CD pipeline documented | 🔴 High | Manual deployment risk — no automated testing before deploy |
-| No documented rollback strategy | 🔴 High | If deploy fails, no procedure to revert |
-| Redis config uses `ioredis-mock` fallback in production code | 🟡 Medium | `process.env.USE_MOCK_REDIS === 'true'` is a production footgun |
-| No health check endpoint | 🟡 Medium | Load balancer has no way to detect unhealthy instance |
-| No backup schedule for Supabase DB | 🟡 Medium | Data loss risk |
-| BullMQ worker co-located with API server | 🟡 Medium | CPU-intensive jobs can starve API threads |
+> **Document Purpose:** Defines deployment architecture, CI/CD pipelines, health checks, environment configuration, monitoring, backup schedules, and runbook procedures.
+> **Who Should Read This:** DevOps engineers, backend engineers, and on-call responders.
 
 ---
 
-## 2. Environments
+## 1. Infrastructure Architecture
 
-| Environment | Purpose | URL |
-|---|---|---|
-| **Development** | Local dev, feature work | `localhost:3000` |
-| **Staging** | Pre-release integration testing | `staging-api.tumbuhin.com` |
-| **Production** | Live tenant traffic | `api.tumbuhin.com` |
-
-**Environment Variables per Environment:**
-
-```bash
-# Development
-NODE_ENV=development
-USE_MOCK_REDIS=true       ← Only valid in development, never staging/prod
-
-# Staging
-NODE_ENV=staging
-USE_MOCK_REDIS=false
-REDIS_HOST=redis.staging.internal
-
-# Production
-NODE_ENV=production
-USE_MOCK_REDIS=false
-REDIS_HOST=redis.prod.internal
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        PRODUCTION STACK                               │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│  Web (Vercel)            Admin (Vercel)            Flutter (App Store) │
+│  tumbuhin.com            admin.tumbuhin.com        iOS + Android       │
+│       │                        │                                       │
+│       └────────────────────────┘                                       │
+│                         │                                              │
+│                    Cloudflare CDN                                      │
+│                         │                                              │
+│              ┌──────────▼──────────────┐                              │
+│              │  NestJS API (Docker)     │                              │
+│              │  api.tumbuhin.com        │                              │
+│              │  Port 3001               │                              │
+│              └──────────┬──────────────┘                              │
+│           ┌─────────────┼─────────────┐                               │
+│           ▼             ▼             ▼                                │
+│      Supabase         Redis        Gemini                              │
+│      PostgreSQL       (BullMQ +    API                                 │
+│      + Auth + RLS     Caching)                                         │
+│      + Storage                                                         │
+│                                                                        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Containerization
+## 2. Environment Configuration
+
+### 2.1 Required Backend Environment Variables
+
+```bash
+# Database
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...       # Backend only — NEVER expose to client
+SUPABASE_JWT_SECRET=your-jwt-secret
+
+# AI
+GOOGLE_GEMINI_API_KEY=AIza...
+
+# Payment
+MIDTRANS_SERVER_KEY=SB-Mid-server-...
+MIDTRANS_CLIENT_KEY=SB-Mid-client-...
+MIDTRANS_IS_PRODUCTION=false           # true in production only
+
+# Queue
+REDIS_HOST=redis
+REDIS_PORT=6379
+USE_MOCK_REDIS=false                   # true ONLY in local dev
+
+# App
+NODE_ENV=production
+PORT=3001
+WEB_URL=https://tumbuhin.com
+ADMIN_URL=https://admin.tumbuhin.com
+```
+
+### 2.2 Frontend Environment Variables
+
+```bash
+# Web (.env.local) — NEXT_PUBLIC_ prefix = safe for browser
+NEXT_PUBLIC_BACKEND_URL=https://api.tumbuhin.com
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...   # Anon key only, NOT service role
+```
+
+---
+
+## 3. Docker Configuration
 
 ### 3.1 Backend Dockerfile
 
 ```dockerfile
-# backend/Dockerfile
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --frozen-lockfile
 COPY . .
 RUN npm run build
 
@@ -65,59 +94,41 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget -qO- http://localhost:3000/health || exit 1
+EXPOSE 3001
 CMD ["node", "dist/main.js"]
 ```
 
-### 3.2 Docker Compose (Local Development)
+### 3.2 Docker Compose (Local Dev)
 
 ```yaml
-# docker-compose.yml
-version: '3.8'
 services:
-  backend:
+  api:
     build: ./backend
-    ports:
-      - "3000:3000"
+    ports: ["3001:3001"]
     environment:
+      - USE_MOCK_REDIS=true
       - NODE_ENV=development
-      - REDIS_HOST=redis
-    depends_on:
-      - redis
     volumes:
-      - ./backend/src:/app/src  # Hot reload in dev
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run start:dev
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  worker:
-    build: ./backend
-    command: node dist/worker.js
-    environment:
-      - NODE_ENV=production
-      - REDIS_HOST=redis
-    depends_on:
-      - redis
+    ports: ["6379:6379"]
 ```
 
 ---
 
 ## 4. CI/CD Pipeline
 
-### 4.1 GitHub Actions Workflow
-
 ```yaml
 # .github/workflows/deploy.yml
-name: CI/CD Pipeline
+name: CI/CD
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -129,177 +140,173 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm ci
-        working-directory: backend
-      - run: npm run test
-        working-directory: backend
-      - run: npm run test:e2e
-        working-directory: backend
-      - name: Check coverage threshold
-        run: npm run test:cov -- --coverageThreshold='{"global":{"lines":80}}'
-        working-directory: backend
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm ci && npm run lint
-        working-directory: backend
+      - run: npm run lint             # ESLint + Prettier
+      - run: npm run tsc              # TypeScript check
+      - run: npm run test:unit        # Unit tests
+      - run: npm run test:integration # Integration tests
+      - run: npm run test:cov         # Coverage gate
 
   deploy-staging:
-    needs: [test, lint]
-    if: github.ref == 'refs/heads/staging'
+    needs: test
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Deploy to Staging
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t tumbuhin-api:${{ github.sha }} ./backend
+      - name: Deploy to staging
         run: |
-          docker build -t tumbuhin-backend:staging ./backend
-          docker push registry/tumbuhin-backend:staging
-          # kubectl rollout or Railway/Render deploy hook
+          docker push $REGISTRY/tumbuhin-api:${{ github.sha }}
+          kubectl set image deployment/api api=$REGISTRY/tumbuhin-api:${{ github.sha }} -n staging
 
   deploy-production:
-    needs: [test, lint]
-    if: github.ref == 'refs/heads/main'
-    environment: production  # Requires manual approval
+    needs: deploy-staging
     runs-on: ubuntu-latest
+    environment: production           # Requires manual approval
     steps:
-      - name: Deploy to Production
+      - name: Deploy to production
         run: |
-          docker build -t tumbuhin-backend:${{ github.sha }} ./backend
-          docker push registry/tumbuhin-backend:${{ github.sha }}
-          # Blue-green deploy or rolling update
-```
-
-### 4.2 Deployment Branches
-
-```
-feature/* → develop (auto-merge on PR approval)
-develop   → staging (auto-deploy on merge)
-staging   → main    (manual approval required, deploy to production)
+          kubectl set image deployment/api api=$REGISTRY/tumbuhin-api:${{ github.sha }} -n production
+      - name: Verify rollout
+        run: kubectl rollout status deployment/api -n production --timeout=5m
 ```
 
 ---
 
-## 5. Health Check Endpoint
+## 5. Health Checks
 
-```typescript
-// app.controller.ts — Add health check
-@Controller()
-export class AppController {
-  @Get('health')
-  @Public()  // No auth required
-  health() {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      version: process.env.APP_VERSION,
-    };
+### 5.1 API Health Endpoint (Public)
+
+```
+GET /api/v1/health
+```
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-05-11T08:00:00Z",
+  "version": "1.2.3",
+  "services": {
+    "database": "ok",
+    "redis": "ok",
+    "gemini": "ok"
   }
 }
 ```
 
+### 5.2 Readiness vs Liveness
+
+```typescript
+// GET /api/v1/health/live — fast, no external calls
+// Returns 200 immediately if process is running
+// GET /api/v1/health/ready — checks DB + Redis
+// Returns 200 only if all dependencies are reachable
+```
+
 ---
 
-## 6. Monitoring & Alerting
+## 6. Monitoring & Observability
 
-### 6.1 Metrics to Monitor
+### 6.1 Structured Logs (Pino → Loki → Grafana)
 
-| Metric | Alert Threshold |
-|---|---|
-| API P99 response time | > 2000ms |
-| Error rate (5xx) | > 1% over 5 minutes |
-| BullMQ queue depth | > 1000 jobs |
-| Redis memory usage | > 80% |
-| DB connection pool | > 80% utilized |
-| AI API error rate | > 5% |
+Every log entry includes:
+- `traceId` — correlates request through all layers
+- `tenantId` — enables per-tenant incident investigation
+- `action` — machine-readable event name
+- `duration` — performance tracking
 
-### 6.2 Logging Architecture
+### 6.2 Performance Targets (SLA)
 
-```
-Application (Pino logs)
-    │
-    ▼
-stdout/stderr (JSON format in production)
-    │
-    ▼
-Log aggregator (Loki / Datadog / CloudWatch)
-    │
-    ▼
-Grafana dashboard + Alert rules
-```
+| Endpoint | P50 | P95 | P99 |
+|---|---|---|---|
+| `POST /api/v1/sales` | < 200ms | < 400ms | < 500ms |
+| `GET /api/v1/finance/balance-sheet` | < 100ms (cached) | < 300ms | < 500ms |
+| `GET /api/v1/report/dashboard` | < 300ms | < 600ms | < 1000ms |
+| `POST /api/v1/receipt/scan` | < 300ms | < 500ms | < 800ms |
+| `POST /api/v1/ai/chat` (enqueue) | < 500ms | < 800ms | < 1000ms |
+| `GET /api/v1/inventory/products` | < 100ms | < 250ms | < 300ms |
 
-### 6.3 Required Log Fields
+### 6.3 Alerting Thresholds
 
-```json
-{
-  "level": "info",
-  "time": "2026-05-11T08:00:00Z",
-  "traceId": "abc123",
-  "tenantId": "uuid",
-  "userId": "uuid",
-  "action": "sale_processed",
-  "duration": 145,
-  "msg": "Sale processed successfully"
-}
-```
+| Metric | Warning | Critical |
+|---|---|---|
+| API error rate | > 1% | > 5% |
+| P99 response time | > 1000ms | > 3000ms |
+| BullMQ queue depth | > 500 jobs | > 2000 jobs |
+| DB connection pool | > 70% utilized | > 90% |
+| Redis memory | > 70% | > 90% |
 
 ---
 
 ## 7. Backup Strategy
 
-### 7.1 Database Backup
-
-| Backup Type | Frequency | Retention |
-|---|---|---|
-| Supabase point-in-time recovery | Continuous (7 days) | 7 days (Pro plan) |
-| Manual full dump | Daily | 30 days |
-| Pre-migration snapshot | Before every migration | 90 days |
-
-### 7.2 Backup Procedure
-
-```bash
-# Daily backup script (run via cron)
-pg_dump $DATABASE_URL | gzip > backup-$(date +%Y%m%d).sql.gz
-aws s3 cp backup-$(date +%Y%m%d).sql.gz s3://tumbuhin-backups/daily/
-```
+| Resource | Frequency | Retention | Method |
+|---|---|---|---|
+| PostgreSQL | Continuous WAL + Daily snapshots | 30 days | Supabase managed |
+| Redis | Daily RDB snapshot | 7 days | Manual + cron |
+| Receipt images | On upload | 90 days, then auto-delete | Supabase Storage lifecycle |
+| Environment variables | On change | Indefinite | 1Password / AWS Secrets Manager |
 
 ---
 
-## 8. Rollback Strategy
+## 8. Rollback Procedures
 
-### 8.1 Application Rollback
+### 8.1 API Rollback (Kubernetes)
 
 ```bash
-# Keep last 3 Docker image tags in registry
-# If production deploy fails:
-docker pull registry/tumbuhin-backend:<previous-sha>
-docker tag registry/tumbuhin-backend:<previous-sha> tumbuhin-backend:production
-# Redeploy previous image via deployment platform
+# Rollback to previous deployment
+kubectl rollout undo deployment/api -n production
+
+# Rollback to specific revision
+kubectl rollout history deployment/api -n production
+kubectl rollout undo deployment/api --to-revision=5 -n production
 ```
 
 ### 8.2 Database Rollback
 
-- Every migration MUST have a corresponding rollback script
-- Migration naming: `V{number}__{description}.sql` + `U{number}__{description}.sql` (undo)
-- Run rollback script before reverting application code
+Migrations use `IF NOT EXISTS` and `IF EXISTS` guards to be idempotent.
+
+```sql
+-- All migrations in: backend/src/core/database/migrations/
+-- Naming convention: NNN_description.sql
+-- Example: 007_receipt_module.sql
+```
+
+For emergency DB rollback:
+1. Identify migration to revert
+2. Run corresponding `DOWN` SQL (kept in same file under `-- DOWN:` comment)
+3. Verify application startup succeeds with previous schema
 
 ---
 
-## 9. Refactor Direction
+## 9. Operations Runbook
 
-1. **Remove `USE_MOCK_REDIS` from production code path** — use proper Redis in all non-dev environments
-2. **Add `/health` endpoint** to backend
-3. **Set up GitHub Actions pipeline** with test + lint gates
-4. **Add Supabase PITR** (point-in-time recovery) upgrade to Pro plan
-5. **Document rollback runbook** in team wiki
+### 9.1 High Error Rate
 
----
+```
+1. Check /api/v1/health — is DB/Redis reachable?
+2. Check Grafana error rate dashboard
+3. Filter logs by traceId for a failing request
+4. If DB error → check Supabase dashboard for connection pool exhaustion
+5. If Redis error → restart Redis pod, check BullMQ queue backlog
+6. If Gemini error → AI endpoints fail gracefully; non-AI endpoints unaffected
+```
 
-## 10. Long-Term Recommendations
+### 9.2 Scheduled Maintenance
 
-| Recommendation | Rationale |
-|---|---|
-| Kubernetes for orchestration | Auto-scaling, rolling updates, self-healing |
-| Blue-green deployments | Zero-downtime production deploys |
-| Chaos engineering (quarterly) | Test system resilience proactively |
-| Multi-region deployment | Disaster recovery, latency for users outside Java |
-| Infrastructure as Code (Terraform) | Reproducible infrastructure |
+```bash
+# Maintenance mode — returns 503 for all API requests except /health
+kubectl set env deployment/api MAINTENANCE_MODE=true -n production
+
+# After maintenance:
+kubectl set env deployment/api MAINTENANCE_MODE=false -n production
+```
+
+### 9.3 BullMQ Queue Drain
+
+```bash
+# Clear stuck jobs from a specific queue
+redis-cli FLUSHDB  # ⚠️ Clears ALL queue jobs — use only in emergency
+
+# Or selectively via Bull Dashboard at /admin/queue
+```

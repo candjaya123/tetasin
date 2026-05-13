@@ -1,31 +1,18 @@
 # Tumbuhin — Coding Standards
 
-> **Document Purpose:** Defines engineering conventions and code quality standards for all layers.
+> **Document Purpose:** Engineering conventions and code quality standards for all layers.
 > **Who Should Read This:** All engineers and AI coding assistants.
-> **Why It Matters:** Consistency across teams and AI-generated code is critical for long-term maintainability.
+> **Enforcement:** These standards are enforced by ESLint, TypeScript strict mode, and Prettier pre-commit hooks.
 
 ---
 
-## 1. Current Problems
+## 1. Naming Conventions
 
-| Problem | Severity | Description |
-|---|---|---|
-| No enforced code style guide | 🟡 Medium | Each file varies in formatting, import order, and naming |
-| Debug scripts in `src/` (e.g., `debug_ai.js`, `check_cols.js`) | 🟡 Medium | Non-production scripts pollute the source tree |
-| Mixed JS and TS files in backend `src/` | 🟡 Medium | `add_stock_col.js`, `check_cols.js` in `/backend/src/` |
-| No consistent error handling pattern | 🟡 Medium | Some services throw raw strings, others throw typed exceptions |
-| No logging standards — unstructured console.log mixed with Pino | 🟡 Medium | Breaks log aggregation |
-| Inconsistent DTO validation — some endpoints lack `class-validator` | 🟡 Medium | Security and data integrity risk |
-
----
-
-## 2. Naming Conventions
-
-### 2.1 Files and Folders
+### 1.1 Files and Folders (Backend)
 
 ```
 backend/src/modules/sales/
-├── sales.module.ts          ← kebab-case, descriptive
+├── sales.module.ts
 ├── controllers/
 │   └── sales.controller.ts
 ├── services/
@@ -43,9 +30,9 @@ backend/src/modules/sales/
 **Rules:**
 - Files: `kebab-case.type.ts`
 - Directories: `kebab-case` (plural for collections: `controllers/`, `services/`)
-- Test files: `*.spec.ts` alongside the file they test
+- Test files: `*.spec.ts` in the same directory as the file they test
 
-### 2.2 TypeScript Identifiers
+### 1.2 TypeScript Identifiers
 
 ```typescript
 // Classes: PascalCase
@@ -76,11 +63,11 @@ enum SubscriptionTier {
 private readonly supabaseService: SupabaseService;
 ```
 
-### 2.3 Database
+### 1.3 Database
 
 ```sql
 -- Tables: snake_case, plural
-transactions, journal_entries, chart_of_accounts
+transactions, journal_entries, chart_of_accounts, draft_transactions
 
 -- Columns: snake_case
 tenant_id, created_at, updated_at, is_active, total_amount
@@ -101,28 +88,29 @@ CONSTRAINT uq_accounts_tenant_code UNIQUE (tenant_id, code)
 
 ---
 
-## 3. Folder Structure Rules
+## 2. Folder Structure
 
-### 3.1 Backend Module Pattern
+### 2.1 Backend Module Pattern
 
 Every NestJS module MUST follow this structure:
+
 ```
 module-name/
 ├── module-name.module.ts     ← REQUIRED
-├── controllers/              ← HTTP only
+├── controllers/              ← HTTP handlers only
 ├── services/                 ← Business logic
 ├── repositories/             ← DB queries
 ├── domain/                   ← Entities, value objects, events
 └── dto/                      ← Request/Response DTOs
 ```
 
-**Rules:**
-- Controllers import only Services (never Repositories)
+**Import rules:**
+- Controllers import only Services
 - Services import only Repositories and Domain entities
-- Repositories import only the DB client
-- Domain entities are pure TypeScript with no dependencies
+- Repositories import only the DB client (SupabaseService)
+- Domain entities are pure TypeScript with zero dependencies
 
-### 3.2 Web (Next.js) Structure
+### 2.2 Web (Next.js) Structure
 
 ```
 src/
@@ -132,37 +120,38 @@ src/
 │   ├── admin/                ← Admin-only routes
 │   └── tenant/               ← Tenant dashboard routes
 ├── components/
-│   ├── ui/                   ← Shadcn base components (do not edit)
+│   ├── ui/                   ← Shadcn base components (do not modify)
 │   ├── common/               ← Shared layout components
 │   ├── [feature]/            ← Feature-specific components
 │   └── forms/                ← Form components
 ├── hooks/                    ← Custom React hooks
 ├── lib/
-│   ├── api/                  ← API client functions
+│   ├── api/                  ← Centralized API client functions
 │   ├── utils/                ← Pure utility functions
 │   └── constants/            ← App-wide constants
 └── types/                    ← TypeScript type definitions
 ```
 
-### 3.3 Flutter Structure
+### 2.3 Flutter Structure
 
 ```
 lib/
 ├── core/
 │   ├── router/               ← go_router configuration
 │   ├── theme/                ← Design tokens, colors, typography
+│   ├── api/                  ← ApiClient (Dio), interceptors
 │   └── config/               ← App configuration
 ├── features/
 │   └── [feature]/
 │       ├── data/
 │       │   ├── models/       ← Data classes / DTOs
-│       │   └── services/     ← API calls
+│       │   └── services/     ← API calls via ApiClient
 │       ├── domain/
 │       │   └── entities/     ← Business entities
 │       └── presentation/
 │           ├── screens/      ← Full screens
 │           ├── widgets/      ← Feature-specific widgets
-│           └── providers/    ← State management
+│           └── providers/    ← Riverpod state management
 └── shared/
     ├── widgets/              ← Reusable UI components
     └── utils/                ← Utilities
@@ -170,12 +159,12 @@ lib/
 
 ---
 
-## 4. Code Quality Rules
+## 3. Code Quality Standards
 
-### 4.1 Backend (NestJS)
+### 3.1 Backend (NestJS)
 
 ```typescript
-// ✅ CORRECT: Typed DTOs with validation
+// ✅ CORRECT: Typed DTOs with full validation
 import { IsString, IsNumber, IsUUID, Min } from 'class-validator';
 
 export class CreateSaleItemDto {
@@ -191,89 +180,79 @@ export class CreateSaleItemDto {
   unit_price: number;
 }
 
-// ✅ CORRECT: Typed error throwing
+// ✅ CORRECT: Typed business exception with error code
 import { UnprocessableEntityException } from '@nestjs/common';
 throw new UnprocessableEntityException({
   code: 'INSUFFICIENT_STOCK',
   message: `Insufficient stock for ${productName}`,
+  details: { product_id, required, available },
 });
 
-// ❌ FORBIDDEN: Raw string errors
-throw new Error('insufficient stock');
-
-// ✅ CORRECT: Use injected logger (Pino)
+// ✅ CORRECT: Injected Pino logger
 constructor(@InjectPinoLogger() private readonly logger: PinoLogger) {}
-this.logger.info({ tenantId, transactionId }, 'Sale processed');
+this.logger.info({ tenantId, transactionId, action: 'sale_processed' }, 'Sale processed');
 
-// ❌ FORBIDDEN: console.log in production code
-console.log('Sale processed');
-
-// ✅ CORRECT: Return typed response
+// ✅ CORRECT: Typed return
 async processSale(dto: CreateSaleDto): Promise<SaleResponseDto> {}
-
-// ❌ FORBIDDEN: Return 'any'
-async processSale(dto: any): Promise<any> {}
 ```
 
-### 4.2 Web (Next.js / TypeScript)
+### 3.2 Web (Next.js / TypeScript)
 
 ```typescript
 // ✅ CORRECT: API calls through centralized client
-import { apiClient } from '@/lib/api/client';
-const { data } = await apiClient.post('/sales', payload);
-
-// ❌ FORBIDDEN: Direct Supabase access from pages
-const { data } = await supabase.from('transactions').select('*');
+import { apiGet, apiPost } from '@/lib/api/client';
+const { data } = await apiPost<SaleResponse>('/api/v1/sales', payload);
 
 // ✅ CORRECT: Typed API responses
 interface SaleResponse { transaction_id: string; total_amount: number; }
-const result: SaleResponse = await createSale(dto);
 
-// ✅ CORRECT: Custom hooks for data fetching
+// ✅ CORRECT: Custom hook for data fetching
 function useSales(params: SalesQueryParams) {
-  return useQuery({ queryKey: ['sales', params], queryFn: () => getSales(params) });
+  return useQuery({
+    queryKey: ['sales', params],
+    queryFn: () => getSales(params),
+  });
 }
 ```
 
-### 4.3 Flutter (Dart)
+### 3.3 Flutter (Dart)
 
 ```dart
-// ✅ CORRECT: Service calls through repository layer
-class TransactionRepository {
+// ✅ CORRECT: Service calls through Dio ApiClient
+class ReceiptService {
   final ApiClient _client;
-  Future<Transaction> createSale(CreateSaleRequest request) async { ... }
+  Future<DraftTransaction> getDraft(String id) async {
+    final response = await _client.dio.get('/api/v1/receipt/drafts/$id');
+    return DraftTransaction.fromJson(response.data['data']);
+  }
 }
 
 // ✅ CORRECT: Error handling with typed exceptions
 try {
-  final result = await _repository.createSale(request);
+  final result = await _repository.approveDraft(id);
 } on ApiException catch (e) {
-  if (e.code == 'INSUFFICIENT_STOCK') { ... }
+  if (e.code == 'JOURNAL_IMBALANCE') { ... }
 }
-
-// ❌ FORBIDDEN: Direct http calls in widgets
-final response = await http.post(Uri.parse('http://api.../sales'), ...);
 ```
 
 ---
 
-## 5. Error Handling Rules
+## 4. Error Handling
 
-### 5.1 Backend Exception Hierarchy
+### 4.1 Backend Exception Hierarchy
 
 ```typescript
-// Use NestJS built-in exceptions for HTTP layer
-import { 
-  BadRequestException,       // 400: Validation failures
-  UnauthorizedException,     // 401: Auth failures
-  ForbiddenException,        // 403: Tier/Role restrictions
-  NotFoundException,         // 404: Resource not found
-  ConflictException,         // 409: Duplicate resource
+import {
+  BadRequestException,          // 400: Validation failures
+  UnauthorizedException,        // 401: Auth failures
+  ForbiddenException,           // 403: Tier/Role restrictions
+  NotFoundException,            // 404: Resource not found
+  ConflictException,            // 409: Duplicate resource / idempotency
   UnprocessableEntityException, // 422: Business logic failures
   InternalServerErrorException  // 500: Unhandled exceptions only
 } from '@nestjs/common';
 
-// Business logic exceptions always use UnprocessableEntityException with error code
+// Business logic failures always use UnprocessableEntityException with error code:
 throw new UnprocessableEntityException({
   code: 'JOURNAL_IMBALANCE',
   message: 'Journal entry debits do not equal credits',
@@ -281,42 +260,40 @@ throw new UnprocessableEntityException({
 });
 ```
 
-### 5.2 Global Exception Filter
-
-All exceptions must be caught by the `GlobalExceptionFilter` in `core/exceptions/` and transformed to the standard error envelope.
+All exceptions are caught by `GlobalExceptionFilter` in `core/exceptions/` and transformed to the standard error envelope.
 
 ---
 
-## 6. Logging Strategy
+## 5. Logging Strategy
 
 ```typescript
-// Log levels: error > warn > info > debug
-// Production: error + warn + info only
-// Development: all levels with pino-pretty
-
-// Required log fields
+// Required log fields for all structured log entries
 this.logger.info({
-  traceId,        // From request context
-  tenantId,       // Always include for tenant-scoped operations
-  userId,         // When user-triggered
-  action,         // e.g., 'sale_processed', 'journal_created'
-  duration,       // For performance monitoring
-}, 'Human-readable message');
+  traceId,          // From TraceIdMiddleware on every request
+  tenantId,         // Always for tenant-scoped operations
+  userId,           // When user-triggered
+  action,           // e.g., 'sale_processed', 'journal_created', 'draft_approved'
+  duration,         // ms for performance monitoring
+}, 'Human-readable message in English lowercase');
 
 // Error logging MUST include the full error object
 this.logger.error({ err: error, tenantId, traceId }, 'Sale processing failed');
 ```
 
+**Log levels:** `error` > `warn` > `info`  
+**Production:** `error`, `warn`, `info` only  
+**Development:** all levels with `pino-pretty`
+
 ---
 
-## 7. Testing Expectations
+## 6. Testing Standards
 
-| Type | Framework | Target Coverage | When |
+| Type | Framework | Minimum Coverage | When |
 |---|---|---|---|
-| Unit tests | Jest | 80% per service | Every service method |
-| Integration tests | Jest + Supertest | Critical paths | Every controller |
-| E2E tests | Playwright (web), Flutter test | Core user flows | Before every release |
-| Load tests | k6 | POS endpoint | Quarterly |
+| Unit | Jest | 80% (accounting: 95%, sales: 90%) | Every service method |
+| Integration | Jest + Supertest | All 15 controllers | Every controller |
+| E2E | Playwright (web), Flutter test (mobile) | 6 P0 critical flows | Before every release |
+| Load | k6 | POS endpoint | Quarterly |
 
 ```typescript
 // Unit test pattern
@@ -331,22 +308,14 @@ describe('SalesService', () => {
 
 ---
 
-## 8. Refactor Direction
+## 7. PR Checklist
 
-1. **Remove all `.js` files from `backend/src/`** — migrate to TypeScript or move to `/scripts/`
-2. **Remove debug scripts** (`debug_ai.js`, `check_columns.js`) from committed code
-3. **Add ESLint rules** for no-console, explicit-module-boundary-types, no-any
-4. **Enable strict TypeScript** (`"strict": true` in tsconfig)
-5. **Add Prettier** pre-commit hook via Husky + lint-staged
-
----
-
-## 9. Long-Term Recommendations
-
-| Recommendation | Rationale |
-|---|---|
-| Adopt **Conventional Commits** format | Enables auto-generated changelogs and semantic versioning |
-| Enforce **Architecture tests** (ts-arch) | Prevent cross-layer imports via automated tests |
-| Generate **API docs** from code | NestJS Swagger plugin auto-generates from decorators |
-| **Code coverage gate** in CI | Block merges below 80% coverage threshold |
-| **Dependency review** in PRs | Alert on new transitive dependencies with security issues |
+Before any PR is merged:
+- [ ] Unit tests pass (100%)
+- [ ] Coverage ≥ 80% for modified files
+- [ ] Integration tests pass
+- [ ] No `console.log` in production code
+- [ ] No `any` TypeScript types
+- [ ] API contract unchanged (or version bumped)
+- [ ] No cross-module internal imports
+- [ ] All DTOs have `class-validator` decorators

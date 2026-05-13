@@ -1,341 +1,264 @@
 # Tumbuhin — Test Strategy
 
-> **Document Purpose:** Defines quality assurance architecture — unit, integration, E2E, regression, load testing, and QA workflows.
-> **Who Should Read This:** All engineers and QA engineers.
-> **Why It Matters:** Large systems become unstable and unmaintainable without testing discipline.
+> **Document Purpose:** Defines testing philosophy, pyramid, coverage requirements, test patterns, and CI gates.
+> **Who Should Read This:** All engineers, QA, and DevOps.
 
 ---
 
-## 1. Current Problems
+## 1. Testing Philosophy
 
-| Problem | Severity | Description |
+1. **Test behavior, not implementation** — tests validate what the code does, not how
+2. **Critical paths have 100% coverage** — POS sale, journal creation, draft approval
+3. **Financial invariants are always tested** — journal balance, stock deduction atomicity
+4. **Tests are fast and deterministic** — no flaky tests in main CI pipeline
+5. **Pyramid over ice cream cone** — more unit tests, fewer E2E tests
+
+---
+
+## 2. Test Pyramid
+
+```
+          /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+         /     E2E Tests       \       ← 6 critical user flows (Playwright/Flutter test)
+        /─────────────────────── \
+       /  Integration Tests       \    ← All 15 controllers (Supertest + Flutter integration)
+      /─────────────────────────── \
+     /       Unit Tests             \  ← All services + repositories (Jest/Dart)
+    /─────────────────────────────── \
+```
+
+### 2.1 Unit Tests (Jest / Dart test)
+
+| Layer | Coverage Target |
+|---|---|
+| `SalesService`, `AccountingService` | 95% — financial critical |
+| `DraftTransactionService`, `ReceiptExtractionService` | 90% |
+| All other services | 80% |
+| Repositories | 70% (mostly query construction) |
+| DTOs | 100% (validation edge cases) |
+
+### 2.2 Integration Tests (Jest + Supertest)
+
+Every controller gets an integration test that:
+- Calls the real endpoint (in-memory test DB)
+- Validates status codes, response envelope, and data structure
+- Tests both success and error paths
+
+### 2.3 E2E Tests (Playwright — Web, Flutter Test — Mobile)
+
+**P0 Critical Flows (must pass before every release):**
+
+| Flow | Steps | Platforms |
 |---|---|---|
-| No end-to-end test suite | 🔴 High | Phase 11 (E2E testing) still pending — no automated validation of critical flows |
-| No integration tests for API endpoints | 🔴 High | Controllers untested — breaking changes go undetected |
-| No test coverage requirements enforced | 🟡 Medium | No CI gate on minimum coverage |
-| Debug/test scripts (`test.md`, `check_cols.js`) in repo root | 🟡 Medium | Manual testing artifacts pollute the repo |
-| No load testing for POS endpoint | 🟡 Medium | Unknown throughput limits before production failures |
+| Registration + Onboarding | Sign up → create tenant → seed COA → dashboard | Web |
+| POS Sale (full flow) | Add products → checkout → cash payment → receipt | Web, Flutter |
+| Stock Management | Add raw material → create product recipe → check stock after sale | Web |
+| Receipt OCR Scan | Upload image → wait for processing → review draft → approve → journal created | Web, Flutter |
+| Financial Report | Generate P&L → verify numbers match journal entries | Web |
+| Subscription Upgrade | Starter → Business → verify tier-gated features unlock | Web |
+
+### 2.4 Load Tests (k6)
+
+```javascript
+// k6 load test — POS endpoint
+export const options = {
+  vus: 100,          // 100 virtual users
+  duration: '5m',    // 5 minute sustained load
+  thresholds: {
+    http_req_duration: ['p(95) < 500'],  // P95 < 500ms
+    http_req_failed: ['rate < 0.01'],    // Error rate < 1%
+  },
+};
+```
+
+Run quarterly and before major releases.
 
 ---
 
-## 2. Testing Pyramid
+## 3. Test Patterns
 
-```
-                     ╔══════════════╗
-                     ║   E2E Tests  ║  (few, slow, high confidence)
-                     ║  Playwright  ║
-                     ╠══════════════╣
-                  ╔══════════════════════╗
-                  ║  Integration Tests   ║  (moderate, fast)
-                  ║  Supertest + Jest    ║
-                  ╠══════════════════════╣
-             ╔══════════════════════════════╗
-             ║       Unit Tests              ║  (many, very fast)
-             ║  Jest + Mock repositories     ║
-             ╚══════════════════════════════╝
-```
-
----
-
-## 3. Unit Testing
-
-### 3.1 Scope
-
-Every service method MUST have unit tests. Focus on:
-- Business logic correctness
-- Error/edge case handling
-- Input validation behavior
-- Journal balance invariants
-
-### 3.2 Pattern
+### 3.1 Unit Test Pattern (NestJS Service)
 
 ```typescript
-// backend/src/modules/sales/services/sales.service.spec.ts
-import { Test } from '@nestjs/testing';
-import { SalesService } from './sales.service';
-import { SalesRepository } from '../repositories/sales.repository';
-import { AccountingService } from '../../accounting/services/accounting.service';
-
-describe('SalesService', () => {
-  let service: SalesService;
-  let mockSalesRepo: jest.Mocked<SalesRepository>;
-  let mockAccountingService: jest.Mocked<AccountingService>;
+describe('DraftTransactionService', () => {
+  let service: DraftTransactionService;
+  let mockRepo: jest.Mocked<ReceiptRepository>;
+  let mockAccounting: jest.Mocked<AccountingService>;
+  let mockUoW: jest.Mocked<UnitOfWork>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
-        SalesService,
-        { provide: SalesRepository, useValue: { create: jest.fn(), findByTenant: jest.fn() } },
-        { provide: AccountingService, useValue: { createJournalEntry: jest.fn() } },
+        DraftTransactionService,
+        { provide: ReceiptRepository, useValue: createMockReceiptRepository() },
+        { provide: AccountingService, useValue: createMockAccountingService() },
+        { provide: UnitOfWork, useValue: createMockUnitOfWork() },
+        { provide: EventBusService, useValue: createMockEventBus() },
+        { provide: MerchantMemoryService, useValue: createMockMerchantMemory() },
       ],
     }).compile();
-
-    service = module.get(SalesService);
-    mockSalesRepo = module.get(SalesRepository);
-    mockAccountingService = module.get(AccountingService);
+    service = module.get(DraftTransactionService);
+    mockRepo = module.get(ReceiptRepository);
+    mockAccounting = module.get(AccountingService);
+    mockUoW = module.get(UnitOfWork);
   });
 
-  describe('processSale', () => {
-    it('should create transaction and journal entry on valid sale', async () => {
-      // Arrange
-      mockSalesRepo.create.mockResolvedValue({ id: 'txn-uuid', status: 'committed' });
-      mockAccountingService.createJournalEntry.mockResolvedValue({ id: 'jnl-uuid' });
+  describe('approveDraft', () => {
+    it('should create journal entry and mark draft as approved', async () => {
+      const mockDraft = buildMockDraft({ status: 'ready', debit_account_id: 'acc-1', credit_account_id: 'acc-2' });
+      mockRepo.getDraft.mockResolvedValue(mockDraft);
+      mockUoW.runInTransaction.mockImplementation((fn) => fn({} as any));
+      mockAccounting.createJournalEntry.mockResolvedValue({ id: 'journal-1' } as any);
 
-      // Act
-      const result = await service.processSale(validSaleDto, mockContext);
+      await service.approveDraft('draft-id', 'user-id');
 
-      // Assert
-      expect(result.status).toBe('committed');
-      expect(mockAccountingService.createJournalEntry).toHaveBeenCalledOnce();
+      expect(mockAccounting.createJournalEntry).toHaveBeenCalledTimes(1);
+      expect(mockRepo.updateDraft).toHaveBeenCalledWith('draft-id', expect.objectContaining({ status: 'approved' }));
     });
 
-    it('should throw INSUFFICIENT_STOCK when stock is below required', async () => {
-      // Arrange
-      mockSalesRepo.getStockForItems.mockResolvedValue([{ available: 1, required: 5 }]);
+    it('should throw when draft is missing account mapping', async () => {
+      const mockDraft = buildMockDraft({ status: 'ready', debit_account_id: null });
+      mockRepo.getDraft.mockResolvedValue(mockDraft);
 
-      // Act & Assert
-      await expect(service.processSale(saleWithHighQtyDto, mockContext))
-        .rejects.toThrow(expect.objectContaining({ code: 'INSUFFICIENT_STOCK' }));
+      await expect(service.approveDraft('draft-id', 'user-id'))
+        .rejects.toThrow('MISSING_ACCOUNT_MAPPING');
     });
 
-    it('should throw TRANSACTION_LIMIT on Starter tier when limit exceeded', async () => {
-      // Arrange
-      const starterContext = { ...mockContext, tier: 'starter', monthlyCount: 500 };
+    it('should rollback transaction if journal creation fails', async () => {
+      const mockDraft = buildMockDraft({ status: 'ready', debit_account_id: 'acc-1', credit_account_id: 'acc-2' });
+      mockRepo.getDraft.mockResolvedValue(mockDraft);
+      mockUoW.runInTransaction.mockImplementation((fn) => fn({} as any));
+      mockAccounting.createJournalEntry.mockRejectedValue(new Error('JOURNAL_IMBALANCE'));
 
-      // Act & Assert
-      await expect(service.processSale(validSaleDto, starterContext))
-        .rejects.toThrow(expect.objectContaining({ code: 'TRANSACTION_LIMIT' }));
-    });
+      await expect(service.approveDraft('draft-id', 'user-id'))
+        .rejects.toThrow('JOURNAL_IMBALANCE');
 
-    it('should rollback on journal imbalance error', async () => {
-      // Arrange
-      mockAccountingService.createJournalEntry.mockRejectedValue(
-        new Error('JOURNAL_IMBALANCE')
+      expect(mockRepo.updateDraft).not.toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: 'approved' })
       );
-
-      // Act & Assert
-      await expect(service.processSale(validSaleDto, mockContext)).rejects.toThrow();
-      expect(mockSalesRepo.rollback).toHaveBeenCalledOnce();
     });
   });
 });
 ```
 
-### 3.3 Coverage Targets
-
-| Module | Minimum Coverage |
-|---|---|
-| `sales` service | 90% |
-| `accounting` service | 95% |
-| `inventory` service | 85% |
-| `report` service | 80% |
-| All other services | 80% |
-
----
-
-## 4. Integration Testing
-
-### 4.1 Scope
-
-Test the full HTTP stack: routing → guards → controller → service → repository → DB response.
-Use Supertest with a real NestJS application instance and a test database.
-
-### 4.2 Pattern
+### 3.2 Controller Integration Test Pattern
 
 ```typescript
-// backend/test/sales.e2e-spec.ts
-import { Test } from '@nestjs/testing';
-import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-
-describe('SalesController (integration)', () => {
+describe('ReceiptController (integration)', () => {
   let app: INestApplication;
-  let authToken: string;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const module = await Test.createTestingModule({
+      imports: [ReceiptModule, CoreModule],
+    })
+    .overrideProvider(SupabaseService).useValue(mockSupabase())
+    .compile();
 
-    app = moduleRef.createNestApplication();
+    app = module.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     await app.init();
-    authToken = await getTestAuthToken(); // Helper to get valid JWT
   });
 
-  afterAll(() => app.close());
-
-  it('POST /api/v1/sales — creates sale and returns 201', async () => {
-    const dto = {
-      items: [{ product_id: TEST_PRODUCT_ID, quantity: 1, unit_price: 15000 }],
-      payment_method: 'cash',
-      idempotency_key: uuid(),
-    };
-
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/sales')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(dto)
+  it('POST /api/v1/receipt/drafts — should create a manual draft', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/receipt/drafts')
+      .set('Authorization', `Bearer ${testJwt}`)
+      .send({ merchant_name: 'Indomaret', total_amount: 50000 })
       .expect(201);
 
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.status).toBe('committed');
-    expect(res.body.data.journal_id).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toHaveProperty('id');
+    expect(response.body.data.status).toBe('ready');
   });
 
-  it('POST /api/v1/sales — returns 422 with INSUFFICIENT_STOCK', async () => {
-    const dto = { items: [{ product_id: EMPTY_STOCK_PRODUCT_ID, quantity: 100, unit_price: 15000 }] };
-
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/sales')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(dto)
-      .expect(422);
-
-    expect(res.body.error.code).toBe('INSUFFICIENT_STOCK');
-  });
-
-  it('POST /api/v1/finance/balance-sheet — returns 403 for Starter tier', async () => {
-    const starterToken = await getStarterTierToken();
+  it('POST /api/v1/receipt/scan — should return 403 for Starter tier', async () => {
     await request(app.getHttpServer())
-      .get('/api/v1/finance/balance-sheet')
-      .set('Authorization', `Bearer ${starterToken}`)
-      .expect(403);
+      .post('/api/v1/receipt/scan')
+      .set('Authorization', `Bearer ${starterTierJwt}`)
+      .expect(403)
+      .expect((res) => {
+        expect(res.body.error.code).toBe('TIER_RESTRICTION');
+      });
   });
 });
 ```
 
----
-
-## 5. End-to-End (E2E) Testing
-
-### 5.1 Critical User Flows to Test
-
-| Flow | Tool | Priority |
-|---|---|---|
-| User registration + onboarding | Playwright | 🔴 P0 |
-| POS sale → journal created → report updated | Playwright | 🔴 P0 |
-| Procurement draft → approval → stock update | Playwright | 🔴 P0 |
-| Subscription upgrade flow | Playwright | 🟡 P1 |
-| AI chat produces response | Playwright | 🟡 P1 |
-| Staff management (RBAC) | Playwright | 🟡 P1 |
-
-### 5.2 Playwright Setup
+### 3.3 E2E Test Pattern (Playwright)
 
 ```typescript
-// e2e/pos-sale.spec.ts
-import { test, expect } from '@playwright/test';
+// e2e/receipt-scan.spec.ts
+test('Complete receipt scan flow', async ({ page, apiContext }) => {
+  await page.goto('/tenant/receipt');
 
-test.describe('POS Sale Flow', () => {
-  test('cashier can complete a sale and see updated journal', async ({ page }) => {
-    // Login
-    await page.goto('/login');
-    await page.fill('[data-testid="email"]', 'test@tumbuhin.com');
-    await page.fill('[data-testid="password"]', 'testpassword');
-    await page.click('[data-testid="login-btn"]');
-    await expect(page).toHaveURL('/tenant');
+  // Upload receipt
+  await page.click('[data-testid="scan-receipt-btn"]');
+  await page.setInputFiles('[data-testid="receipt-upload"]', 'test-fixtures/receipt.jpg');
+  await page.click('[data-testid="submit-scan"]');
 
-    // Navigate to POS
-    await page.click('[data-testid="nav-pos"]');
-    await page.click('[data-testid="product-kopi-susu"]');
-    await page.click('[data-testid="checkout-btn"]');
-    await page.selectOption('[data-testid="payment-method"]', 'cash');
-    await page.click('[data-testid="confirm-sale"]');
+  // Wait for processing
+  await expect(page.locator('[data-testid="scan-status"]')).toHaveText('Selesai', { timeout: 30000 });
 
-    // Assert sale completed
-    await expect(page.locator('[data-testid="sale-success"]')).toBeVisible();
+  // Review draft
+  await page.click('[data-testid="review-draft-btn"]');
+  await expect(page.locator('[data-testid="merchant-name"]')).toBeVisible();
 
-    // Navigate to journal and verify
-    await page.click('[data-testid="nav-finance"]');
-    await page.click('[data-testid="nav-journal"]');
-    await expect(page.locator('[data-testid="latest-journal-row"]')).toContainText('Penjualan POS');
-  });
+  // Set account mapping
+  await page.selectOption('[data-testid="debit-account"]', 'Beban Operasional');
+  await page.selectOption('[data-testid="credit-account"]', 'Kas Tangan');
+
+  // Approve
+  await page.click('[data-testid="approve-btn"]');
+  await expect(page.locator('[data-testid="success-toast"]')).toBeVisible();
 });
 ```
 
 ---
 
-## 6. Load Testing
+## 4. CI Pipeline Gates
 
-### 6.1 Critical Endpoints to Load Test
+```yaml
+# .github/workflows/ci.yml
+- Unit Tests:       npm run test:unit        # Must pass at 80%+ coverage
+- Integration Tests: npm run test:integration # All 15 controllers
+- Lint:             npm run lint             # ESLint + Prettier
+- TypeScript:       npm run tsc              # Zero type errors
+- E2E (P0 only):    npm run test:e2e:p0      # On main branch only
+```
 
-```javascript
-// k6/pos-load.js
-import http from 'k6/http';
-import { check, sleep } from 'k6';
+**Merge requirements:**
+- All unit + integration tests pass
+- Coverage ≥ 80% for modified files (95% for accounting/sales)
+- Zero ESLint errors
+- Zero TypeScript errors
+- No `console.log` or `any` type in diff
 
-export const options = {
-  stages: [
-    { duration: '1m', target: 50 },   // Ramp to 50 concurrent users
-    { duration: '3m', target: 50 },   // Hold
-    { duration: '1m', target: 200 },  // Peak: 200 concurrent checkouts
-    { duration: '1m', target: 0 },    // Ramp down
-  ],
-  thresholds: {
-    http_req_duration: ['p(99)<500'],  // 99% under 500ms
-    http_req_failed: ['rate<0.01'],    // < 1% error rate
-  },
-};
+---
 
-export default function () {
-  const res = http.post(
-    'http://api.tumbuhin.com/api/v1/sales',
-    JSON.stringify({ items: [...], payment_method: 'cash', idempotency_key: uuid() }),
-    { headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } }
-  );
-  check(res, { 'status is 201': (r) => r.status === 201 });
-  sleep(1);
+## 5. Test Data Standards
+
+```typescript
+// test/factories/draft.factory.ts
+export function buildMockDraft(overrides: Partial<DraftTransaction> = {}): DraftTransaction {
+  return {
+    id: 'draft-' + randomUUID(),
+    tenant_id: 'tenant-test-1',
+    status: 'ready',
+    merchant_name: 'Indomaret Jl. Sudirman',
+    transaction_date: new Date().toISOString(),
+    total_amount: 50000,
+    currency: 'IDR',
+    debit_account_id: null,
+    credit_account_id: null,
+    ai_recommendations: {},
+    line_items: [],
+    user_corrections: {},
+    expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides,
+  };
 }
 ```
 
-### 6.2 Load Test Schedule
-
-| Test | Frequency | Threshold |
-|---|---|---|
-| POS sale endpoint | Quarterly | P99 < 500ms, error < 1% |
-| Balance sheet report | Quarterly | P99 < 1000ms |
-| AI chat endpoint | Quarterly | P99 < 2000ms |
-
----
-
-## 7. QA Workflows
-
-### 7.1 PR Checklist
-
-Before any PR is merged:
-- [ ] Unit tests pass (100%)
-- [ ] Coverage >= 80% for modified files
-- [ ] Integration tests pass
-- [ ] No new `console.log` in production code
-- [ ] No new `any` TypeScript types
-- [ ] API contract unchanged (or version bumped)
-
-### 7.2 Release Checklist
-
-Before production release:
-- [ ] All automated tests pass on staging
-- [ ] E2E critical flows verified manually
-- [ ] No high-severity issues in security scan
-- [ ] Performance benchmarks within thresholds
-- [ ] Rollback plan documented
-
----
-
-## 8. Refactor Direction
-
-1. **Create test database seeder** (`test/fixtures/`) with reproducible tenant, products, stock data
-2. **Add CI coverage gate** — fail pipeline if coverage < 80%
-3. **Write integration tests** for all 14 module controllers
-4. **Write Playwright E2E tests** for the 6 P0 critical flows
-5. **Run first k6 load test** on POS endpoint, document baseline metrics
-
----
-
-## 9. Long-Term Recommendations
-
-| Recommendation | Rationale |
-|---|---|
-| Contract testing (Pact) | Prevent frontend/backend contract drift |
-| Visual regression testing (Percy) | Catch UI regressions in web dashboard |
-| Mutation testing (Stryker) | Validate test quality, not just coverage |
-| Continuous load testing in staging | Catch performance regressions before production |
-| Flutter integration tests | Automated mobile UI testing |
+No production data in tests. All test data uses isolated `tenant_id = 'tenant-test-1'`.

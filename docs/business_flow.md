@@ -2,36 +2,22 @@
 
 > **Document Purpose:** Defines core operational and domain workflows — transaction flows, inventory flows, accounting flows, approval flows, and synchronization logic.
 > **Who Should Read This:** Backend engineers, QA, product managers, and business analysts.
-> **Why It Matters:** Business logic consistency is critical for ERP/SaaS systems. Undocumented flows lead to edge-case failures and data corruption.
 
 ---
 
-## 1. Current Problems
-
-| Problem | Severity | Description |
-|---|---|---|
-| Promo `applyPromotions()` not called during POS checkout via API | 🔴 High | Discounts only applied in-memory, not persisted to journal |
-| No void/refund flow documented or fully implemented | 🟡 Medium | Voided sales leave inconsistent inventory and journal state |
-| Cash flow report field mismatch between backend and frontend | 🟡 Medium | `chart_of_accounts` field name vs frontend transform |
-| Procurement draft approval flow not end-to-end tested | 🟡 Medium | Draft → PO → Fulfillment path untested |
-| No documented edge case for partial stock during sales | 🟡 Medium | Mixed-product sales with partial stock availability |
-
----
-
-## 2. Flow 1: User Registration & Onboarding
+## 1. Flow 1: User Registration & Onboarding
 
 ```
 1. User signs up via Supabase Auth (email + password)
-   → Supabase triggers `handle_new_user()` DB function
-   
-2. `handle_new_user()` atomically:
+   → Supabase triggers handle_new_user() DB function
+
+2. handle_new_user() atomically:
    a. Creates tenant record (name, account_type, tier='starter')
-   b. Creates profile (linked to tenant_id)
-   c. Seeds COA (4 accounts for business, 4 for personal)
+   b. Creates profile (linked to tenant_id, role='manager')
+   c. Seeds COA (standard chart of accounts for account_type)
    d. Creates default notification configs
 
-3. Frontend detects auth state change
-   → Redirects to /onboarding
+3. Frontend detects auth state change → redirects to /onboarding
 
 4. OnboardingController receives business profile data
    → Updates tenant name, address, contact info
@@ -40,78 +26,66 @@
    → Dashboard shows empty state with onboarding checklist
 ```
 
-**Edge Cases:**
-- If `handle_new_user()` fails → Supabase Auth user exists but no profile → Retry mechanism needed
-- Business name with special characters → Sanitize before inserting
-
 ---
 
-## 3. Flow 2: POS Sale (Critical Path)
+## 2. Flow 2: POS Sale (Critical Path)
 
 ```
 Cashier opens POS → selects products → checkout
 
 1. Frontend: PromoService.applyPromotions(cart_items)
    → Calculates discounts deterministically
-   → Returns adjusted prices (NOT sent to server yet)
+   → Returns adjusted prices
 
 2. Cashier confirms payment method → POST /api/v1/sales
 
 3. Backend SalesService.processSale():
    a. Check transaction limit (Starter: 500/month)
-   b. Begin UnitOfWork transaction (BEGIN)
+   b. Begin UnitOfWork.runInTransaction() (BEGIN)
    c. Create transaction record (status: 'validating')
    d. For each item:
       i.  Fetch product + recipe ingredients
       ii. Calculate HPP (unit_price × quantity_needed × qty)
-      iii.Check stock availability → RAISE if insufficient
+      iii.Check stock availability → RAISE INSUFFICIENT_STOCK if insufficient
       iv. Deduct stock from raw_materials (FOR UPDATE lock)
-   e. Lookup COA accounts by code:
-      - 1-10000: Kas Tangan
-      - 4-40000: Pendapatan Penjualan
-      - 5-50000: HPP
-      - 1-10503: Persediaan
-      - 4-41000: Diskon Penjualan (if applicable)
+   e. Lookup COA accounts by code
    f. Assemble journal lines (Debit/Credit pairs)
    g. AccountingService.createJournalEntry()
       → Validate: |totalDebit - totalCredit| < 0.01
       → If imbalanced → ROLLBACK + raise JOURNAL_IMBALANCE
    h. Save sale_items
    i. Update transaction status → 'committed'
-   j. COMMIT transaction
+   j. COMMIT
 
-4. EventBusService.emit('SaleCreated')
-   → Persist to event_log
-   → Push to BullMQ queue
+4. EventBusService.emit('SaleCreated', { transactionId, tenantId })
+   → Persist to event_log → Push to BullMQ
 
 5. Return { transaction_id, journal_id, status: 'committed' }
-
-6. Frontend displays receipt → optional print
 ```
 
 **Journal Entries Created:**
 ```
-Entry 1 (Revenue Recognition):
-  DEBIT:  Kas Tangan          Rp 30,000
-  CREDIT: Pendapatan Penjualan Rp 30,000
+Entry 1 — Revenue Recognition:
+  DEBIT:  Kas Tangan             Rp 30,000
+  CREDIT: Pendapatan Penjualan   Rp 30,000
 
-Entry 2 (HPP Recognition):
-  DEBIT:  Beban HPP           Rp 12,000
-  CREDIT: Persediaan Bahan Baku Rp 12,000
+Entry 2 — HPP Recognition:
+  DEBIT:  Beban HPP              Rp 12,000
+  CREDIT: Persediaan Bahan Baku  Rp 12,000
 
-Entry 3 (Discount, if any):
-  DEBIT:  Diskon Penjualan    Rp 2,000
-  CREDIT: Kas Tangan          Rp 2,000
+Entry 3 — Discount (if any):
+  DEBIT:  Diskon Penjualan       Rp 2,000
+  CREDIT: Kas Tangan             Rp 2,000
 ```
 
 **Edge Cases:**
 - Insufficient stock mid-sale → Full ROLLBACK, no partial commits
-- Duplicate checkout (double-click) → Idempotency key prevents duplicate transaction
-- Network timeout → Client retries with same idempotency key → Returns original response
+- Duplicate checkout → Idempotency key returns original response (409)
+- Network timeout → Client retries with same idempotency key → Original response
 
 ---
 
-## 4. Flow 3: Inventory Management
+## 3. Flow 3: Inventory Management
 
 ```
 Stock Addition:
@@ -124,13 +98,12 @@ Stock Addition:
 
 Stock Transfer (Multi-Warehouse):
 1. POST /api/v1/warehouse/transfer
-2. WarehouseService:
+2. WarehouseService.runInTransaction():
    a. Validate source warehouse has sufficient stock
    b. Deduct from source warehouse
    c. Add to destination warehouse
    d. Create stock_transfer record
-   e. Create journal entry (no P&L impact, asset transfer)
-3. Commit atomically via UnitOfWork
+   e. Create journal entry (no P&L impact — asset transfer only)
 
 Stock Opname:
 1. POST /api/v1/warehouse/opname
@@ -143,27 +116,72 @@ Stock Opname:
 
 ---
 
-## 5. Flow 4: Procurement (PO Lifecycle)
+## 4. Flow 4: Receipt OCR (ADR-007)
+
+```
+Path A — Receipt Scan:
+1. User uploads receipt image → POST /api/v1/receipt/scan
+2. API:
+   a. Validate image (format, size ≤ 10MB)
+   b. Upload to Supabase Storage (receipt-scans/{tenant_id}/{scan_id}.jpg)
+   c. Create receipt_scans record (status: 'processing')
+   d. Enqueue BullMQ job 'process-scan'
+   e. Return { scanId, status: 'processing' } immediately
+
+3. BullMQ Worker processes:
+   a. Send image to Gemini 2.0 Flash (multimodal)
+   b. Parse structured JSON extraction
+   c. Apply confidence scoring (high/medium/low)
+   d. Check merchant_mappings for prior category/account
+   e. Check duplicate detection (same merchant+amount+date within 24h)
+   f. Update receipt_scans (status: 'completed', extracted_data)
+   g. Create draft_transactions (status: 'ready')
+   h. EventBusService.emit('ReceiptScanned')
+
+4. Client polls GET /api/v1/receipt/scan/:id until status = 'completed'
+   → Shows draft review form with confidence indicators
+
+Path B — Manual Entry:
+1. User opens manual entry form → POST /api/v1/receipt/drafts
+2. Draft created immediately (status: 'ready')
+3. User fills in all fields manually
+
+Draft Approval:
+1. User reviews draft → fills in debit_account_id + credit_account_id
+2. POST /api/v1/receipt/drafts/:id/approve
+
+3. DraftTransactionService.approveDraft():
+   a. Validate debit + credit accounts are mapped
+   b. Begin UnitOfWork.runInTransaction()
+   c. AccountingService.createJournalEntry()
+      → Validate: |totalDebit - totalCredit| < 0.01
+   d. Update draft status → 'approved'
+   e. Set resulting_journal_id
+   f. MerchantMemoryService.learn() → upsert merchant_mappings
+   g. COMMIT
+   h. EventBusService.emit('DraftApproved')
+```
+
+---
+
+## 5. Flow 5: Procurement (PO Lifecycle)
 
 ```
 Automated Draft Generation (Midnight Cron):
 1. ProcurementCronService scans all tenants
 2. Finds products/raw_materials WHERE current_stock <= reorder_point
-3. Generates draft PO with estimated quantities and vendor info
-4. Saves to business_memory (type: 'procurement_draft')
+3. Generates draft PO with estimated quantities
+4. Saves to procurement_drafts
 
 Manual PO Creation:
 1. POST /api/v1/procurement/purchase-orders
 2. OrderService creates PO with status: 'draft'
 
 PO Approval Flow:
-1. Manager reviews draft at /tenant/procurement/drafts
-2. Edits quantities/vendor if needed
-3. PATCH /api/v1/procurement/purchase-orders/:id/approve
-   → Status changes: draft → approved
-   → Notify stock manager
-4. Stock manager fulfills PO (goods received)
-5. PATCH /api/v1/procurement/purchase-orders/:id/fulfill
+1. Manager reviews draft
+2. PATCH /api/v1/procurement/purchase-orders/:id/approve → status: 'approved'
+3. Stock manager fulfills PO (goods received)
+4. PATCH /api/v1/procurement/purchase-orders/:id/fulfill
    a. Update raw_materials stock (+ received quantities)
    b. Create journal entry:
       DEBIT:  Persediaan Bahan Baku (amount received)
@@ -173,7 +191,7 @@ PO Approval Flow:
 
 ---
 
-## 6. Flow 5: Financial Reporting
+## 6. Flow 6: Financial Reporting
 
 ```
 Hourly Analytics Refresh (Cron):
@@ -184,14 +202,15 @@ Hourly Analytics Refresh (Cron):
    - monthly_profit_loss (P&L per month)
 
 Report Generation (User-triggered):
-1. User opens /tenant/finance/balance-sheet
-2. GET /api/v1/finance/balance-sheet (with JWT)
+1. User opens balance sheet
+2. GET /api/v1/finance/balance-sheet (Pro tier required)
 3. FinanceController:
-   a. Validate tier (Pro required for balance sheet)
-   b. Query ledger_balances WHERE tenant_id = user.tenant_id
-   c. Group by account type (aset, kewajiban, ekuitas)
-   d. Return structured balance sheet object
-4. Frontend renders interactive table
+   a. Validate tier (Pro required)
+   b. Check Redis cache (balance-sheet:{tenantId})
+   c. If miss → Query ledger_balances WHERE tenant_id = user.tenantId
+   d. Group by account type
+   e. Cache result (1 hour TTL)
+   f. Return structured response
 ```
 
 **Financial Statement Mapping:**
@@ -202,70 +221,42 @@ Income Statement:
   Net Profit = Revenue - Expenses
 
 Balance Sheet:
-  Assets     = SUM of 'aset' accounts (debit balance)
+  Assets      = SUM of 'aset' accounts (debit balance)
   Liabilities = SUM of 'kewajiban' accounts (credit balance)
-  Equity     = SUM of 'ekuitas' accounts (credit balance)
-  Verify:    Assets = Liabilities + Equity
-
-Cash Flow (Simplified):
-  Operating  = Cash from sales - Cash for HPP - Cash for expenses
-  Investing  = Capital purchases (asset accounts)
-  Financing  = Owner equity injections / withdrawals
+  Equity      = SUM of 'ekuitas' accounts (credit balance)
+  Verify:     Assets = Liabilities + Equity
 ```
 
 ---
 
-## 7. Flow 6: AI CFO Chat
+## 7. Flow 7: AI CFO Chat
 
 ```
 User asks: "Bagaimana kondisi keuangan saya?"
 
 1. POST /api/v1/ai/chat { prompt: "..." }
 2. AiController → check tier (Business+ required)
-3. If empty prompt → ForecastingService.generateFinancialInsight():
-   a. AggregatorService.getSemanticFinancialSummary()
-      → Query ledger_balances → JSON { revenue, gross_profit, net_profit, cash, inventory }
-   b. MemoryService.getRelevantMemories()
-      → Query business_memory → historical patterns
-   c. Build CFO system prompt with context
-   d. GeminiProvider.generateContent(prompt)
-   e. Save insight to business_memory (for future RAG context)
-4. If user prompt provided → Pass with business context to Gemini
-5. Return AI response to client
+3. AggregatorService.getSemanticFinancialSummary()
+   → Query ledger_balances → JSON { revenue, gross_profit, net_profit, cash, inventory }
+4. MemoryService.getRelevantMemories()
+   → Query business_memory → historical patterns
+5. Build CFO system prompt with context + tenant's COA + recent patterns
+6. GeminiProvider.generateContent(prompt) (with 3x retry)
+7. Save insight to business_memory (for future RAG context)
+8. Return AI response to client
 ```
 
 ---
 
-## 8. Flow 7: Subscription Upgrade
+## 8. Flow 8: Subscription Upgrade
 
 ```
-1. User clicks "Upgrade" in web dashboard
-2. POST /api/v1/subscription/upgrade { target_tier: 'business' }
-3. BusinessProfileService:
+1. User clicks "Upgrade" → POST /api/v1/subscription/upgrade { target_tier: 'business' }
+2. BusinessProfileService:
    a. Create Midtrans payment order
    b. Return payment_url to frontend
-4. User completes payment in Midtrans
-5. Midtrans webhook → Supabase Edge Function
-6. Edge Function → UPDATE tenants SET tier = 'business'
-7. User refreshes → TierGuard now allows Business features
+3. User completes payment in Midtrans
+4. Midtrans webhook → Supabase Edge Function
+5. Edge Function → UPDATE tenants SET tier = 'business'
+6. TierGuard now allows Business features on next request
 ```
-
----
-
-## 9. Refactor Direction
-
-1. **Promo integration:** Ensure `PromoService.applyPromotions()` is called server-side within `SalesService.processSale()` — not just client-side
-2. **Void/Refund flow:** Implement `PATCH /api/v1/sales/:id/void` with full reversal journal entries and stock restoration
-3. **Cash flow accuracy:** Fix field mapping between `FinanceService` output and frontend transform
-4. **Procurement fulfillment:** Complete the PO fulfillment endpoint with journal entry creation
-
----
-
-## 10. Long-Term Recommendations
-
-| Recommendation | Rationale |
-|---|---|
-| Saga pattern for distributed flows | When modules are extracted, ensure cross-module atomicity |
-| CQRS for reporting queries | Separate read and write models for better performance |
-| Event sourcing for journal entries | Immutable event log as the authoritative source |
-| Workflow engine (Temporal.io) | For complex approval flows with timeouts and retries |
