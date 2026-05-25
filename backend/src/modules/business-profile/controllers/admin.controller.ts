@@ -1,6 +1,7 @@
 import { Controller, Get, Put, Delete, Param, Body, UseGuards, Request, ForbiddenException, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../../shared/supabase.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import type { AuthenticatedRequest } from '../../../core/auth/authenticated-request.interface';
 
 @Controller('api/v1/admin')
 @UseGuards(JwtAuthGuard)
@@ -8,7 +9,7 @@ export class AdminController {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   @Get('tenants')
-  async getTenants(@Request() req: any) {
+  async getTenants(@Request() req: AuthenticatedRequest) {
     // Check if user is super_admin (logic to be implemented or rely on role in JWT)
     if (req.user.role !== 'super_admin') {
       throw new Error('Unauthorized: Super Admin access only');
@@ -46,7 +47,7 @@ export class AdminController {
    * with a previously deleted account's email.
    */
   @Delete('users/:userId')
-  async deleteUser(@Param('userId') userId: string, @Request() req: any) {
+  async deleteUser(@Param('userId') userId: string, @Request() req: AuthenticatedRequest) {
     const logger = new Logger('AdminController');
 
     if (req.user.role !== 'super_admin') {

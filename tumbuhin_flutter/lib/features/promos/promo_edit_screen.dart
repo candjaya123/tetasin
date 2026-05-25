@@ -21,7 +21,7 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
   late TextEditingController _nameController;
   late TextEditingController _valueController;
   late TextEditingController _minPurchaseController;
-  
+
   String _type = 'percentage';
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 7));
@@ -31,9 +31,13 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.promo?.name ?? '');
-    _valueController = TextEditingController(text: widget.promo?.value.toString() ?? '');
-    _minPurchaseController = TextEditingController(text: widget.promo?.minPurchase.toString() ?? '0');
-    
+    _valueController = TextEditingController(
+      text: widget.promo?.value.toString() ?? '',
+    );
+    _minPurchaseController = TextEditingController(
+      text: widget.promo?.minPurchase.toString() ?? '0',
+    );
+
     if (widget.promo != null) {
       _type = widget.promo!.type;
       _startDate = widget.promo!.startDate;
@@ -104,7 +108,7 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
       } else {
         await repo.updatePromotion(widget.promo!.id, data);
       }
-      
+
       ref.invalidate(promotionsProvider);
       if (mounted) {
         context.pop();
@@ -115,7 +119,10 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -130,9 +137,7 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(isEdit ? 'Edit Promo' : 'Tambah Promo'),
-      ),
+      appBar: AppBar(title: Text(isEdit ? 'Edit Promo' : 'Tambah Promo')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -146,7 +151,9 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
                       controller: _nameController,
                       decoration: InputDecoration(
                         labelText: 'Nama Promo',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
                     ),
@@ -155,11 +162,19 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
                       initialValue: _type,
                       decoration: InputDecoration(
                         labelText: 'Tipe Promo',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'percentage', child: Text('Persentase (%)')),
-                        DropdownMenuItem(value: 'fixed', child: Text('Nominal (Rp)')),
+                        DropdownMenuItem(
+                          value: 'percentage',
+                          child: Text('Persentase (%)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'fixed',
+                          child: Text('Nominal (Rp)'),
+                        ),
                       ],
                       onChanged: (v) => setState(() => _type = v!),
                     ),
@@ -167,15 +182,20 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
                     TextFormField(
                       controller: _valueController,
                       decoration: InputDecoration(
-                        labelText: _type == 'percentage' ? 'Nilai Diskon (%)' : 'Potongan Harga (Rp)',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        labelText: _type == 'percentage'
+                            ? 'Nilai Diskon (%)'
+                            : 'Potongan Harga (Rp)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (v) {
                         if (v!.isEmpty) return 'Wajib diisi';
                         final val = double.tryParse(v);
                         if (val == null) return 'Harus angka';
-                        if (_type == 'percentage' && val > 100) return 'Maksimal 100%';
+                        if (_type == 'percentage' && val > 100)
+                          return 'Maksimal 100%';
                         return null;
                       },
                     ),
@@ -184,7 +204,9 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
                       controller: _minPurchaseController,
                       decoration: InputDecoration(
                         labelText: 'Minimum Belanja (Rp)',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (v) {
@@ -202,7 +224,9 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
                             child: InputDecorator(
                               decoration: InputDecoration(
                                 labelText: 'Mulai',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               child: Text(dateFormat.format(_startDate)),
                             ),
@@ -215,7 +239,9 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
                             child: InputDecorator(
                               decoration: InputDecoration(
                                 labelText: 'Berakhir',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               child: Text(dateFormat.format(_endDate)),
                             ),
@@ -232,11 +258,16 @@ class _PromoEditScreenState extends ConsumerState<PromoEditScreen> {
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: Text(
                           isEdit ? 'Simpan Perubahan' : 'Buat Promo',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

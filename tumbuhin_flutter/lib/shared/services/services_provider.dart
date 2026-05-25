@@ -10,6 +10,8 @@ import 'order_service.dart';
 import 'promo_service.dart';
 import 'staff_service.dart';
 import 'alert_service.dart';
+import 'personal_finance_service.dart';
+import 'bill_tracker_service.dart';
 
 final posServiceProvider = Provider<PosService>((ref) {
   final apiClient = ref.watch(apiClientProvider);
@@ -59,4 +61,14 @@ final staffServiceProvider = Provider<StaffService>((ref) {
 final alertServiceProvider = Provider<AlertService>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return AlertService(apiClient);
+});
+
+final personalFinanceServiceProvider = Provider<PersonalFinanceService>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return PersonalFinanceService(apiClient);
+});
+
+final billTrackerServiceProvider = Provider<BillTrackerService>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return BillTrackerService(apiClient);
 });

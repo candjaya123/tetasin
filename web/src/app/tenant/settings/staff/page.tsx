@@ -32,7 +32,7 @@ export default function StaffManagementPage() {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/staff`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/staff`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

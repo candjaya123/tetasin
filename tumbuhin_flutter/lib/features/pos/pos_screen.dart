@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme/app_colors.dart';
 import 'widgets/pos_header.dart';
 import 'widgets/product_grid.dart';
 import 'widgets/cart_summary.dart';
@@ -16,7 +17,7 @@ class PosScreen extends ConsumerWidget {
     final viewMode = ref.watch(posViewModeProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Responsive(
           mobile: Column(

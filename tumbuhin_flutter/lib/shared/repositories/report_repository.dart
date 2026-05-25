@@ -7,6 +7,6 @@ class ReportRepository {
 
   Future<Map<String, dynamic>> getDashboard() => _service.getDashboard();
 
-  Future<List<Map<String, dynamic>>> getFinancialReports(String type) => 
+  Future<List<Map<String, dynamic>>> getFinancialReports(String type) =>
       _service.getFinancialReports(type);
 }

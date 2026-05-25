@@ -1,37 +1,48 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Request, UseGuards } from '@nestjs/common';
 import { WarehouseService } from '../services/warehouse.service';
+import { JwtAuthGuard } from '../../business-profile/guards/jwt-auth.guard';
+import { RequireTier } from '../../../core/auth/tier.decorator';
+import { SubscriptionTier } from '../../../core/constants/subscription-tier.enum';
+import type { AuthenticatedRequest } from '../../../core/auth/authenticated-request.interface';
 
 @Controller('api/v1/warehouses')
+@UseGuards(JwtAuthGuard)
 export class WarehouseController {
   constructor(private readonly warehouseService: WarehouseService) {}
 
   @Get()
-  async getWarehouses(@Request() req: any) {
+  @RequireTier(SubscriptionTier.FREE)
+  async getWarehouses(@Request() req: AuthenticatedRequest) {
     return this.warehouseService.getWarehouses(req.user.tenant_id);
   }
 
   @Post()
-  async createWarehouse(@Request() req: any, @Body() body: any) {
+  @RequireTier(SubscriptionTier.PRO)
+  async createWarehouse(@Request() req: AuthenticatedRequest, @Body() body: any) {
     return this.warehouseService.createWarehouse(req.user.tenant_id, body);
   }
 
   @Put(':id')
-  async updateWarehouse(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  @RequireTier(SubscriptionTier.PRO)
+  async updateWarehouse(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
     return this.warehouseService.updateWarehouse(id, req.user.tenant_id, body);
   }
 
   @Delete(':id')
-  async deleteWarehouse(@Request() req: any, @Param('id') id: string) {
+  @RequireTier(SubscriptionTier.PRO)
+  async deleteWarehouse(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.warehouseService.deleteWarehouse(id, req.user.tenant_id);
   }
 
   @Post('transfers')
-  async createTransfer(@Request() req: any, @Body() body: any) {
+  @RequireTier(SubscriptionTier.PRO)
+  async createTransfer(@Request() req: AuthenticatedRequest, @Body() body: any) {
     return this.warehouseService.createStockTransfer(req.user.tenant_id, req.user.id, body);
   }
 
   @Post('opnames')
-  async createOpname(@Request() req: any, @Body() body: any) {
+  @RequireTier(SubscriptionTier.PRO)
+  async createOpname(@Request() req: AuthenticatedRequest, @Body() body: any) {
     return this.warehouseService.createStockOpname(req.user.tenant_id, req.user.id, body);
   }
 }

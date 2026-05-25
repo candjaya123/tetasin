@@ -1,4 +1,4 @@
-# Tumbuhin — AI-Assisted Development Rules
+# Tetasin — AI-Assisted Development Rules
 
 > **Document Purpose:** Defines rules for AI-assisted development — mandatory patterns, forbidden practices, code generation standards, and consistency rules.
 > **Who Should Read This:** All AI coding assistants, engineers using AI tools, technical leads.
@@ -8,7 +8,7 @@
 
 ## 1. Context
 
-Tumbuhin is a **multi-tenant SaaS ERP platform** for Indonesian SMEs with:
+Tetasin is a **multi-tenant SaaS ERP platform** for Indonesian SMEs with:
 - **Backend:** NestJS (TypeScript), Supabase PostgreSQL, BullMQ, Pino
 - **Web:** Next.js 14 (App Router), Tailwind CSS, Shadcn/UI
 - **Mobile:** Flutter (Dart)
@@ -143,7 +143,7 @@ RULE 16: Enum values in DB must match TypeScript enum values exactly
 
 ## 4. Code Generation Standards
 
-When generating code for Tumbuhin, AI must:
+When generating code for Tetasin, AI must:
 
 ### 4.1 Module Generation
 
@@ -168,7 +168,7 @@ When asked to "add a table" or "add a column":
 ```typescript
 // Standard controller endpoint pattern
 @Post()
-@RequireTier(SubscriptionTier.BUSINESS)
+@RequireTier(SubscriptionTier.PRO)
 @Roles('manager', 'kasir')
 async create(
   @Body() dto: CreateSaleDto,
@@ -199,7 +199,7 @@ async create(
 
 ## 6. AI Context Handling
 
-When working on Tumbuhin, always check:
+When working on Tetasin, always check:
 
 1. **Which module** is being modified — respect its boundaries
 2. **Which tier** the feature requires — add guard accordingly
@@ -211,7 +211,8 @@ When working on Tumbuhin, always check:
 **Before generating database queries, verify:**
 - Table name matches actual schema (see `docs/database_schema.md`)
 - Columns match actual schema — check `full_schema_supabase.sql`
-- Enum values match: `starter | business | pro`, `manager | kasir | stok`
+- Enum values match: `free | pro | franchise` (subscription_tier), `manager | kasir | stok` (user_role)
+- **Note:** `franchise` tier is only valid when `account_type = 'business'`
 
 ---
 

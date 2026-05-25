@@ -34,7 +34,7 @@ export class ReceiptScanProcessor extends WorkerHost {
       const confidence = this.extractionService.calculateConfidence(extraction);
 
       // 3. Check Merchant Memory
-      const recommendation = await this.merchantMemory.getRecommendation(tenantId, extraction.merchant?.value);
+      const recommendation = await this.merchantMemory.recommend(tenantId, extraction.merchant?.value);
       
       // 4. Duplicate Detection
       const duplicateInfo = await this.duplicateDetection.check(
@@ -84,10 +84,10 @@ export class ReceiptScanProcessor extends WorkerHost {
       });
 
       // 8. Emit event
-      await this.eventBus.publish('ReceiptScanned', {
-        scanId,
-        draftId: draft.id,
-        tenantId,
+      await this.eventBus.emit({
+        tenant_id: tenantId,
+        event_type: 'ReceiptScanned',
+        payload: { scanId, draftId: draft.id },
       });
 
       return { draftId: draft.id };

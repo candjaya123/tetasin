@@ -7,6 +7,6 @@ class AiRepository {
 
   Future<String> chat(String message) => _service.chat(message);
 
-  Future<Map<String, dynamic>> processReceipt(String imageUrl) => 
+  Future<Map<String, dynamic>> processReceipt(String imageUrl) =>
       _service.processReceipt(imageUrl);
 }

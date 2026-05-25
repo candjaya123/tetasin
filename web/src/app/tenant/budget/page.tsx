@@ -62,7 +62,7 @@ export default function PersonalBudgetPage() {
   const fetchAccounts = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/finance/coa`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/accounting/coa`, {
         headers: { 'Authorization': `Bearer ${session?.access_token}` }
       });
       const data = await response.json();

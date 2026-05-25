@@ -12,13 +12,15 @@ class PosHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final viewMode = ref.watch(posViewModeProvider);
+    final isToolbarExpanded = ref.watch(posHeaderExpandedProvider);
+    final isSearchExpanded = ref.watch(posSearchExpandedProvider);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
         color: AppColors.white,
         border: Border(
-          top: BorderSide(color: AppColors.primary, width: 4),
+          top: BorderSide(color: AppColors.primary, width: 2),
           bottom: BorderSide(color: AppColors.border),
         ),
       ),
@@ -28,73 +30,206 @@ class PosHeader extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // View Toggle — Chat/Grid
               const _ViewToggle(),
-
-              // Actions
               Row(
                 children: [
-                  // Orders button
+                  if (viewMode == PosViewMode.grid)
+                    Container(
+                      height: 34,
+                      width: 34,
+                      margin: const EdgeInsets.only(right: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 16,
+                        onPressed: () {
+                          ref.read(posSearchExpandedProvider.notifier).state =
+                              !isSearchExpanded;
+                        },
+                        icon: Icon(
+                          isSearchExpanded
+                              ? Icons.search_off_rounded
+                              : Icons.search_rounded,
+                          color: AppColors.darkGrey,
+                        ),
+                      ),
+                    ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    width: isToolbarExpanded ? null : 0,
+                    child: isToolbarExpanded
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                height: 34,
+                                width: 34,
+                                margin: const EdgeInsets.only(right: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () => context.push('/pesanan'),
+                                  icon: const Icon(
+                                    Icons.receipt_long_rounded,
+                                    color: AppColors.black,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 34,
+                                width: 34,
+                                margin: const EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.black,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const BarcodeScannerScreen(),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.qr_code_scanner_rounded,
+                                    color: AppColors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                   Container(
-                    height: 42,
-                    width: 42,
-                    margin: const EdgeInsets.only(right: 8),
+                    height: 34,
+                    width: 34,
                     decoration: BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppColors.border),
                     ),
                     child: IconButton(
                       padding: EdgeInsets.zero,
-                      onPressed: () => context.push('/orders'),
-                      icon: const Icon(Icons.receipt_long_rounded, color: AppColors.black, size: 20),
-                    ),
-                  ),
-                  // Barcode Scanner
-                  Container(
-                    height: 42,
-                    width: 42,
-                    decoration: BoxDecoration(
-                      color: AppColors.black,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
+                      iconSize: 16,
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
-                        );
+                        ref.read(posHeaderExpandedProvider.notifier).state =
+                            !isToolbarExpanded;
                       },
-                      icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.white, size: 20),
+                      icon: Icon(
+                        isToolbarExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.more_horiz_rounded,
+                        color: AppColors.darkGrey,
+                      ),
                     ),
                   ),
+                  if (!isToolbarExpanded)
+                    PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      iconSize: 0,
+                      child: const SizedBox.shrink(),
+                      onSelected: (value) {
+                        if (value == 'orders') {
+                          context.push('/pesanan');
+                        } else if (value == 'barcode') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const BarcodeScannerScreen(),
+                            ),
+                          );
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'orders',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.receipt_long_rounded,
+                                size: 16,
+                                color: AppColors.black,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Daftar Pesanan',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'barcode',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.qr_code_scanner_rounded,
+                                size: 16,
+                                color: AppColors.black,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Scan Barcode',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ],
           ),
-          if (viewMode == PosViewMode.grid) ...[
+          if (viewMode == PosViewMode.grid && isSearchExpanded) ...[
             const SizedBox(height: 12),
             TextField(
-              onChanged: (value) => ref.read(posSearchQueryProvider.notifier).state = value,
+              onChanged: (value) =>
+                  ref.read(posSearchQueryProvider.notifier).state = value,
               style: GoogleFonts.outfit(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Cari nama produk...',
-                hintStyle: GoogleFonts.outfit(color: AppColors.mediumGrey, fontSize: 14),
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.mediumGrey, size: 20),
+                hintStyle: GoogleFonts.outfit(
+                  color: AppColors.mediumGrey,
+                  fontSize: 14,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.mediumGrey,
+                  size: 16,
+                ),
                 filled: true,
                 fillColor: AppColors.surface,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 14,
+                ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: AppColors.primary),
                 ),
               ),
@@ -112,72 +247,43 @@ class _ViewToggle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final viewMode = ref.watch(posViewModeProvider);
-    
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          _ToggleButton(
-            icon: Icons.grid_view_rounded,
-            label: 'Grid',
-            isSelected: viewMode == PosViewMode.grid,
-            onTap: () => ref.read(posViewModeProvider.notifier).state = PosViewMode.grid,
-          ),
-          _ToggleButton(
-            icon: Icons.auto_awesome_rounded,
-            label: 'AI',
-            isSelected: viewMode == PosViewMode.chat,
-            onTap: () => ref.read(posViewModeProvider.notifier).state = PosViewMode.chat,
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final isActive = viewMode == PosViewMode.chat;
 
-class _ToggleButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ToggleButton({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        ref.read(posViewModeProvider.notifier).state = isActive
+            ? PosViewMode.grid
+            : PosViewMode.chat;
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
+          color: isActive
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive
+                ? AppColors.primary.withValues(alpha: 0.2)
+                : AppColors.border,
+          ),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              icon,
+              Icons.auto_awesome_rounded,
               size: 16,
-              color: isSelected ? AppColors.onPrimary : AppColors.lightGrey,
+              color: isActive ? AppColors.primary : AppColors.lightGrey,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 5),
             Text(
-              label,
+              'AI',
               style: GoogleFonts.outfit(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: isSelected ? AppColors.onPrimary : AppColors.lightGrey,
+                color: isActive ? AppColors.primary : AppColors.lightGrey,
               ),
             ),
           ],

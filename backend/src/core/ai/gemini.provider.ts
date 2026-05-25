@@ -1,17 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AIProvider } from './ai.provider.interface';
 
 @Injectable()
 export class GeminiProvider implements AIProvider {
+  private readonly logger = new Logger(GeminiProvider.name);
   private genAI: GoogleGenerativeAI;
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      // Note: In production, this should throw an error. 
-      // For initialization we can just log a warning if not provided yet.
-      console.warn('GEMINI_API_KEY is missing in environment variables');
+      this.logger.warn('GEMINI_API_KEY is missing in environment variables');
     } else {
       this.genAI = new GoogleGenerativeAI(apiKey);
     }
@@ -84,7 +83,7 @@ export class GeminiProvider implements AIProvider {
 
         if (isNotFound) {
           // Model deprecated, try next
-          console.warn(`Model ${model} not found, trying next...`);
+          this.logger.warn(`Model ${model} not found, trying next...`);
           continue;
         }
 

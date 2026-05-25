@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,10 +8,12 @@ class AddTransactionBottomSheet extends ConsumerStatefulWidget {
   const AddTransactionBottomSheet({super.key});
 
   @override
-  ConsumerState<AddTransactionBottomSheet> createState() => _AddTransactionBottomSheetState();
+  ConsumerState<AddTransactionBottomSheet> createState() =>
+      _AddTransactionBottomSheetState();
 }
 
-class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottomSheet> {
+class _AddTransactionBottomSheetState
+    extends ConsumerState<AddTransactionBottomSheet> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _type = 'expense'; // 'income' | 'expense'
@@ -28,7 +29,9 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
   }
 
   Future<void> _save() async {
-    if (_amountController.text.isEmpty || _selectedCategoryId == null || _selectedAccountId == null) {
+    if (_amountController.text.isEmpty ||
+        _selectedCategoryId == null ||
+        _selectedAccountId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Mohon lengkapi data transaksi')),
       );
@@ -38,12 +41,14 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
     setState(() => _isLoading = true);
 
     try {
-      final amount = double.parse(_amountController.text.replaceAll(RegExp(r'[^0-9]'), ''));
+      final amount = double.parse(
+        _amountController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+      );
       final service = ref.read(reportServiceProvider);
 
       // Construct Journal Lines
       final List<Map<String, dynamic>> lines = [];
-      
+
       if (_type == 'expense') {
         // Debit Expense, Credit Asset/Liability
         lines.add({
@@ -72,13 +77,15 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
 
       final payload = {
         'reference_number': 'PERS-${DateTime.now().millisecondsSinceEpoch}',
-        'description': _descriptionController.text.isEmpty ? (_type == 'income' ? 'Pemasukan' : 'Pengeluaran') : _descriptionController.text,
+        'description': _descriptionController.text.isEmpty
+            ? (_type == 'income' ? 'Pemasukan' : 'Pengeluaran')
+            : _descriptionController.text,
         'date': DateTime.now().toIso8601String(),
         'lines': lines,
       };
 
       await service.createExpense(payload);
-      
+
       if (mounted) {
         ref.invalidate(journalProvider);
         Navigator.pop(context);
@@ -88,9 +95,9 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -136,12 +143,20 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Type Toggle
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'expense', label: Text('Pengeluaran'), icon: Icon(Icons.arrow_outward_rounded)),
-              ButtonSegment(value: 'income', label: Text('Pemasukan'), icon: Icon(Icons.south_west_rounded)),
+              ButtonSegment(
+                value: 'expense',
+                label: Text('Pengeluaran'),
+                icon: Icon(Icons.arrow_outward_rounded),
+              ),
+              ButtonSegment(
+                value: 'income',
+                label: Text('Pemasukan'),
+                icon: Icon(Icons.south_west_rounded),
+              ),
             ],
             selected: {_type},
             onSelectionChanged: (val) => setState(() {
@@ -149,7 +164,9 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
               _selectedCategoryId = null; // Reset category when switching type
             }),
             style: SegmentedButton.styleFrom(
-              selectedBackgroundColor: _type == 'income' ? Colors.green : Colors.red,
+              selectedBackgroundColor: _type == 'income'
+                  ? Colors.green
+                  : Colors.red,
               selectedForegroundColor: Colors.white,
             ),
           ),
@@ -159,11 +176,16 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
           TextField(
             controller: _amountController,
             keyboardType: TextInputType.number,
-            style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.w900),
+            style: GoogleFonts.outfit(
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+            ),
             decoration: InputDecoration(
               labelText: 'Nominal',
               prefixText: 'Rp ',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               floatingLabelBehavior: FloatingLabelBehavior.always,
             ),
           ),
@@ -177,8 +199,14 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
               final assetAccounts = coa.where((a) {
                 final type = (a['type'] ?? '').toString().toLowerCase();
                 final code = (a['code'] ?? '').toString();
-                return (type == 'asset' || type == 'assets' || type == 'aset') &&
-                    (code.startsWith('1-10') || code.startsWith('1-11'));
+                return (type == 'asset' ||
+                        type == 'assets' ||
+                        type == 'aset') &&
+                    (code.startsWith('1-10') ||
+                        code.startsWith('1-11') ||
+                        code == '1110' ||
+                        code == '1120' ||
+                        code.startsWith('1'));
               }).toList();
 
               // Personal income: type='revenue'; Business income: type='income'/'pendapatan'
@@ -187,11 +215,16 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
                 final type = (a['type'] ?? '').toString().toLowerCase();
                 final code = (a['code'] ?? '').toString();
                 if (_type == 'income') {
-                  return type == 'income' || type == 'pendapatan' ||
-                      type == 'revenue' || code.startsWith('4-');
+                  return type == 'income' ||
+                      type == 'pendapatan' ||
+                      type == 'revenue' ||
+                      code.startsWith('4-');
                 } else {
-                  return type == 'expense' || type == 'expenses' ||
-                      type == 'beban' || code.startsWith('5-') || code.startsWith('6-');
+                  return type == 'expense' ||
+                      type == 'expenses' ||
+                      type == 'beban' ||
+                      code.startsWith('5-') ||
+                      code.startsWith('6-');
                 }
               }).toList();
 
@@ -200,27 +233,43 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
                   DropdownButtonFormField<String>(
                     value: _selectedAccountId,
                     decoration: InputDecoration(
-                      labelText: _type == 'income' ? 'Simpan ke' : 'Bayar pakai',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      labelText: _type == 'income'
+                          ? 'Simpan ke'
+                          : 'Bayar pakai',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    items: assetAccounts.map((a) => DropdownMenuItem(
-                      value: a['id'].toString(),
-                      child: Text(a['name']),
-                    )).toList(),
-                    onChanged: (val) => setState(() => _selectedAccountId = val),
+                    items: assetAccounts
+                        .map(
+                          (a) => DropdownMenuItem(
+                            value: a['id'].toString(),
+                            child: Text(a['name']),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) =>
+                        setState(() => _selectedAccountId = val),
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: _selectedCategoryId,
                     decoration: InputDecoration(
                       labelText: 'Kategori',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    items: categoryAccounts.map((a) => DropdownMenuItem(
-                      value: a['id'].toString(),
-                      child: Text(a['name']),
-                    )).toList(),
-                    onChanged: (val) => setState(() => _selectedCategoryId = val),
+                    items: categoryAccounts
+                        .map(
+                          (a) => DropdownMenuItem(
+                            value: a['id'].toString(),
+                            child: Text(a['name']),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) =>
+                        setState(() => _selectedCategoryId = val),
                   ),
                 ],
               );
@@ -235,7 +284,9 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
             controller: _descriptionController,
             decoration: InputDecoration(
               labelText: 'Catatan (Opsional)',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -249,11 +300,19 @@ class _AddTransactionBottomSheetState extends ConsumerState<AddTransactionBottom
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: _isLoading 
-                ? const CircularProgressIndicator(color: Colors.white)
-                : Text('Simpan Transaksi', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      'Simpan Transaksi',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 40),

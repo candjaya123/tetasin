@@ -18,7 +18,10 @@ class NotificationScreen extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: Text('Notifikasi', style: GoogleFonts.outfit(fontWeight: FontWeight.w900)),
+          title: Text(
+            'Notifikasi',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w900),
+          ),
           bottom: TabBar(
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.mediumGrey,
@@ -31,12 +34,7 @@ class NotificationScreen extends ConsumerWidget {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _AlertsList(),
-            _NotificationSettings(),
-          ],
-        ),
+        body: TabBarView(children: [_AlertsList(), _NotificationSettings()]),
       ),
     );
   }
@@ -90,7 +88,11 @@ class _AlertTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: alert.isRead ? AppColors.border : AppColors.primary.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: alert.isRead
+              ? AppColors.border
+              : AppColors.primary.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,7 +103,11 @@ class _AlertTile extends StatelessWidget {
               color: _getTypeColor(alert.type).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(_getTypeIcon(alert.type), color: _getTypeColor(alert.type), size: 20),
+            child: Icon(
+              _getTypeIcon(alert.type),
+              color: _getTypeColor(alert.type),
+              size: 20,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -114,19 +120,28 @@ class _AlertTile extends StatelessWidget {
                     Expanded(
                       child: Text(
                         alert.title,
-                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     Text(
                       DateFormat('HH:mm').format(alert.date),
-                      style: GoogleFonts.outfit(fontSize: 11, color: AppColors.mediumGrey),
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: AppColors.mediumGrey,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   alert.message,
-                  style: GoogleFonts.outfit(fontSize: 13, color: AppColors.mediumGrey),
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    color: AppColors.mediumGrey,
+                  ),
                 ),
               ],
             ),
@@ -138,19 +153,27 @@ class _AlertTile extends StatelessWidget {
 
   Color _getTypeColor(String type) {
     switch (type) {
-      case 'warning': return Colors.orange;
-      case 'error': return Colors.red;
-      case 'info': return Colors.blue;
-      default: return AppColors.primary;
+      case 'warning':
+        return Colors.orange;
+      case 'error':
+        return Colors.red;
+      case 'info':
+        return Colors.blue;
+      default:
+        return AppColors.primary;
     }
   }
 
   IconData _getTypeIcon(String type) {
     switch (type) {
-      case 'warning': return HugeIcons.strokeRoundedAlert01;
-      case 'error': return HugeIcons.strokeRoundedAlertCircle;
-      case 'info': return HugeIcons.strokeRoundedInformationCircle;
-      default: return HugeIcons.strokeRoundedNotification01;
+      case 'warning':
+        return HugeIcons.strokeRoundedAlert01;
+      case 'error':
+        return HugeIcons.strokeRoundedAlertCircle;
+      case 'info':
+        return HugeIcons.strokeRoundedInformationCircle;
+      default:
+        return HugeIcons.strokeRoundedNotification01;
     }
   }
 }
@@ -227,7 +250,9 @@ class _NotificationSettings extends ConsumerWidget {
         ],
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => ErrorStateWidget(onRetry: () => ref.refresh(notificationSettingsProvider)),
+      error: (e, s) => ErrorStateWidget(
+        onRetry: () => ref.refresh(notificationSettingsProvider),
+      ),
     );
   }
 
@@ -236,12 +261,23 @@ class _NotificationSettings extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
       child: Text(
         title,
-        style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.mediumGrey, letterSpacing: 1.2),
+        style: GoogleFonts.outfit(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: AppColors.mediumGrey,
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }
 
-  Widget _buildSwitchTile(WidgetRef ref, String key, String title, String subtitle, bool value) {
+  Widget _buildSwitchTile(
+    WidgetRef ref,
+    String key,
+    String title,
+    String subtitle,
+    bool value,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -251,9 +287,17 @@ class _NotificationSettings extends ConsumerWidget {
       ),
       child: SwitchListTile(
         value: value,
-        onChanged: (v) => ref.read(notificationSettingsNotifierProvider.notifier).updateSetting(key, v),
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(subtitle, style: GoogleFonts.outfit(fontSize: 12, color: AppColors.mediumGrey)),
+        onChanged: (v) => ref
+            .read(notificationSettingsNotifierProvider.notifier)
+            .updateSetting(key, v),
+        title: Text(
+          title,
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: GoogleFonts.outfit(fontSize: 12, color: AppColors.mediumGrey),
+        ),
         activeThumbColor: AppColors.primary,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),

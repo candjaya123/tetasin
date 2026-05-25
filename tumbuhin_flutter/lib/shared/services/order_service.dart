@@ -6,8 +6,15 @@ class OrderService {
 
   OrderService(this._apiClient);
 
+  Future<Order> getOrderById(String id) async {
+    final response = await _apiClient.dio.get('/api/v1/orders/$id');
+    final data = Map<String, dynamic>.from(response.data);
+    final type = data['type'] ?? (data['order_type'] ?? 'SO');
+    return _mapOrderData(data, type as String);
+  }
+
   Future<List<Order>> getSalesOrders() async {
-    final response = await _apiClient.dio.get('/api/v1/orders/sales');
+    final response = await _apiClient.dio.get('/api/v1/orders');
     return (response.data as List).map((e) => _mapOrderData(e, 'SO')).toList();
   }
 
@@ -17,13 +24,33 @@ class OrderService {
   }
 
   Future<Order> createSalesOrder(Map<String, dynamic> data) async {
-    final response = await _apiClient.dio.post('/api/v1/orders/sales', data: data);
+    final response = await _apiClient.dio.post('/api/v1/orders', data: data);
     return _mapOrderData(response.data, 'SO');
   }
 
   Future<Order> createPurchaseOrder(Map<String, dynamic> data) async {
-    final response = await _apiClient.dio.post('/api/v1/orders/purchase', data: data);
+    final response = await _apiClient.dio.post(
+      '/api/v1/orders/purchase',
+      data: data,
+    );
     return _mapOrderData(response.data, 'PO');
+  }
+
+  Future<void> updateOrderStatus(String id, String status) async {
+    await _apiClient.dio.patch(
+      '/api/v1/orders/$id/status',
+      data: {'status': status},
+    );
+  }
+
+  Future<void> updateDivisionNotes(
+    String id,
+    Map<String, dynamic> notes,
+  ) async {
+    await _apiClient.dio.patch(
+      '/api/v1/orders/$id/division-notes',
+      data: notes,
+    );
   }
 
   Order _mapOrderData(dynamic e, String type) {

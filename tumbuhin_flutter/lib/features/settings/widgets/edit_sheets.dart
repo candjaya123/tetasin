@@ -38,9 +38,9 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memperbarui profil: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memperbarui profil: $e')));
       }
     }
   }
@@ -66,17 +66,23 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           children: [
             Text(
               'Edit Profil',
-              style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800),
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 24),
             TextFormField(
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Nama Lengkap',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 prefixIcon: const Icon(Icons.person_outline_rounded),
               ),
-              validator: (v) => v == null || v.isEmpty ? 'Nama tidak boleh kosong' : null,
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Nama tidak boleh kosong' : null,
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -87,9 +93,14 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.black,
                   foregroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Simpan Perubahan',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -170,17 +181,23 @@ class _TenantEditSheetState extends ConsumerState<TenantEditSheet> {
             children: [
               Text(
                 'Informasi Bisnis',
-                style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800),
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 24),
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: 'Nama Toko / Bisnis',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   prefixIcon: const Icon(Icons.store_outlined),
                 ),
-                validator: (v) => v == null || v.isEmpty ? 'Nama toko wajib diisi' : null,
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Nama toko wajib diisi' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -188,7 +205,9 @@ class _TenantEditSheetState extends ConsumerState<TenantEditSheet> {
                 maxLines: 2,
                 decoration: InputDecoration(
                   labelText: 'Alamat',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   prefixIcon: const Icon(Icons.location_on_outlined),
                 ),
               ),
@@ -198,7 +217,9 @@ class _TenantEditSheetState extends ConsumerState<TenantEditSheet> {
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: 'Nomor Kontak',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   prefixIcon: const Icon(Icons.phone_outlined),
                 ),
               ),
@@ -211,9 +232,14 @@ class _TenantEditSheetState extends ConsumerState<TenantEditSheet> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.black,
                     foregroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Simpan Perubahan',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],

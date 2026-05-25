@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'transitions.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/splash_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
@@ -16,18 +17,37 @@ import '../../features/reports/budget_screen.dart';
 import '../../features/ai/ai_chat_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/settings/notification_screen.dart';
-import '../../features/orders/orders_screen.dart';
-import '../../features/orders/order_detail_screen.dart';
-import '../../features/orders/order_create_screen.dart';
+import '../../features/receipt/presentation/screens/receipt_drafts_screen.dart';
+import '../../features/receipt/presentation/screens/receipt_scan_screen.dart';
+import '../../features/receipt/presentation/screens/manual_entry_screen.dart';
+import '../../features/receipt/presentation/screens/draft_review_screen.dart';
+import '../../features/pesanan/presentation/screens/pesanan_list_screen.dart';
+import '../../features/pesanan/presentation/screens/pesanan_detail_screen.dart';
+import '../../features/pesanan/presentation/screens/pesanan_form_screen.dart';
 import '../../features/promos/promos_screen.dart';
 import '../../features/promos/promo_edit_screen.dart';
 import '../../features/staff/staff_screen.dart';
 import '../../features/staff/staff_qr_join_screen.dart';
-import '../../features/transactions/transactions_screen.dart';
+import '../../features/transactions/presentation/screens/transaksi_list_screen.dart';
+import '../../features/transactions/presentation/screens/transaksi_detail_screen.dart';
+import '../../features/goals/goals_screen.dart';
+import '../../features/goals/goal_detail_screen.dart';
+import '../../features/bills/bills_screen.dart';
+import '../../features/bills/bill_detail_screen.dart';
+import '../../features/bills/bill_add_screen.dart';
+import '../../features/personal/dashboard/personal_dashboard_page.dart';
+import '../../features/personal/recurring/recurring_list_page.dart';
+import '../../features/personal/entry/income_entry_page.dart';
+import '../../features/personal/entry/expense_entry_page.dart';
+import '../../features/personal/budgets/budget_list_page.dart';
+import '../../features/personal/goals/goals_list_page.dart';
+import '../../features/personal/goals/goal_detail_page.dart';
+import '../../features/subscription/subscription_screen.dart';
 import '../../shared/widgets/main_shell.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/order.dart';
 import '../../shared/models/promotion.dart';
+import '../../shared/repositories/repositories_provider.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -51,12 +71,49 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isAuthenticated) {
         if (isLoggingIn || isSplash) {
-          return isPersonal ? '/reports' : '/pos';
+          return isPersonal ? '/personal' : '/pos';
         }
-        
-        // Proteksi tambahan: Jika user personal nyasar ke /pos, lempar ke /reports
-        if (isPersonal && state.uri.path == '/pos') {
-          return '/reports';
+
+        // Block personal users from business-only routes
+        if (isPersonal) {
+          const businessOnlyPaths = [
+            '/pos',
+            '/inventory',
+            '/pesanan',
+            '/promos',
+            '/staff',
+            '/receipt',
+            '/ai-chat',
+            '/reports',
+          ];
+          if (businessOnlyPaths.any((p) => state.uri.path.startsWith(p))) {
+            return '/personal';
+          }
+        }
+
+        // Block business users from personal-only routes
+        if (!isPersonal) {
+          const personalOnlyPaths = ['/budget', '/goals', '/personal'];
+          if (personalOnlyPaths.any((p) => state.uri.path.startsWith(p))) {
+            return '/pos';
+          }
+        }
+
+        // Block free-tier and personal users from AI chat
+        // (Only Business Pro and Business Franchise can access AI chat)
+        final tier = authState.tenant?.tier;
+        if (state.uri.path == '/ai-chat') {
+          if (isPersonal || tier == 'free' || tier == null) {
+            return isPersonal ? '/personal' : '/pos';
+          }
+        }
+
+        // Block business free-tier from receipt OCR routes
+        const receiptPaths = ['/receipt/scan', '/receipt/manual', '/receipt'];
+        if (receiptPaths.any((p) => state.uri.path.startsWith(p))) {
+          if (!isPersonal && (tier == 'free' || tier == null)) {
+            return '/subscription';
+          }
         }
       }
 
@@ -67,20 +124,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
+          GoRoute(path: '/pos', builder: (context, state) => const PosScreen()),
           GoRoute(
-            path: '/pos',
-            builder: (context, state) => const PosScreen(),
-          ),
-          GoRoute(
-            path: '/transactions',
-            builder: (context, state) => const TransactionsScreen(),
+            path: '/transaksi',
+            builder: (context, state) => const TransaksiListScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return TransaksiDetailScreen(transactionId: id);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: '/inventory',
@@ -121,9 +181,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'detail',
                 builder: (context, state) {
-                   final authState = ref.watch(authProvider);
-                   final isPersonal = authState.profile?.accountType == 'personal';
-                   return isPersonal ? const BudgetScreen() : const ReportsScreen();
+                  final authState = ref.watch(authProvider);
+                  final isPersonal =
+                      authState.profile?.accountType == 'personal';
+                  return isPersonal
+                      ? const BudgetScreen()
+                      : const ReportsScreen();
                 },
               ),
             ],
@@ -133,18 +196,27 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const SettingsScreen(),
           ),
           GoRoute(
-            path: '/orders',
-            builder: (context, state) => const OrdersScreen(),
+            path: '/pesanan',
+            builder: (context, state) => const PesananListScreen(),
             routes: [
               GoRoute(
                 path: 'new',
-                builder: (context, state) => const OrderCreateScreen(),
+                builder: (context, state) => const PesananFormScreen(),
               ),
               GoRoute(
                 path: 'detail',
                 builder: (context, state) {
                   final order = state.extra as Order;
-                  return OrderDetailScreen(order: order);
+                  return PesananDetailScreen(order: order);
+                },
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final order = state.extra as Order?;
+                  if (order != null) return PesananDetailScreen(order: order);
+                  return _OrderLoaderWidget(id: id);
                 },
               ),
             ],
@@ -188,6 +260,96 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/budget',
             builder: (context, state) => const BudgetScreen(),
           ),
+          GoRoute(
+            path: '/goals',
+            builder: (context, state) => const GoalsScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return GoalDetailScreen(goalId: id);
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/bills',
+            builder: (context, state) => const BillsScreen(),
+            routes: [
+              GoRoute(
+                path: 'add',
+                builder: (context, state) => const BillAddScreen(),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return BillDetailScreen(billId: id);
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/personal',
+            builder: (context, state) => const PersonalDashboardPage(),
+            routes: [
+              GoRoute(
+                path: 'recurring',
+                builder: (context, state) => const RecurringListPage(),
+              ),
+              GoRoute(
+                path: 'income',
+                builder: (context, state) => const IncomeEntryPage(),
+              ),
+              GoRoute(
+                path: 'expense',
+                builder: (context, state) => const ExpenseEntryPage(),
+              ),
+              GoRoute(
+                path: 'budgets',
+                builder: (context, state) => const BudgetListPage(),
+              ),
+              GoRoute(
+                path: 'goals',
+                builder: (context, state) => const GoalsListPage(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return GoalDetailPage(goalId: id);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/receipt',
+            builder: (context, state) => const ReceiptDraftsScreen(),
+            routes: [
+              GoRoute(
+                path: 'scan',
+                builder: (context, state) => const ReceiptScanScreen(),
+              ),
+              GoRoute(
+                path: 'manual',
+                builder: (context, state) => const ManualEntryScreen(),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return DraftReviewScreen(id: id);
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/subscription',
+            builder: (context, state) => const SubscriptionScreen(),
+          ),
         ],
       ),
     ],
@@ -204,3 +366,28 @@ class AuthRefreshListenable extends ChangeNotifier {
     });
   }
 }
+
+class _OrderLoaderWidget extends ConsumerWidget {
+  final String id;
+
+  const _OrderLoaderWidget({required this.id});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final orderAsync = ref.watch(orderByIdProvider(id));
+
+    return orderAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (err, _) => Scaffold(
+        appBar: AppBar(title: const Text('Detail Pesanan')),
+        body: Center(child: Text('Gagal memuat pesanan: $err')),
+      ),
+      data: (order) => PesananDetailScreen(order: order),
+    );
+  }
+}
+
+final orderByIdProvider = FutureProvider.family<Order, String>((ref, id) {
+  return ref.read(orderRepositoryProvider).getOrderById(id);
+});

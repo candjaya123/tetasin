@@ -19,7 +19,7 @@ export default function TrialBalancePage() {
     setLoading(true);
     try {
       const res = await reportService.getTrialBalance(endDate);
-      setData(res);
+      setData(res as any[]);
     } catch (err) {
       console.error(err);
     } finally {

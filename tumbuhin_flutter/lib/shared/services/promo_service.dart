@@ -12,12 +12,21 @@ class PromoService {
   }
 
   Future<Promotion> createPromotion(Map<String, dynamic> data) async {
-    final response = await _apiClient.dio.post('/api/v1/promotions', data: data);
+    final response = await _apiClient.dio.post(
+      '/api/v1/promotions',
+      data: data,
+    );
     return Promotion.fromJson(response.data);
   }
 
-  Future<Promotion> updatePromotion(String id, Map<String, dynamic> data) async {
-    final response = await _apiClient.dio.put('/api/v1/promotions/$id', data: data);
+  Future<Promotion> updatePromotion(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _apiClient.dio.put(
+      '/api/v1/promotions/$id',
+      data: data,
+    );
     return Promotion.fromJson(response.data);
   }
 
@@ -25,8 +34,13 @@ class PromoService {
     await _apiClient.dio.delete('/api/v1/promotions/$id');
   }
 
-  Future<List<Map<String, dynamic>>> applyPromotions(List<Map<String, dynamic>> items) async {
-    final response = await _apiClient.dio.post('/api/v1/promotions/apply', data: {'items': items});
+  Future<List<Map<String, dynamic>>> applyPromotions(
+    List<Map<String, dynamic>> items,
+  ) async {
+    final response = await _apiClient.dio.post(
+      '/api/v1/promotions/apply',
+      data: {'items': items},
+    );
     return List<Map<String, dynamic>>.from(response.data);
   }
 }

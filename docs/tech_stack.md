@@ -1,4 +1,4 @@
-# Tumbuhin — Official Technology Stack
+# Tetasin — Official Technology Stack
 
 > **Document Purpose:** Defines the canonical technology choices and engineering standards for all layers of the platform.
 > **Who Should Read This:** All engineers, DevOps, and AI coding assistants.
@@ -138,7 +138,7 @@ CREATE INDEX idx_journal_entries_tenant_id ON journal_entries(tenant_id);
 process_sale(), refresh_ledger_analytics()
 
 -- Enums: snake_case values
-CREATE TYPE subscription_tier AS ENUM ('starter', 'business', 'pro');
+CREATE TYPE subscription_tier AS ENUM ('free', 'pro', 'franchise');
 ```
 
 ### 3.3 API Endpoints

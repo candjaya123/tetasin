@@ -77,7 +77,7 @@ export class WarehouseService {
 
     const transferItems = items.map((item: any) => ({
       transfer_id: transfer.id,
-      product_id: item.product_id,
+      raw_material_id: item.product_id,
       quantity: item.quantity
     }));
 

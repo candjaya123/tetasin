@@ -18,7 +18,7 @@ export function Receipt({
   taxAmount, 
   discount, 
   total,
-  tenantName = "Tumbuhin POS",
+  tenantName = "Tetasin POS",
   referenceNumber = `POS-${Date.now()}`
 }: ReceiptProps) {
   const formatCurrency = (val: number) => {
@@ -36,7 +36,7 @@ export function Receipt({
         <p className="text-xs">Terima kasih atas kunjungan Anda</p>
         <div className="border-b border-dashed my-2"></div>
         <p className="text-xs">No: {referenceNumber}</p>
-        <p className="text-xs">{new Date().toLocaleString('id-ID')}</p>
+        <p className="text-xs" suppressHydrationWarning>{new Date().toLocaleString('id-ID')}</p>
       </div>
 
       <div className="space-y-1 mb-4">
@@ -76,7 +76,7 @@ export function Receipt({
 
       <div className="text-center mt-6 text-xs italic">
         <p>Simpan struk ini sebagai bukti pembayaran</p>
-        <p>Powered by Tumbuhin AI</p>
+        <p>Powered by Tetasin AI</p>
       </div>
     </div>
   );

@@ -27,7 +27,7 @@ export default function ProcurementDraftsPage() {
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/procurement/drafts`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/procurement/drafts`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

@@ -12,7 +12,8 @@ import {
   Send,
   AlertCircle
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { 
   Table, 
   TableBody, 
@@ -61,11 +62,15 @@ export default function OrdersPage() {
           <h1 className="text-3xl font-bold text-foreground">Pengadaan (SO/PO)</h1>
           <p className="text-slate-500">Manajemen pesanan penjualan dan pembelian.</p>
         </div>
-        <Link href="/tenant/orders/new">
-          <Button className="flex gap-2">
-            <Plus className="w-4 h-4" />
-            Buat Pesanan Baru
-          </Button>
+        <Link
+          href="/tenant/orders/new"
+          className={cn(
+            buttonVariants(),
+            "flex gap-2 items-center"
+          )}
+        >
+          <Plus className="w-4 h-4" />
+          Buat Pesanan Baru
         </Link>
       </div>
 

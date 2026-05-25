@@ -9,7 +9,7 @@ export class ReceiptRepository {
     return this.supabaseService.getClient();
   }
 
-  async createScan(data: any) {
+  async createScan(data: Record<string, unknown>) {
     const { data: scan, error } = await this.client
       .from('receipt_scans')
       .insert(data)
@@ -20,7 +20,7 @@ export class ReceiptRepository {
     return scan;
   }
 
-  async updateScan(id: string, data: any) {
+  async updateScan(id: string, data: Record<string, unknown>) {
     const { data: scan, error } = await this.client
       .from('receipt_scans')
       .update(data)
@@ -43,7 +43,7 @@ export class ReceiptRepository {
     return scan;
   }
 
-  async createDraft(data: any) {
+  async createDraft(data: Record<string, unknown>) {
     const { data: draft, error } = await this.client
       .from('draft_transactions')
       .insert(data)
@@ -54,7 +54,7 @@ export class ReceiptRepository {
     return draft;
   }
 
-  async updateDraft(id: string, data: any) {
+  async updateDraft(id: string, data: Record<string, unknown>) {
     const { data: draft, error } = await this.client
       .from('draft_transactions')
       .update(data)
@@ -85,7 +85,7 @@ export class ReceiptRepository {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+    return data ?? [];
   }
 
   async getMerchantMapping(tenantId: string, merchantName: string) {
@@ -100,7 +100,18 @@ export class ReceiptRepository {
     return data;
   }
 
-  async upsertMerchantMapping(data: any) {
+  async getMerchantMappings(tenantId: string) {
+    const { data, error } = await this.client
+      .from('merchant_mappings')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('approval_count', { ascending: false });
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async upsertMerchantMapping(data: Record<string, unknown>) {
     const { data: mapping, error } = await this.client
       .from('merchant_mappings')
       .upsert(data, { onConflict: 'tenant_id,merchant_name' })

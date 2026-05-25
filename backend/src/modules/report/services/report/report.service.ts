@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../../../shared/supabase.service';
 import { AccountingRepository } from '../../../accounting/repositories/accounting.repository';
 import { InventoryRepository } from '../../../inventory/repositories/inventory.repository';
-import { Decimal } from 'decimal.js';
+import Decimal from 'decimal.js';
 
 @Injectable()
 export class ReportService {
@@ -230,7 +230,7 @@ export class ReportService {
 
     return data.map((entry: any) => {
       const revenueLines = entry.journal_lines.filter((l: any) => l.chart_of_accounts?.code.startsWith('4'));
-      const totalAmount = revenueLines.reduce((sum: Decimal, l: any) => sum.plus(new Decimal(l.credit)), new Decimal(0));
+      const totalAmount = revenueLines.reduce((sum: any, l: any) => (sum as any).plus(new Decimal(l.credit)), new Decimal(0));
       return {
         id: entry.id,
         created_at: entry.created_at,
@@ -258,9 +258,9 @@ export class ReportService {
       runningBalance = runningBalance.plus(debit.minus(credit));
       return {
         id: l.id,
-        date: l.journal_entries.date,
+        date: l.journal_entries.transaction_date,
         description: l.journal_entries.description,
-        reference: l.journal_entries.reference_number,
+        reference: l.journal_entries.reference_doc || l.journal_entries.reference_type || l.journal_entries.reference_id || '',
         debit: debit.toString(),
         credit: credit.toString(),
         balance: runningBalance.toString()
@@ -290,15 +290,15 @@ export class ReportService {
     const data = await this.inventoryRepository.getStockReport(tenantId);
 
     return data.map(row => {
-      const stock = new Decimal(row.stock || 0);
-      const price = new Decimal(row.price || 0);
+      const stock = new Decimal(row.current_stock || 0);
+      const price = new Decimal(row.selling_price || 0);
       return {
         id: row.id,
         name: row.name,
         sku: row.sku,
         current_stock: stock.toString(),
         unit_price: price.toString(),
-        total_value: stock.mul(price).toString(),
+        total_value: stock.times(price).toString(),
       };
     });
   }

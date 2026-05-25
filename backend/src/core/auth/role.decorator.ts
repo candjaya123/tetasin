@@ -3,8 +3,8 @@ import { SetMetadata } from '@nestjs/common';
 export enum UserRole {
   OWNER = 'owner',
   MANAGER = 'manager',
-  CASHIER = 'cashier',
-  WAREHOUSE = 'warehouse_staff',
+  KASIR = 'kasir',
+  STOK = 'stok',
   PERSONAL = 'personal',
 }
 

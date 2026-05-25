@@ -11,9 +11,9 @@ class ProfileRepository {
 
   Future<Tenant> getTenant() => _service.getTenant();
 
-  Future<UserProfile> updateProfile(Map<String, dynamic> updates) => 
+  Future<UserProfile> updateProfile(Map<String, dynamic> updates) =>
       _service.updateProfile(updates);
 
-  Future<Tenant> updateTenant(Map<String, dynamic> updates) => 
+  Future<Tenant> updateTenant(Map<String, dynamic> updates) =>
       _service.updateTenant(updates);
 }

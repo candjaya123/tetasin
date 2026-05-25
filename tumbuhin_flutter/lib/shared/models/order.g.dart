@@ -12,11 +12,25 @@ _$OrderImpl _$$OrderImplFromJson(Map<String, dynamic> json) => _$OrderImpl(
   createdBy: json['created_by'] as String?,
   type: json['type'] as String,
   status: json['status'] as String,
+  referenceNumber: json['reference_number'] as String?,
   entityName: json['entity_name'] as String?,
+  customerName: json['customer_name'] as String?,
+  source: json['source'] as String?,
   totalAmount: (json['total_amount'] as num).toDouble(),
   taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0.0,
   discountAmount: (json['discount_amount'] as num?)?.toDouble() ?? 0.0,
+  transactionId: json['transaction_id'] as String?,
+  notes: json['notes'] as String?,
+  divisionNotes: json['division_notes'] == null
+      ? null
+      : DivisionNotes.fromJson(json['division_notes'] as Map<String, dynamic>),
+  fulfilledAt: json['fulfilled_at'] == null
+      ? null
+      : DateTime.parse(json['fulfilled_at'] as String),
   createdAt: DateTime.parse(json['created_at'] as String),
+  updatedAt: json['updated_at'] == null
+      ? null
+      : DateTime.parse(json['updated_at'] as String),
   items: (json['order_items'] as List<dynamic>?)
       ?.map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -29,12 +43,34 @@ Map<String, dynamic> _$$OrderImplToJson(_$OrderImpl instance) =>
       'created_by': instance.createdBy,
       'type': instance.type,
       'status': instance.status,
+      'reference_number': instance.referenceNumber,
       'entity_name': instance.entityName,
+      'customer_name': instance.customerName,
+      'source': instance.source,
       'total_amount': instance.totalAmount,
       'tax_amount': instance.taxAmount,
       'discount_amount': instance.discountAmount,
+      'transaction_id': instance.transactionId,
+      'notes': instance.notes,
+      'division_notes': instance.divisionNotes,
+      'fulfilled_at': instance.fulfilledAt?.toIso8601String(),
       'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt?.toIso8601String(),
       'order_items': instance.items,
+    };
+
+_$DivisionNotesImpl _$$DivisionNotesImplFromJson(Map<String, dynamic> json) =>
+    _$DivisionNotesImpl(
+      kasir: json['kasir'] as String?,
+      stok: json['stok'] as String?,
+      dapur: json['dapur'] as String?,
+    );
+
+Map<String, dynamic> _$$DivisionNotesImplToJson(_$DivisionNotesImpl instance) =>
+    <String, dynamic>{
+      'kasir': instance.kasir,
+      'stok': instance.stok,
+      'dapur': instance.dapur,
     };
 
 _$OrderItemImpl _$$OrderItemImplFromJson(Map<String, dynamic> json) =>

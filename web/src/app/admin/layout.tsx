@@ -3,22 +3,21 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  ShieldCheck, 
-  Users, 
-  HandCoins, 
-  Settings, 
-  LogOut, 
-  Menu, 
+import {
+  ShieldCheck,
+  Users,
+  HandCoins,
+  Settings,
+  LogOut,
+  Menu,
   X,
   Bell,
-  Search,
-  LayoutGrid
+  LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 export default function AdminLayout({
   children,
@@ -43,113 +42,121 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex h-screen bg-slate-100 overflow-hidden">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-background overflow-hidden">
+
+      {/* Mobile overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-secondary text-primary-foreground transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        fixed inset-y-0 left-0 z-50 w-60 sm:w-72 bg-secondary text-secondary-foreground
+        transform transition-transform duration-300 ease-out lg:relative lg:translate-x-0
+        flex flex-col
+        ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
       `}>
-        <div className="flex flex-col h-full">
-          <div className="p-8 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/80 rounded-xl flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg shadow-primary/80/20">T</div>
-              <div>
-                <span className="text-xl font-bold block">Tumbuhin</span>
-                <span className="text-[10px] text-primary/60 uppercase tracking-widest font-bold">Super Admin</span>
-              </div>
+        <div className="p-6 sm:p-8 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground font-bold text-lg sm:text-xl shadow-md shadow-primary/25">
+              T
             </div>
-            <button className="lg:hidden" onClick={() => setIsSidebarOpen(false)}>
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div className="px-6 mb-6">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <Input 
-                className="bg-slate-800 border-none pl-10 h-10 text-sm focus-visible:ring-primary/80 placeholder:text-slate-500" 
-                placeholder="Cari fitur..." 
-              />
+            <div>
+              <span className="text-lg sm:text-xl font-bold block text-white tracking-tight">Tetasin</span>
+              <span className="text-[10px] sm:text-[11px] text-primary/60 uppercase tracking-widest font-semibold">Super Admin</span>
             </div>
           </div>
+          <button className="lg:hidden p-2 text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition-colors" onClick={() => setIsSidebarOpen(false)}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          <nav className="flex-grow px-4 space-y-1">
-            <div className="text-[10px] uppercase text-slate-500 font-bold px-4 mb-2 tracking-wider">Main Navigation</div>
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link 
-                  key={item.name} 
-                  href={item.href}
-                  className={`
-                    flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all
-                    ${isActive 
-                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' 
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-primary-foreground'}
-                  `}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
+        <nav className="flex-grow px-3 sm:px-4 space-y-0.5 sm:space-y-1">
+          <div className="text-[10px] sm:text-[11px] uppercase text-white/25 font-semibold px-3 sm:px-4 mb-2 sm:mb-3 tracking-wider">
+            Main Navigation
+          </div>
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setIsSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-3 sm:px-4 py-2.5 rounded-xl text-[13px] sm:text-sm font-medium transition-all duration-200
+                  ${isActive
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                    : 'text-white/50 hover:bg-white/5 hover:text-white'
+                  }
+                `}
+              >
+                <item.icon className={`w-5 h-5 ${isActive ? '' : 'opacity-60'}`} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
 
-          <div className="p-4 bg-slate-800/50 m-4 rounded-2xl border border-slate-700">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center">
-                <ShieldCheck className="w-6 h-6 text-primary/60" />
+        <div className="p-3 sm:p-4">
+          <div className="bg-white/5 rounded-2xl p-4 sm:p-5 border border-white/5 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-4 sm:mb-5">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-primary/60" />
               </div>
               <div className="flex-grow min-w-0">
-                <p className="text-sm font-bold truncate">Admin Tumbuhin</p>
-                <p className="text-[10px] text-slate-500 truncate">admin@tumbuhin.com</p>
+                <p className="text-xs sm:text-sm font-semibold text-white truncate">Admin Tetasin</p>
+                <p className="text-[10px] sm:text-xs text-white/30 truncate">admin@tetasin.com</p>
               </div>
             </div>
-            <Button 
-              variant="destructive" 
-              className="w-full justify-start gap-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border-none h-10"
+            <Button
+              variant="destructive"
+              className="w-full justify-start gap-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border-none h-9 sm:h-10 rounded-xl text-xs sm:text-sm font-medium"
               onClick={handleLogout}
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Logout
             </Button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* MAIN */}
       <div className="flex-grow flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="h-20 bg-white border-b flex items-center justify-between px-8">
-          <div className="flex items-center gap-4">
-            <button className="lg:hidden p-2 bg-slate-100 rounded-lg" onClick={() => setIsSidebarOpen(true)}>
-              <Menu className="w-6 h-6 text-slate-600" />
+
+        {/* HEADER */}
+        <header className="h-14 sm:h-16 bg-white/70 backdrop-blur-2xl border-b border-border/40 flex items-center justify-between px-3 sm:px-8 z-30 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <button className="lg:hidden p-2 hover:bg-muted rounded-xl transition-colors shrink-0" onClick={() => setIsSidebarOpen(true)}>
+              <Menu className="w-5 h-5 text-muted-foreground" />
             </button>
-            <div className="hidden md:block">
-              <h2 className="text-lg font-bold text-foreground">
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-lg font-semibold text-foreground tracking-tight truncate">
                 {menuItems.find(i => i.href === pathname)?.name || 'Admin Panel'}
               </h2>
-              <p className="text-xs text-slate-500">Ekosistem Manajemen Tumbuhin</p>
+              <p className="hidden sm:block text-xs text-muted-foreground">Ekosistem Manajemen Tetasin</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full border border-primary/20">
-              <div className="w-2 h-2 rounded-full bg-primary/80 animate-pulse" />
-              <span className="text-xs font-bold text-primary/90">System Online</span>
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] sm:text-[11px] font-semibold text-emerald-700">System Online</span>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <button className="p-2 text-slate-400 hover:text-primary transition-colors relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-              </button>
-            </div>
+
+            <ThemeToggle position="inline" className="border-none bg-transparent hover:bg-muted/60 shadow-none !p-2 text-muted-foreground/60 hover:text-foreground" />
+
+            <button className="relative p-2 text-muted-foreground/60 hover:text-primary hover:bg-primary/5 rounded-xl transition-all">
+              <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+              <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full border-2 border-white" />
+            </button>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-grow overflow-y-auto p-8 bg-background">
+        {/* PAGE CONTENT */}
+        <main className="flex-grow overflow-y-auto p-3 sm:p-6 md:p-8 bg-background">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

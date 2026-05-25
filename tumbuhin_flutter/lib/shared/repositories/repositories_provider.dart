@@ -10,6 +10,8 @@ import 'order_repository.dart';
 import 'promo_repository.dart';
 import 'staff_repository.dart';
 import 'alert_repository.dart';
+import 'personal_finance_repository.dart';
+import 'bill_tracker_repository.dart';
 
 final posRepositoryProvider = Provider<PosRepository>((ref) {
   final service = ref.watch(posServiceProvider);
@@ -59,4 +61,16 @@ final staffRepositoryProvider = Provider<StaffRepository>((ref) {
 final alertRepositoryProvider = Provider<AlertRepository>((ref) {
   final service = ref.watch(alertServiceProvider);
   return AlertRepository(service);
+});
+
+final personalFinanceRepositoryProvider = Provider<PersonalFinanceRepository>((
+  ref,
+) {
+  final service = ref.watch(personalFinanceServiceProvider);
+  return PersonalFinanceRepository(service);
+});
+
+final billTrackerRepositoryProvider = Provider<BillTrackerRepository>((ref) {
+  final service = ref.watch(billTrackerServiceProvider);
+  return BillTrackerRepository(service);
 });

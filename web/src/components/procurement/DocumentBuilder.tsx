@@ -82,7 +82,7 @@ export function DocumentBuilder({ draft, onApprove, onCancel }: DocumentBuilderP
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-800">Review Purchase Order (PO)</h2>
-            <p className="text-xs text-slate-400 font-medium">Draft otomatis oleh Tumbuhin AI • Ref: {draft.reference}</p>
+            <p className="text-xs text-slate-400 font-medium">Draft otomatis oleh Tetasin AI • Ref: {draft.reference}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -200,7 +200,7 @@ export function DocumentBuilder({ draft, onApprove, onCancel }: DocumentBuilderP
           <div className="text-right">
             <h2 className="text-2xl font-black text-slate-800">PURCHASE ORDER</h2>
             <p className="text-sm font-bold text-slate-400">No: {draft.reference}</p>
-            <p className="text-sm text-slate-400">Tanggal: {new Date().toLocaleDateString('id-ID')}</p>
+            <p className="text-sm text-slate-400" suppressHydrationWarning>Tanggal: {new Date().toLocaleDateString('id-ID')}</p>
           </div>
         </div>
 
@@ -212,7 +212,7 @@ export function DocumentBuilder({ draft, onApprove, onCancel }: DocumentBuilderP
           </div>
           <div className="text-right">
             <p className="text-xs font-black uppercase text-slate-400 mb-2">Dikirim Ke:</p>
-            <p className="text-lg font-bold text-slate-800">Tumbuhin Central Warehouse</p>
+            <p className="text-lg font-bold text-slate-800">Tetasin Central Warehouse</p>
             <p className="text-sm text-slate-500 mt-1">Jl. Ekonomi No. 123, Jakarta</p>
           </div>
         </div>

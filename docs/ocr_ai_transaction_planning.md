@@ -1,4 +1,4 @@
-# Tumbuhin — OCR + AI-Assisted Transaction Entry: Full Planning Document
+# Tetasin — OCR + AI-Assisted Transaction Entry: Full Planning Document
 
 > **Document Purpose:** Comprehensive architecture blueprint for the receipt-scan-to-transaction feature.  
 > **Who Should Read This:** Engineers, architects, product managers.  

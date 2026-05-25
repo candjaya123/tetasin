@@ -7,6 +7,8 @@ class StaffRepository {
   StaffRepository(this._service);
 
   Future<List<StaffAccount>> getStaff() => _service.getStaff();
-  Future<void> inviteStaff(String email, String role) => _service.inviteStaff(email, role);
-  Future<List<StaffLog>> getStaffLogs(String staffId) => _service.getStaffLogs(staffId);
+  Future<void> inviteStaff(String email, String role) =>
+      _service.inviteStaff(email, role);
+  Future<List<StaffLog>> getStaffLogs(String staffId) =>
+      _service.getStaffLogs(staffId);
 }

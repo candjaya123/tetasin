@@ -4,12 +4,14 @@ import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final bluetoothPrinterServiceProvider = Provider((ref) => BluetoothPrinterService());
+final bluetoothPrinterServiceProvider = Provider(
+  (ref) => BluetoothPrinterService(),
+);
 
 class BluetoothPrinterService {
   final _storage = const FlutterSecureStorage();
   BluetoothDevice? _connectedDevice;
-  
+
   BluetoothDevice? get connectedDevice => _connectedDevice;
   bool get isConnected => _connectedDevice != null;
 
@@ -53,7 +55,7 @@ class BluetoothPrinterService {
 
   Future<void> printReceipt(List<int> bytes) async {
     if (_connectedDevice == null) throw Exception('Printer tidak terhubung');
-    
+
     final services = await _connectedDevice!.discoverServices();
     BluetoothCharacteristic? writeChar;
 
@@ -66,7 +68,8 @@ class BluetoothPrinterService {
       }
     }
 
-    if (writeChar == null) throw Exception('Karakteristik tulis tidak ditemukan');
+    if (writeChar == null)
+      throw Exception('Karakteristik tulis tidak ditemukan');
 
     // Split bytes into chunks (MTU limitations)
     const chunkSize = 20;
@@ -81,8 +84,18 @@ class BluetoothPrinterService {
     final generator = Generator(PaperSize.mm58, profile);
     List<int> bytes = [];
 
-    bytes += generator.text('TUMBUHIN ERP', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2));
-    bytes += generator.text('Test Print', styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text(
+      'TUMBUHIN ERP',
+      styles: const PosStyles(
+        align: PosAlign.center,
+        bold: true,
+        height: PosTextSize.size2,
+      ),
+    );
+    bytes += generator.text(
+      'Test Print',
+      styles: const PosStyles(align: PosAlign.center),
+    );
     bytes += generator.hr();
     bytes += generator.feed(2);
     bytes += generator.cut();

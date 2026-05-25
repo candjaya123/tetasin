@@ -1,4 +1,4 @@
-# Tumbuhin — Security Rules
+# Tetasin — Security Rules
 
 > **Document Purpose:** Defines platform security standards — authentication, authorization, RBAC, validation, encryption, secret management, and audit logging.
 > **Who Should Read This:** All engineers. Security is everyone's responsibility.
@@ -98,17 +98,21 @@ createSale() {}
 
 ### 3.3 Tier + Role Matrix
 
-| Feature | Starter | Business | Pro |
+> `franchise` tier is available to **business accounts only**.
+
+| Feature | Free | Pro | Franchise |
 |---|---|---|---|
 | POS (kasir/manager) | ✅ | ✅ | ✅ |
 | Inventory (stok/manager) | ✅ | ✅ | ✅ |
 | Promotions engine | ❌ | ✅ (manager) | ✅ |
 | Staff accounts (RBAC) | ❌ | ✅ | ✅ |
 | P&L Report | ❌ | ✅ | ✅ |
-| Balance Sheet | ❌ | ❌ | ✅ (manager) |
+| Balance Sheet | ❌ | ✅ (manager) | ✅ |
 | AI Chat | ❌ | ✅ | ✅ |
-| AI Receipt Scan | ❌ | ❌ | ✅ |
+| AI Receipt Scan | ❌ | ✅ | ✅ |
 | Multi-warehouse | ❌ | ✅ | ✅ |
+| Multi-branch Management | ❌ | ❌ | ✅ (business only) |
+| Consolidated Reporting | ❌ | ❌ | ✅ (business only) |
 
 ---
 

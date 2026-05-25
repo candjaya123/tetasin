@@ -1,4 +1,4 @@
-# Tumbuhin — Coding Standards
+# Tetasin — Coding Standards
 
 > **Document Purpose:** Engineering conventions and code quality standards for all layers.
 > **Who Should Read This:** All engineers and AI coding assistants.
@@ -54,9 +54,9 @@ const JOURNAL_IMBALANCE_THRESHOLD = 0.01;
 
 // Enums: PascalCase name, SCREAMING_SNAKE_CASE values
 enum SubscriptionTier {
-  STARTER = 'starter',
-  BUSINESS = 'business',
-  PRO = 'pro',
+  FREE      = 'free',
+  PRO       = 'pro',
+  FRANCHISE = 'franchise',
 }
 
 // Private class members: camelCase (no underscore prefix)

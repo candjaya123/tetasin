@@ -16,7 +16,6 @@ import {
   FileText
 } from "lucide-react";
 import { journalService } from '@/lib/api/journalService';
-import { financeService } from '@/lib/api/financeService'; // I should check if this exists or use fetch
 import { profileService } from '@/lib/api/profileService';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -68,13 +67,17 @@ export default function TransactionsPage() {
   }, []);
 
   const fetchCOA = async () => {
-     // Mocking fetch COA from finance endpoint
-     const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/finance/coa`, {
-        headers: {
-            'Authorization': `Bearer ${(await (await import('@/lib/supabase/client')).createClient().auth.getSession()).data.session?.access_token}`
-        }
-     });
-     return response.json();
+     try {
+       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/accounting/coa`, {
+         headers: {
+           'Authorization': `Bearer ${(await (await import('@/lib/supabase/client')).createClient().auth.getSession()).data.session?.access_token}`
+         }
+       });
+       const json = await response.json();
+       return Array.isArray(json) ? json : (json?.data ?? []);
+     } catch {
+       return [];
+     }
   }
 
   useEffect(() => {

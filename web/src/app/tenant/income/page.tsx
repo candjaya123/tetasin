@@ -47,7 +47,7 @@ export default function IncomePage() {
       const { data: { session } } = await supabase.auth.getSession();
       
       // Fetch COA
-      const coaRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/finance/coa`, {
+      const coaRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/accounting/coa`, {
         headers: { 'Authorization': `Bearer ${session?.access_token}` }
       });
       const coaData = await coaRes.json();
@@ -90,7 +90,7 @@ export default function IncomePage() {
         ]
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/finance/transactions`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

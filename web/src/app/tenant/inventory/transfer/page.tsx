@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from 'next/link';
 import { warehouseService } from '@/lib/api/warehouseService';
-import { createClient } from '@/lib/supabase/client';
+import { productService } from '@/lib/api/productService';
 import { 
   Select, 
   SelectContent, 
@@ -28,7 +28,6 @@ export default function TransferPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const supabase = createClient();
 
   // Form States
   const [fromId, setFromId] = useState('');
@@ -40,9 +39,9 @@ export default function TransferPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [wData, { data: pData }] = await Promise.all([
+        const [wData, pData] = await Promise.all([
           warehouseService.getWarehouses(),
-          supabase.from('products').select('*').order('name')
+          productService.getProducts()
         ]);
         if (wData) setWarehouses(wData);
         if (pData) setProducts(pData);
@@ -68,10 +67,12 @@ export default function TransferPage() {
     setIsSubmitting(true);
     try {
       await warehouseService.transferStock({
-        from_id: fromId,
-        to_id: toId,
-        product_id: productId,
-        quantity: Number(quantity),
+        from_warehouse_id: fromId,
+        to_warehouse_id: toId,
+        items: [{
+          product_id: productId,
+          quantity: Number(quantity),
+        }],
         notes
       });
       alert("Transfer stok berhasil!");

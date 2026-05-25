@@ -5,10 +5,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { SupabaseStrategy } from './core/auth/supabase.strategy';
 import { PassportModule } from '@nestjs/passport';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { SupabaseService } from './shared/supabase.service';
 import { RoleGuard } from './core/auth/role.guard';
+import { AccountTypeGuard } from './core/auth/account-type.guard';
 import { JwtAuthGuard } from './modules/business-profile/guards/jwt-auth.guard';
 import { SalesModule } from './modules/sales/sales.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
@@ -27,10 +28,17 @@ import { ProcurementModule } from './modules/procurement/procurement.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { CoreModule } from './core/core.module';
 import { ReceiptModule } from './modules/receipt/receipt.module';
+import { ErpModule } from './modules/erp/erp.module';
+import { RecoveryModule } from './modules/recovery/recovery.module';
+import { IndustryModule } from './modules/industry/industry.module';
+import { PersonalFinanceModule } from './modules/personal-finance/personal-finance.module';
+import { BillTrackerModule } from './modules/bill-tracker/bill-tracker.module';
+import { TransactionsModule } from './modules/transactions/transactions.module';
 
 
 import { LoggerModule } from 'nestjs-pino';
 import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
+import { ResponseEnvelopeInterceptor } from './core/interceptors/response-envelope.interceptor';
 
 @Global()
 @Module({
@@ -69,6 +77,12 @@ import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
     ProcurementModule,
     InventoryModule,
     ReceiptModule,
+    ErpModule,
+    RecoveryModule,
+    IndustryModule,
+    PersonalFinanceModule,
+    BillTrackerModule,
+    TransactionsModule,
     CoreModule,
 
     ScheduleModule.forRoot(),
@@ -84,7 +98,15 @@ import { TraceIdMiddleware } from './core/middlewares/trace.middleware';
     },
     {
       provide: APP_GUARD,
+      useClass: AccountTypeGuard,
+    },
+    {
+      provide: APP_GUARD,
       useClass: RoleGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseEnvelopeInterceptor,
     },
   ],
   exports: [SupabaseService],
@@ -97,6 +119,6 @@ export class AppModule implements NestModule {
     
     consumer
       .apply(IdempotencyMiddleware)
-      .forRoutes('api/v1/sales', 'api/v1/journal');
+      .forRoutes('api/v1/sales', 'api/v1/accounting/journal-entries');
   }
 }

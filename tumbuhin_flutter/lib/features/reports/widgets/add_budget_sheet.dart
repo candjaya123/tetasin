@@ -8,7 +8,7 @@ import '../providers/report_providers.dart';
 
 class AddBudgetSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic>? initialBudget;
-  
+
   const AddBudgetSheet({super.key, this.initialBudget});
 
   @override
@@ -48,7 +48,9 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
     try {
       final service = ref.read(budgetServiceProvider);
       final month = ref.read(budgetMonthProvider);
-      final amount = double.parse(_amountController.text.replaceAll(RegExp(r'[^0-9]'), ''));
+      final amount = double.parse(
+        _amountController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+      );
 
       await service.upsertBudget(
         accountId: _selectedAccountId!,
@@ -65,9 +67,9 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -114,24 +116,33 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-             'Tentukan batas pengeluaran untuk kategori pilihan Anda.',
-             style: GoogleFonts.outfit(
-                fontSize: 14,
-                color: AppColors.mediumGrey,
-                fontWeight: FontWeight.w500,
-             ),
+            'Tentukan batas pengeluaran untuk kategori pilihan Anda.',
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: AppColors.mediumGrey,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 32),
-          
+
           // Nominal
           TextField(
             controller: _amountController,
             keyboardType: TextInputType.number,
-            style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.w900),
+            style: GoogleFonts.outfit(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
             decoration: InputDecoration(
               labelText: 'Batas Nominal (Rp)',
-              labelStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.lightGrey),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+              labelStyle: GoogleFonts.outfit(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.lightGrey,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               prefixText: 'Rp ',
               floatingLabelBehavior: FloatingLabelBehavior.always,
             ),
@@ -146,29 +157,49 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
                 final code = (a['code'] ?? '').toString();
                 // Personal: type='expense', code starts with 6-
                 // Business: type='expense'/'beban', code starts with 5- or 6-
-                return type == 'expense' || type == 'expenses' || 
-                       type == 'beban' || code.startsWith('5-') || code.startsWith('6-');
+                return type == 'expense' ||
+                    type == 'expenses' ||
+                    type == 'beban' ||
+                    code.startsWith('5-') ||
+                    code.startsWith('6-');
               }).toList();
 
               return DropdownButtonFormField<String>(
                 value: _selectedAccountId,
                 decoration: InputDecoration(
                   labelText: 'Pilih Kategori',
-                  labelStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.lightGrey),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                  labelStyle: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.lightGrey,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   floatingLabelBehavior: FloatingLabelBehavior.always,
                 ),
-                items: expenseAccounts.map((a) => DropdownMenuItem(
-                  value: a['id'].toString(),
-                  child: Text(a['name'], style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                )).toList(),
-                onChanged: widget.initialBudget != null ? null : (val) => setState(() => _selectedAccountId = val),
+                items: expenseAccounts
+                    .map(
+                      (a) => DropdownMenuItem(
+                        value: a['id'].toString(),
+                        child: Text(
+                          a['name'],
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: widget.initialBudget != null
+                    ? null
+                    : (val) => setState(() => _selectedAccountId = val),
               );
             },
             loading: () => const LinearProgressIndicator(),
             error: (_, __) => const Text('Gagal memuat kategori'),
           ),
-          
+
           const SizedBox(height: 40),
 
           SizedBox(
@@ -179,15 +210,22 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.onPrimary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 elevation: 0,
               ),
-              child: _isLoading 
-                ? const CircularProgressIndicator(color: Colors.white)
-                : Text(
-                    widget.initialBudget != null ? 'Simpan Perubahan' : 'Simpan Anggaran',
-                    style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900),
-                  ),
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      widget.initialBudget != null
+                          ? 'Simpan Perubahan'
+                          : 'Simpan Anggaran',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 40),

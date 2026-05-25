@@ -32,7 +32,7 @@ export default function AuditLogPage() {
     const fetchLogs = async () => {
       try {
         const data = await staffService.getAuditLogs();
-        if (data) setLogs(data);
+        if (data) setLogs(data as any[]);
       } catch (err) {
         console.error(err);
       } finally {

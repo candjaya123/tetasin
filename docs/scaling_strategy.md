@@ -1,4 +1,4 @@
-# Tumbuhin — Scaling Strategy
+# Tetasin — Scaling Strategy
 
 > **Document Purpose:** Defines long-term scalability planning — horizontal scaling, caching layers, async processing, queue systems, DB scaling, CDN, and performance bottlenecks.
 > **Who Should Read This:** Backend engineers, architects, DevOps.

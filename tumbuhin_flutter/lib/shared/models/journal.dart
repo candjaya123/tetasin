@@ -13,7 +13,8 @@ class JournalEntry with _$JournalEntry {
     @JsonKey(name: 'reference_id') String? referenceId,
   }) = _JournalEntry;
 
-  factory JournalEntry.fromJson(Map<String, dynamic> json) => _$JournalEntryFromJson(json);
+  factory JournalEntry.fromJson(Map<String, dynamic> json) =>
+      _$JournalEntryFromJson(json);
 }
 
 @freezed
@@ -26,7 +27,8 @@ class JournalLine with _$JournalLine {
     String? description,
   }) = _JournalLine;
 
-  factory JournalLine.fromJson(Map<String, dynamic> json) => _$JournalLineFromJson(json);
+  factory JournalLine.fromJson(Map<String, dynamic> json) =>
+      _$JournalLineFromJson(json);
 }
 
 @freezed
@@ -37,5 +39,6 @@ class LedgerBalance with _$LedgerBalance {
     required double balance,
   }) = _LedgerBalance;
 
-  factory LedgerBalance.fromJson(Map<String, dynamic> json) => _$LedgerBalanceFromJson(json);
+  factory LedgerBalance.fromJson(Map<String, dynamic> json) =>
+      _$LedgerBalanceFromJson(json);
 }

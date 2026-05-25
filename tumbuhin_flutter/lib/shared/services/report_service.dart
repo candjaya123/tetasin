@@ -14,14 +14,14 @@ class SharedReportService {
   SharedReportService(this._apiClient);
 
   Future<Map<String, dynamic>> getDashboard() async {
-    final response = await _apiClient.dio.get('/api/v1/reports/dashboard');
+    final response = await _apiClient.dio.get('/api/v1/report/dashboard');
     return response.data as Map<String, dynamic>;
   }
 
   Future<List<Map<String, dynamic>>> getFinancialReports(String type) async {
     final endpoint = type == 'income-statement'
-        ? '/api/v1/reports/income-statement'
-        : '/api/v1/reports/dashboard';
+        ? '/api/v1/finance/income-statement'
+        : '/api/v1/report/dashboard';
     final response = await _apiClient.dio.get(endpoint);
     if (response.data is List) {
       return (response.data as List).cast<Map<String, dynamic>>();

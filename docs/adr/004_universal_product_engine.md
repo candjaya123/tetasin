@@ -13,7 +13,7 @@ Replace the single-type `products` table with a **Universal Product Engine** —
 
 ## Context
 
-Tumbuhin serves 7 industry verticals (Retail, F&B, Grocery, Pharmacy, Electronics, Manufacturing, Service). Each industry has fundamentally different product behaviors:
+Tetasin serves 7 industry verticals (Retail, F&B, Grocery, Pharmacy, Electronics, Manufacturing, Service). Each industry has fundamentally different product behaviors:
 
 | Behavior | Retail | F&B | Service | Pharmacy | Weighted |
 |---|---|---|---|---|---|

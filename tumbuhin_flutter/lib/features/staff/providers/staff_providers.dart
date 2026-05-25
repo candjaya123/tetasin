@@ -7,7 +7,10 @@ final staffListProvider = FutureProvider<List<StaffAccount>>((ref) async {
   return repository.getStaff();
 });
 
-final staffLogsProvider = FutureProviderFamily<List<StaffLog>, String>((ref, staffId) async {
+final staffLogsProvider = FutureProviderFamily<List<StaffLog>, String>((
+  ref,
+  staffId,
+) async {
   final repository = ref.watch(staffRepositoryProvider);
   return repository.getStaffLogs(staffId);
 });

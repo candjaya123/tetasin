@@ -11,10 +11,14 @@ class CartPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartProvider);
     final cartNotifier = ref.watch(cartProvider.notifier);
-    final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Container(
-      width: 350,
+      width: 320,
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(left: BorderSide(color: Colors.grey.shade200)),
@@ -28,12 +32,17 @@ class CartPanel extends ConsumerWidget {
               children: [
                 const Text(
                   'Keranjang',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 if (cart.isNotEmpty)
                   IconButton(
-                    onPressed: () => ref.read(cartProvider.notifier).clearCart(),
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () =>
+                        ref.read(cartProvider.notifier).clearCart(),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                     tooltip: 'Kosongkan',
                   ),
               ],
@@ -45,9 +54,19 @@ class CartPanel extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey.shade300),
-                        const SizedBox(height: 16),
-                        Text('Keranjang kosong', style: TextStyle(color: Colors.grey.shade500)),
+                        Icon(
+                          Icons.shopping_cart_outlined,
+                          size: 44,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Keranjang kosong',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   )
@@ -61,36 +80,72 @@ class CartPanel extends ConsumerWidget {
                         child: Row(
                           children: [
                             Container(
-                              width: 50,
-                              height: 50,
+                              width: 44,
+                              height: 44,
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(10),
                                 image: item.product.imageUrl != null
                                     ? DecorationImage(
-                                        image: NetworkImage(item.product.imageUrl!),
+                                        image: NetworkImage(
+                                          item.product.imageUrl!,
+                                        ),
                                         fit: BoxFit.cover,
                                       )
                                     : null,
                               ),
                               child: item.product.imageUrl == null
-                                  ? const Icon(Icons.image, color: Colors.grey, size: 20)
+                                  ? const Icon(
+                                      Icons.image,
+                                      color: Colors.grey,
+                                      size: 14,
+                                    )
                                   : null,
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 14),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     item.product.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
+                                  if (item.selectedVariants.isNotEmpty)
+                                    Text(
+                                      item.selectedVariants
+                                          .map((v) => v.name)
+                                          .join(', '),
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 10,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  if (item.selectedAddons.isNotEmpty)
+                                    Text(
+                                      item.selectedAddons
+                                          .map((a) => a.name)
+                                          .join(', '),
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 10,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   Text(
-                                    currencyFormat.format(item.product.price),
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                    currencyFormat.format(item.unitPrice),
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -99,15 +154,27 @@ class CartPanel extends ConsumerWidget {
                               children: [
                                 _SmallIconButton(
                                   icon: Icons.remove,
-                                  onPressed: () => ref.read(cartProvider.notifier).updateQuantity(item.product.id, -1),
+                                  onPressed: () => ref
+                                      .read(cartProvider.notifier)
+                                      .updateQuantity(item.compositeKey, -1),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: Text(
+                                    '${item.quantity}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                 ),
                                 _SmallIconButton(
                                   icon: Icons.add,
-                                  onPressed: () => ref.read(cartProvider.notifier).updateQuantity(item.product.id, 1),
+                                  onPressed: () => ref
+                                      .read(cartProvider.notifier)
+                                      .updateQuantity(item.compositeKey, 1),
                                 ),
                               ],
                             ),
@@ -126,19 +193,25 @@ class CartPanel extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  _SummaryRow(label: 'Subtotal', value: currencyFormat.format(cartNotifier.subtotal)),
-                  const SizedBox(height: 8),
-                  _SummaryRow(label: 'Pajak (11%)', value: currencyFormat.format(cartNotifier.taxAmount)),
-                  const Divider(height: 24),
+                  _SummaryRow(
+                    label: 'Subtotal',
+                    value: currencyFormat.format(cartNotifier.subtotal),
+                  ),
+                  const SizedBox(height: 6),
+                  _SummaryRow(
+                    label: 'Pajak (11%)',
+                    value: currencyFormat.format(cartNotifier.taxAmount),
+                  ),
+                  const Divider(height: 20),
                   _SummaryRow(
                     label: 'Total',
                     value: currencyFormat.format(cartNotifier.total),
                     isBold: true,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 46,
                     child: ElevatedButton(
                       onPressed: () {
                         showModalBottomSheet(
@@ -151,10 +224,18 @@ class CartPanel extends ConsumerWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFDB827),
                         foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         elevation: 0,
                       ),
-                      child: const Text('Pembayaran', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Pembayaran',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -180,9 +261,9 @@ class _SmallIconButton extends StatelessWidget {
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(5),
         ),
-        child: Icon(icon, size: 14),
+        child: Icon(icon, size: 12),
       ),
     );
   }
@@ -193,12 +274,16 @@ class _SummaryRow extends StatelessWidget {
   final String value;
   final bool isBold;
 
-  const _SummaryRow({required this.label, required this.value, this.isBold = false});
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.isBold = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(
-      fontSize: isBold ? 16 : 13,
+      fontSize: isBold ? 15 : 13,
       fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
     );
     return Row(

@@ -6,8 +6,9 @@ class PosRepository {
 
   PosRepository(this._service);
 
-  Future<List<Product>> getProducts() => _service.getProducts();
+  Future<List<Product>> getProducts({String? search}) => _service.getProducts(search: search);
 
-  Future<Map<String, dynamic>> processCheckout(Map<String, dynamic> checkoutData) => 
-      _service.processCheckout(checkoutData);
+  Future<Map<String, dynamic>> processCheckout(
+    Map<String, dynamic> checkoutData,
+  ) => _service.processCheckout(checkoutData);
 }

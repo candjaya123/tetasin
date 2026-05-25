@@ -24,7 +24,7 @@ export default function StockReportPage() {
     const fetchStock = async () => {
       try {
         const res = await reportService.getStockReport();
-        setData(res);
+        setData(res as any[]);
       } catch (error) {
         console.error('Error fetching stock report:', error);
       } finally {

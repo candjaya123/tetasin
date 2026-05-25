@@ -1,14 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../../shared/supabase.service';
 import { PoolClient } from 'pg';
 
 @Injectable()
 export class InventoryRepository {
+  private readonly logger = new Logger(InventoryRepository.name);
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async getProductWithRecipe(productId: string, tenantId: string, dbClient?: PoolClient) {
     if (dbClient) {
-      console.log(`[PG] Fetching product with recipe: ${productId}`);
+      this.logger.log(`Fetching product with recipe: ${productId}`);
       const res = await dbClient.query(`
         SELECT p.*, 
           (
@@ -29,7 +31,7 @@ export class InventoryRepository {
         FROM products p 
         WHERE p.id = $1 AND p.tenant_id = $2
       `, [productId, tenantId]);
-      console.log(`[PG] Found product: ${res.rows[0]?.name}`);
+      this.logger.log(`Found product: ${res.rows[0]?.name}`);
       return res.rows[0];
     }
 
@@ -59,9 +61,9 @@ export class InventoryRepository {
 
   async deductStock(materialId: string, quantity: number, dbClient?: PoolClient) {
     if (dbClient) {
-      console.log(`[PG] Deducting stock: ${materialId} - ${quantity}`);
+      this.logger.log(`Deducting stock: ${materialId} - ${quantity}`);
       await dbClient.query('SELECT deduct_stock_simple($1, $2)', [materialId, quantity]);
-      console.log(`[PG] Stock deducted successfully`);
+      this.logger.log(`Stock deducted successfully`);
       return;
     }
 
@@ -77,7 +79,7 @@ export class InventoryRepository {
     const client = this.supabaseService.getClient();
     const { data, error } = await client
       .from('products')
-      .select('id, name, sku, stock, price')
+      .select('id, name, sku, current_stock, selling_price')
       .eq('tenant_id', tenantId)
       .order('name', { ascending: true });
 

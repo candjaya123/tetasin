@@ -23,7 +23,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { createClient } from '@/lib/supabase/client';
+import { journalService } from '@/lib/api/journalService';
 import { Badge } from "@/components/ui/badge";
 
 const CATEGORIES = [
@@ -40,17 +40,17 @@ export default function CoaPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCats, setExpandedCats] = useState<string[]>(['1', '2', '3', '4', '5', '6']);
-  const supabase = createClient();
 
   const fetchCOA = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('chart_of_accounts')
-      .select('*')
-      .order('code');
-    
-    if (data) setAccounts(data);
-    setLoading(false);
+    try {
+      const data = await journalService.getCOA();
+      if (data) setAccounts(data);
+    } catch (err) {
+      console.error('Failed to fetch COA', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

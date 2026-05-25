@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   Clock
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { 
   Table, 
   TableBody, 
@@ -49,7 +50,7 @@ export default function StaffPage() {
   const fetchStaff = async () => {
     try {
       const data = await staffService.getStaff();
-      if (data) setStaff(data);
+      if (data) setStaff(data as any[]);
     } catch (err) {
       console.error(err);
     } finally {
@@ -72,19 +73,24 @@ export default function StaffPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Manajemen Staf</h1>
-          <p className="text-slate-500">Kelola anggota tim dan hak akses mereka.</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Manajemen Staf</h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">Kelola anggota tim dan hak akses mereka.</p>
         </div>
-        <div className="flex gap-3">
-          <Link href="/tenant/staff/audit-log">
-            <Button variant="outline" className="flex gap-2">
-              <History className="w-4 h-4" />
-              Log Aktivitas
-            </Button>
+        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+          <Link
+            href="/tenant/staff/audit-log"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "flex-grow flex-1 sm:flex-none flex gap-2 justify-center items-center rounded-xl h-10 sm:h-11 font-bold text-xs sm:text-sm"
+            )}
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden xs:inline">Log Aktivitas</span>
+            <span className="xs:hidden">Log</span>
           </Link>
-          <Button className="flex gap-2" onClick={() => setIsInviting(!isInviting)}>
+          <Button className="flex-1 sm:flex-none flex gap-2 justify-center bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl h-10 sm:h-11 shadow-lg text-xs sm:text-sm" onClick={() => setIsInviting(!isInviting)}>
             <UserPlus className="w-4 h-4" />
             Undang Staf
           </Button>
@@ -100,15 +106,20 @@ export default function StaffPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-6 items-end">
-              <div className="flex-1 space-y-2">
+            <div className="flex flex-col md:flex-row gap-4 md:items-end">
+              <div className="w-full md:flex-1 space-y-2">
                 <Label>Email Calon Staf</Label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@contoh.com" />
+                <Input 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  placeholder="email@contoh.com" 
+                  className="h-10 sm:h-11 rounded-xl"
+                />
               </div>
-              <div className="w-64 space-y-2">
+              <div className="w-full md:w-64 space-y-2">
                 <Label>Pilih Peran (Role)</Label>
                 <Select value={role} onValueChange={(val) => setRole(val || '')}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10 sm:h-11 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -118,7 +129,9 @@ export default function StaffPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="px-10 font-bold" onClick={handleInvite}>Kirim Undangan</Button>
+              <Button className="w-full md:w-auto px-10 font-bold h-10 sm:h-11 rounded-xl" onClick={handleInvite}>
+                Kirim Undangan
+              </Button>
             </div>
             <p className="mt-4 text-xs text-slate-400">Calon staf akan menerima email instruksi untuk bergabung ke tenant Anda.</p>
           </CardContent>

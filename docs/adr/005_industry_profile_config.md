@@ -13,7 +13,7 @@ Introduce a `tenant_industry_profiles` table that stores industry-specific confi
 
 ## Context
 
-Tumbuhin serves 7 industry verticals. Each vertical has a distinct operational profile:
+Tetasin serves 7 industry verticals. Each vertical has a distinct operational profile:
 
 | Industry | Default Product Type | Stock Model | Key Features |
 |---|---|---|---|

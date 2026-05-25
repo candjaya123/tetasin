@@ -47,7 +47,7 @@ export default function BalanceSheetPage() {
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/reports/balance-sheet`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/reports/balance-sheet`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -114,7 +114,7 @@ export default function BalanceSheetPage() {
               Neraca Keuangan
             </h1>
             <p className="text-slate-500 font-medium tracking-wide uppercase text-[10px] bg-slate-100 w-fit px-3 py-1 rounded-full border border-slate-200">
-              Posisi Keuangan Bisnis per {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+              Posisi Keuangan Bisnis per <span suppressHydrationWarning>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </p>
           </div>
           <Button 

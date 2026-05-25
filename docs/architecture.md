@@ -1,4 +1,4 @@
-# Tumbuhin — Architecture
+# Tetasin — Architecture
 
 > **Document Purpose:** Defines the system architecture — module boundaries, communication patterns, dependency rules, and scalability strategy.
 > **Who Should Read This:** Backend engineers, system architects, technical leads.
@@ -7,7 +7,7 @@
 
 ## 1. Architecture Style
 
-Tumbuhin uses a **Modular Monolith** backend with **Event-Driven** async processing.
+Tetasin uses a **Modular Monolith** backend with **Event-Driven** async processing.
 
 **Rationale:**
 - Single deployment unit with clean module boundaries — simple operations for a small team
@@ -141,7 +141,7 @@ providers: [
 ## 7. Monorepo Layout
 
 ```
-tumbuhin/
+tetasin/
 ├── backend/                    ← NestJS API (TypeScript)
 │   ├── src/
 │   │   ├── core/               ← Cross-cutting concerns
@@ -161,7 +161,7 @@ tumbuhin/
 │       ├── components/         ← Reusable UI components
 │       ├── hooks/              ← Custom React hooks
 │       └── lib/                ← API clients, utilities
-└── tumbuhin_flutter/           ← Flutter Mobile App
+└── tetasin_flutter/           ← Flutter Mobile App
     └── lib/
         ├── core/               ← Config, routing, theme, API client
         ├── features/           ← Feature modules

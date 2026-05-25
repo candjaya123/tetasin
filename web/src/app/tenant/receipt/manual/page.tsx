@@ -78,11 +78,11 @@ export default function ManualDraft() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/tenant/receipt">
+        <Link href="/tenant/receipt">
+          <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
+          </Button>
+        </Link>
         <h1 className="text-2xl font-bold">Entri Transaksi Manual</h1>
       </div>
 
@@ -132,7 +132,7 @@ export default function ManualDraft() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Kategori Pengeluaran</Label>
-                <Select onValueChange={(v) => handleSelectChange("category", v)}>
+                <Select onValueChange={(v: string | null) => handleSelectChange("category", v || '')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih kategori" />
                   </SelectTrigger>
@@ -150,7 +150,7 @@ export default function ManualDraft() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="debit_account_id">Akun Debit (Beban)</Label>
-                <Select onValueChange={(v) => handleSelectChange("debit_account_id", v)}>
+                <Select onValueChange={(v: string | null) => handleSelectChange("debit_account_id", v || '')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih akun" />
                   </SelectTrigger>
@@ -165,7 +165,7 @@ export default function ManualDraft() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="credit_account_id">Akun Kredit (Sumber Dana)</Label>
-                <Select onValueChange={(v) => handleSelectChange("credit_account_id", v)}>
+                <Select onValueChange={(v: string | null) => handleSelectChange("credit_account_id", v || '')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih akun" />
                   </SelectTrigger>
@@ -192,9 +192,9 @@ export default function ManualDraft() {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" asChild>
-                <Link href="/tenant/receipt">Batal</Link>
-              </Button>
+              <Link href="/tenant/receipt">
+                <Button type="button" variant="outline">Batal</Button>
+              </Link>
               <Button type="submit" disabled={loading}>
                 {loading ? (
                   <>

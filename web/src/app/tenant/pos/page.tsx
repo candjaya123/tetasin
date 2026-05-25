@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { profileService } from '@/lib/api/profileService';
+import { productService } from '@/lib/api/productService';
+import { processSale } from '@/lib/api/salesService';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +15,8 @@ import {
   Scan,
   Crown,
   Sparkles,
-  Zap
+  Zap,
+  ArrowRight
 } from "lucide-react";
 import { Cart } from '@/components/pos/Cart';
 import { Receipt } from '@/components/pos/Receipt';
@@ -28,30 +31,15 @@ export default function PosPage() {
   const [taxRate, setTaxRate] = useState(0.11);
   const [discount, setDiscount] = useState(0);
   const [lastOrder, setLastOrder] = useState<any>(null);
-
-  const supabase = createClient();
+  const [activeMobileTab, setActiveMobileTab] = useState<'products' | 'cart'>('products');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        // Fetch tenant info
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('tenant_id, tenants(name)')
-          .eq('id', session.user.id)
-          .single();
-        
+        const profile = await profileService.getProfile();
         if (profile) setTenant(profile);
 
-        // Fetch products
-        const { data: productsData } = await supabase
-          .from('products')
-          .select('*')
-          .order('name');
-        
+        const productsData = await productService.getProducts();
         setProducts(productsData || []);
       } catch (error) {
         console.error('Error fetching POS data:', error);
@@ -61,7 +49,7 @@ export default function PosPage() {
     };
 
     fetchData();
-  }, [supabase]);
+  }, []);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => 
@@ -107,35 +95,33 @@ export default function PosPage() {
     setIsProcessing(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const idempotencyKey = `web-pos-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
       const payload = {
         entity_id: tenant?.tenant_id,
         items: cart.map(item => ({
           product_id: item.id,
           quantity: item.quantity,
-          price: item.selling_price
+          price: item.selling_price,
+          discount: item.discount || 0,
         })),
         tax_amount: taxAmount,
         discount_amount: discount,
-        description: 'Penjualan POS Web Dashboard'
+        payment_method: 'cash',
+        description: 'Penjualan POS Web Dashboard',
+        idempotency_key: idempotencyKey,
+        total: subtotal + taxAmount - discount,
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/sales/process`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      // Frontend total validation (matches backend logic)
+      const calculatedTotal = payload.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity) - (item.discount || 0), 0) + taxAmount - discount;
+      if (Math.abs(calculatedTotal - payload.total) >= 1.0) {
+        console.warn('Total mismatch detected:', { calculatedTotal, frontendTotal: payload.total });
+      }
 
-      if (!response.ok) throw new Error('Gagal memproses transaksi');
-
-      const result = await response.json();
+      const result = await processSale(payload);
       setLastOrder({
-        reference: result.journalId || `POS-${Date.now()}`,
+        reference: result.order_number || result.pesananNumber || `POS-${Date.now()}`,
         cart: [...cart],
         subtotal,
         taxAmount,
@@ -153,7 +139,11 @@ export default function PosPage() {
       }, 500);
 
     } catch (error: any) {
-      alert(error.message || 'Terjadi kesalahan saat checkout');
+      if (error?.response?.data?.code === 'TRANSACTION_LIMIT') {
+        alert(error.response.data.message || 'Batas transaksi tercapai. Upgrade ke Pro.');
+      } else {
+        alert(error.message || 'Terjadi kesalahan saat checkout');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -187,9 +177,38 @@ export default function PosPage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 h-full max-h-[calc(100vh-140px)] print:hidden">
+    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 h-full max-h-[calc(100vh-140px)] print:hidden relative overflow-hidden">
+      {/* Mobile/Tablet Tabs (Hidden on Desktop) */}
+      <div className="flex lg:hidden p-1 bg-slate-100 dark:bg-slate-900 rounded-xl shrink-0 w-full">
+        <button
+          onClick={() => setActiveMobileTab('products')}
+          className={`flex-grow py-2.5 px-4 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+            activeMobileTab === 'products'
+              ? 'bg-white dark:bg-card text-slate-800 dark:text-foreground shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Daftar Produk
+        </button>
+        <button
+          onClick={() => setActiveMobileTab('cart')}
+          className={`flex-grow py-2.5 px-4 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+            activeMobileTab === 'cart'
+              ? 'bg-white dark:bg-card text-slate-800 dark:text-foreground shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Keranjang
+          {cart.length > 0 && (
+            <span className="w-5 h-5 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center font-black animate-scale-in">
+              {cart.length}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Products Area */}
-      <div className="flex-grow space-y-6 overflow-hidden flex flex-col">
+      <div className={`flex-grow space-y-6 overflow-hidden flex flex-col ${activeMobileTab === 'products' ? 'flex' : 'hidden lg:flex'}`}>
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-grow max-w-md">
             <Scan className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -202,12 +221,11 @@ export default function PosPage() {
             />
           </div>
           <div className="flex items-center gap-3">
-
             <Button variant="outline" className="bg-white border-none shadow-sm rounded-xl">Kategori</Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2 pb-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2 pb-16 lg:pb-4">
           {filteredProducts.map((product) => (
             <Card 
               key={product.id} 
@@ -237,24 +255,45 @@ export default function PosPage() {
       </div>
 
       {/* Cart Area */}
-      <Cart 
-        cart={cart}
-        onUpdateQuantity={(id, delta) => {
-          setCart(cart.map(item => {
-            if (item.id === id) {
-              const newQty = Math.max(1, item.quantity + delta);
-              return { ...item, quantity: newQty };
-            }
-            return item;
-          }));
-        }}
-        onRemove={(id) => setCart(cart.filter(item => item.id !== id))}
-        onCheckout={handleCheckout}
-        isProcessing={isProcessing}
-        taxRate={taxRate}
-        discount={discount}
-        formatCurrency={formatCurrency}
-      />
+      <div className={`w-full lg:w-auto ${activeMobileTab === 'cart' ? 'block' : 'hidden lg:block'} shrink-0 overflow-y-auto max-h-full pb-6 lg:pb-0`}>
+        <Cart 
+          cart={cart}
+          onUpdateQuantity={(id, delta) => {
+            setCart(cart.map(item => {
+              if (item.id === id) {
+                const newQty = Math.max(1, item.quantity + delta);
+                return { ...item, quantity: newQty };
+              }
+              return item;
+            }));
+          }}
+          onRemove={(id) => setCart(cart.filter(item => item.id !== id))}
+          onCheckout={handleCheckout}
+          isProcessing={isProcessing}
+          taxRate={taxRate}
+          discount={discount}
+          formatCurrency={formatCurrency}
+        />
+      </div>
+
+      {/* Floating Cart Button for Mobile (Only visible on Products tab when cart has items) */}
+      {activeMobileTab === 'products' && cart.length > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 lg:hidden animate-reveal-up">
+          <Button 
+            onClick={() => setActiveMobileTab('cart')}
+            className="w-full h-14 bg-primary text-primary-foreground font-black rounded-xl shadow-xl flex items-center justify-between px-6 active:scale-[0.98] transition-all"
+          >
+            <span className="flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5" />
+              <span>{cart.length} Item</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span>Tinjau Pesanan</span>
+              <ArrowRight className="w-4 h-4" />
+            </span>
+          </Button>
+        </div>
+      )}
 
       {/* Hidden Receipt for Printing */}
       <Receipt 

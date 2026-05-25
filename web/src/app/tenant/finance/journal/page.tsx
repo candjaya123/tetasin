@@ -19,8 +19,8 @@ export default function JournalPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await reportService.getJournal(startDate, endDate);
-      setData(res);
+      const res = await reportService.getJournalEntries(startDate, endDate);
+      setData(res as any[]);
     } catch (err) {
       console.error(err);
     } finally {

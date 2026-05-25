@@ -6,7 +6,7 @@ import { AiRuleEnforcementService } from '../../core/ai/ai-rule-enforcement.serv
 import { AggregatorService } from './services/aggregator.service';
 import { MemoryService } from './services/memory.service';
 import { ForecastingService } from './services/forecasting.service';
-import { AiController } from './ai.controller';
+import { AiController } from './controllers/ai.controller';
 
 @Module({
   imports: [

@@ -21,7 +21,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { createClient } from '@/lib/supabase/client';
+import { journalService } from '@/lib/api/journalService';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -32,32 +32,17 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const supabase = createClient();
 
   const fetchExpenses = async () => {
     setLoading(true);
-    // Fetch journal lines that are debited to expense accounts (prefix 6-)
-    const { data } = await supabase
-      .from('journal_lines')
-      .select(`
-        *,
-        accounts:chart_of_accounts!inner (
-          name,
-          code,
-          type
-        ),
-        journal_entries (
-          description,
-          reference_doc,
-          date
-        )
-      `)
-      .eq('accounts.type', 'expense')
-      .gt('debit', 0)
-      .order('created_at', { ascending: false });
-    
-    if (data) setExpenses(data);
-    setLoading(false);
+    try {
+      const data = await journalService.getExpenses();
+      if (data) setExpenses(data);
+    } catch (err) {
+      console.error('Failed to fetch expenses', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

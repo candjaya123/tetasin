@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/app_colors.dart';
-import '../../shared/services/budget_service.dart';
-import './providers/budget_providers.dart';
-import './widgets/add_budget_sheet.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/dimens.dart';
+import '../../shared/services/budget_service.dart';
+import '../../shared/widgets/polish_widgets.dart';
+import './providers/budget_providers.dart';
+import './widgets/add_budget_sheet.dart';
 
 class BudgetScreen extends ConsumerWidget {
   const BudgetScreen({super.key});
 
   String _formatCurrency(double val) {
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(val);
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(val);
   }
 
   @override
@@ -30,37 +35,49 @@ class BudgetScreen extends ConsumerWidget {
             return await ref.read(budgetsProvider(currentMonth).future);
           },
           child: ListView(
-            padding: const EdgeInsets.all(24),
+            padding: Dimens.page,
             children: [
               _buildHeader(context, ref, currentMonth),
-              const SizedBox(height: 32),
+              const SizedBox(height: Dimens.sectionGap),
               summaryAsync.when(
-                data: (summary) => _buildSummaryCard(summary),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Text('Error: $err'),
-              ),
-              const SizedBox(height: 40),
-              Text(
-                'RINCIAN KATEGORI',
-                style: GoogleFonts.outfit(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.lightGrey,
-                  letterSpacing: 2,
+                data: (summary) => _buildSummaryCard(context, summary),
+                loading: () => SkeletonLoader.card(),
+                error: (err, _) => ErrorStateWidget(
+                  error: 'Error: $err',
+                  onRetry: () =>
+                      ref.invalidate(budgetSummaryProvider(currentMonth)),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: Dimens.xxl),
+              Text(
+                'RINCIAN KATEGORI',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(letterSpacing: 2),
+              ),
+              const SizedBox(height: Dimens.lg),
               budgetsAsync.when(
                 data: (budgets) {
-                  if (budgets.isEmpty) {
-                    return _buildEmptyState();
-                  }
+                  if (budgets.isEmpty) return _buildEmptyState(context);
                   return Column(
-                    children: budgets.map((b) => _buildBudgetCard(context, ref, b)).toList(),
+                    children: budgets
+                        .map((b) => _buildBudgetCard(context, ref, b))
+                        .toList(),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(child: Text('Gagal memuat: $err')),
+                loading: () => Column(
+                  children: List.generate(
+                    3,
+                    (_) => Padding(
+                      padding: const EdgeInsets.only(bottom: Dimens.md),
+                      child: SkeletonLoader.card(),
+                    ),
+                  ),
+                ),
+                error: (err, _) => ErrorStateWidget(
+                  error: 'Gagal memuat: $err',
+                  onRetry: () => ref.invalidate(budgetsProvider(currentMonth)),
+                ),
               ),
             ],
           ),
@@ -69,30 +86,23 @@ class BudgetScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref, String currentMonth) {
+  Widget _buildHeader(
+    BuildContext context,
+    WidgetRef ref,
+    String currentMonth,
+  ) {
     final date = DateFormat('yyyy-MM').parse(currentMonth);
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Anggaran',
-              style: GoogleFonts.outfit(
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-                color: AppColors.black,
-              ),
-            ),
+            Text('Anggaran', style: Theme.of(context).textTheme.headlineMedium),
             Text(
               DateFormat('MMMM yyyy', 'id_ID').format(date),
-              style: GoogleFonts.outfit(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.mediumGrey,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
@@ -101,18 +111,18 @@ class BudgetScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.chevron_left_rounded),
               onPressed: () {
-                final prev = DateFormat('yyyy-MM').format(
-                  DateTime(date.year, date.month - 1),
-                );
+                final prev = DateFormat(
+                  'yyyy-MM',
+                ).format(DateTime(date.year, date.month - 1));
                 ref.read(budgetMonthProvider.notifier).state = prev;
               },
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right_rounded),
               onPressed: () {
-                final next = DateFormat('yyyy-MM').format(
-                  DateTime(date.year, date.month + 1),
-                );
+                final next = DateFormat(
+                  'yyyy-MM',
+                ).format(DateTime(date.year, date.month + 1));
                 ref.read(budgetMonthProvider.notifier).state = next;
               },
             ),
@@ -122,19 +132,23 @@ class BudgetScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(Map<String, dynamic> summary) {
+  Widget _buildSummaryCard(BuildContext context, Map<String, dynamic> summary) {
     final totalBudget = (summary['total_budget'] as num).toDouble();
     final totalSpent = (summary['total_spent'] as num).toDouble();
     final percentage = (summary['percentage'] as num).toDouble();
 
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(Dimens.xxl),
       decoration: BoxDecoration(
-        color: AppColors.secondary,
-        borderRadius: BorderRadius.circular(32),
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(Dimens.xxl),
         boxShadow: [
           BoxShadow(
-            color: AppColors.secondary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -145,23 +159,18 @@ class BudgetScreen extends ConsumerWidget {
         children: [
           Text(
             'TOTAL ANGGARAN',
-            style: GoogleFonts.outfit(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              color: Colors.white.withOpacity(0.4),
-              letterSpacing: 2,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Dimens.sm),
           Text(
             _formatCurrency(totalBudget),
-            style: GoogleFonts.outfit(
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(color: Colors.white),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: Dimens.sectionGap),
           Row(
             children: [
               Expanded(
@@ -170,27 +179,34 @@ class BudgetScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'TERPAKAI',
-                      style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white.withOpacity(0.4)),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.6),
+                      ),
                     ),
+                    const SizedBox(height: Dimens.xs),
                     Text(
                       _formatCurrency(totalSpent),
-                      style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleMedium?.copyWith(color: Colors.white),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Dimens.lg,
+                  vertical: Dimens.sm,
+                ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: Dimens.brMd,
                 ),
                 child: Text(
                   '${(percentage * 100).toStringAsFixed(0)}%',
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w900,
-                    color: AppColors.onPrimary,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -201,25 +217,29 @@ class BudgetScreen extends ConsumerWidget {
     ).animate().fadeIn().slideY(begin: 0.2, end: 0);
   }
 
-  Widget _buildBudgetCard(BuildContext context, WidgetRef ref, Map<String, dynamic> budget) {
+  Widget _buildBudgetCard(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> budget,
+  ) {
     final double limit = (budget['limit_amount'] ?? 0).toDouble();
     final double spent = (budget['current_spent'] ?? 0).toDouble();
     final double percent = limit > 0 ? (spent / limit) : 0;
-    
+
     Color progressColor = AppColors.primary;
     if (percent >= 1.0) {
-      progressColor = Colors.redAccent;
+      progressColor = AppColors.error;
     } else if (percent >= 0.8) {
-      progressColor = Colors.orangeAccent;
+      progressColor = AppColors.warning;
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.only(bottom: Dimens.md),
+      padding: Dimens.card,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface,
+        borderRadius: Dimens.brLg,
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: Column(
         children: [
@@ -229,45 +249,50 @@ class BudgetScreen extends ConsumerWidget {
               Expanded(
                 child: Text(
                   budget['category_name'] ?? 'Kategori',
-                  style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.black,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.lightGrey),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: AppColors.textTertiary,
+                    ),
                     onPressed: () {
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
                         backgroundColor: Colors.transparent,
-                        builder: (context) => AddBudgetSheet(initialBudget: budget),
+                        builder: (context) =>
+                            AddBudgetSheet(initialBudget: budget),
                       );
                     },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18,
+                      color: AppColors.error,
+                    ),
                     onPressed: () => _handleDelete(context, ref, budget),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Dimens.md),
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: Dimens.brXs,
             child: LinearProgressIndicator(
               value: percent > 1.0 ? 1.0 : percent,
-              minHeight: 12,
-              backgroundColor: progressColor.withOpacity(0.1),
+              minHeight: 10,
+              backgroundColor: progressColor.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Dimens.md),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -276,24 +301,23 @@ class BudgetScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'TERPAKAI',
-                    style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.lightGrey, letterSpacing: 1),
+                    style: Theme.of(context).textTheme.labelSmall,
                   ),
                   Text(
                     _formatCurrency(spent),
-                    style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.black),
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    'LIMIT',
-                    style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.lightGrey, letterSpacing: 1),
-                  ),
+                  Text('LIMIT', style: Theme.of(context).textTheme.labelSmall),
                   Text(
                     _formatCurrency(limit),
-                    style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.mediumGrey),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -304,16 +328,25 @@ class BudgetScreen extends ConsumerWidget {
     ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0);
   }
 
-  Future<void> _handleDelete(BuildContext context, WidgetRef ref, Map<String, dynamic> budget) async {
+  Future<void> _handleDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> budget,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Hapus Anggaran?'),
-        content: Text('Anda akan menghapus anggaran untuk kategori ${budget['category_name']}.'),
+        content: Text(
+          'Anda akan menghapus anggaran untuk kategori ${budget['category_name']}.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true), 
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Hapus', style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -327,42 +360,52 @@ class BudgetScreen extends ConsumerWidget {
         final month = ref.read(budgetMonthProvider);
         ref.invalidate(budgetsProvider(month));
         if (context.mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Anggaran berhasil dihapus')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Anggaran berhasil dihapus')),
+          );
         }
       } catch (e) {
         if (context.mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menghapus: $e')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Gagal menghapus: $e')));
         }
       }
     }
   }
 
-  Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      child: Column(
-        children: [
-          const Icon(Icons.savings_outlined, size: 80, color: AppColors.border),
-          const SizedBox(height: 24),
-          Text(
-            'Belum Ada Anggaran',
-            style: GoogleFonts.outfit(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: AppColors.black,
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Dimens.xxxl),
+        child: Column(
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSecondary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.savings_outlined,
+                size: 40,
+                color: AppColors.textTertiary,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Mulai atur pengeluaran Anda agar\ntetap hemat dan terencana.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.mediumGrey,
+            const SizedBox(height: Dimens.xxl),
+            Text(
+              'Belum Ada Anggaran',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-          ),
-        ],
+            const SizedBox(height: Dimens.sm),
+            Text(
+              'Mulai atur pengeluaran Anda agar\ntetap hemat dan terencana.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
       ),
     ).animate().fadeIn();
   }

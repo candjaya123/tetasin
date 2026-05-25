@@ -1,8 +1,11 @@
-import { Controller, Get, Put, Post, Body, UseGuards, Request, Param } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, UseGuards, Request, Param, Logger, ForbiddenException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { SupabaseService } from '../../../shared/supabase.service';
 import { AccountingService } from '../../accounting/services/accounting.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RequireTier } from '../../../core/auth/tier.decorator';
+import { SubscriptionTier } from '../../../core/constants/subscription-tier.enum';
+import type { AuthenticatedRequest } from '../../../core/auth/authenticated-request.interface';
 
 @Controller('api/v1/business-profile')
 @UseGuards(JwtAuthGuard)
@@ -13,7 +16,7 @@ export class BusinessProfileController {
   ) {}
 
   @Get('profile')
-  async getProfile(@Request() req: any) {
+  async getProfile(@Request() req: AuthenticatedRequest) {
     const client = this.supabaseService.getClient();
     const { data, error } = await client
       .from('profiles')
@@ -21,7 +24,7 @@ export class BusinessProfileController {
       .eq('id', req.user.id)
       .single();
     
-    const accountType = req.user.user_metadata?.account_type || 'business';
+    const accountType = (req.user.user_metadata?.account_type as string) || 'business';
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -106,7 +109,7 @@ export class BusinessProfileController {
   }
 
   @Put('profile')
-  async updateProfile(@Request() req: any, @Body() body: any) {
+  async updateProfile(@Request() req: AuthenticatedRequest, @Body() body: any) {
     const client = this.supabaseService.getClient();
     const { data, error } = await client
       .from('profiles')
@@ -115,18 +118,26 @@ export class BusinessProfileController {
       .select()
       .single();
     if (error) throw error;
+
+    await client.from('activity_logs').insert({
+      tenant_id: (await client.from('profiles').select('tenant_id').eq('id', req.user.id).single()).data?.tenant_id,
+      user_id: req.user.id,
+      action: 'profile_updated',
+      details: { updated_fields: Object.keys(body) },
+    });
+
     return data;
   }
 
   @Get('tenant')
-  async getTenant(@Request() req: any) {
+  async getTenant(@Request() req: AuthenticatedRequest) {
     const client = this.supabaseService.getClient();
     let { data: profile } = await client.from('profiles').select('tenant_id, account_type').eq('id', req.user.id).single();
     
     // Auto-fix if tenant_id is missing from profile
     if (!profile?.tenant_id) {
         const newTenantId = require('crypto').randomUUID();
-        const accountType = req.user.user_metadata?.account_type || profile?.account_type || 'business';
+        const accountType = (req.user.user_metadata?.account_type as string) || profile?.account_type || 'business';
         await client.from('tenants').insert({ 
           id: newTenantId, 
           name: req.user.user_metadata?.business_name || (accountType === 'personal' ? 'Personal Tracker' : 'Toko Auto-Recover'),
@@ -145,7 +156,7 @@ export class BusinessProfileController {
     // Auto-fix if tenant_id exists in profile but missing in tenants table
     if (error) {
         if (error.code === 'PGRST116') { // Not found
-            const accountType = req.user.user_metadata?.account_type || profile?.account_type || 'business';
+            const accountType = (req.user.user_metadata?.account_type as string) || profile?.account_type || 'business';
             await client.from('tenants').insert({ 
               id: profile.tenant_id, 
               name: req.user.user_metadata?.business_name || (accountType === 'personal' ? 'Personal Tracker' : 'Toko Auto-Recover'),
@@ -161,10 +172,20 @@ export class BusinessProfileController {
   }
 
   @Put('tenant')
-  async updateTenant(@Request() req: any, @Body() body: any) {
+  async updateTenant(@Request() req: AuthenticatedRequest, @Body() body: any) {
     const client = this.supabaseService.getClient();
     const { data: profile } = await client.from('profiles').select('tenant_id').eq('id', req.user.id).single();
     if (!profile?.tenant_id) throw new Error('Tenant ID not found in profile');
+
+    if (body.tier === 'franchise') {
+      const { data: tenant } = await client.from('tenants').select('account_type').eq('id', profile.tenant_id).single();
+      if (tenant?.account_type === 'personal') {
+        throw new ForbiddenException({
+          code: 'TIER_RESTRICTION',
+          message: 'Tier franchise hanya tersedia untuk akun bisnis',
+        });
+      }
+    }
 
     const { data, error } = await client
       .from('tenants')
@@ -173,11 +194,19 @@ export class BusinessProfileController {
       .select()
       .single();
     if (error) throw error;
+
+    await client.from('activity_logs').insert({
+      tenant_id: profile.tenant_id,
+      user_id: req.user.id,
+      action: 'tenant_updated',
+      details: { updated_fields: Object.keys(body) },
+    });
+
     return data;
   }
 
   @Get('staff')
-  async getStaff(@Request() req: any) {
+  async getStaff(@Request() req: AuthenticatedRequest) {
     const client = this.supabaseService.getClient();
     const { data: profile } = await client.from('profiles').select('tenant_id').eq('id', req.user.id).single();
 
@@ -190,27 +219,87 @@ export class BusinessProfileController {
   }
 
   @Post('staff/invite')
-  async inviteStaff(@Request() req: any, @Body() body: { email: string; role: string }) {
-    // Logic for staff invitation (e.g. sending email or creating a placeholder profile)
-    // For now, let's just return success
+  async inviteStaff(@Request() req: AuthenticatedRequest, @Body() body: { email: string; role: string; full_name?: string }) {
+    const client = this.supabaseService.getClient();
+    const { data: profile } = await client.from('profiles').select('tenant_id').eq('id', req.user.id).single();
+
+    await client.from('activity_logs').insert({
+      tenant_id: profile?.tenant_id,
+      user_id: req.user.id,
+      action: 'staff_invited',
+      details: { email: body.email, role: body.role },
+    });
+
     return { success: true, message: `Invitation sent to ${body.email}` };
   }
 
   @Get('notifications')
-  async getNotifications(@Request() req: any) {
+  async getNotifications(@Request() req: AuthenticatedRequest) {
     const client = this.supabaseService.getClient();
     const { data: profile } = await client.from('profiles').select('tenant_id').eq('id', req.user.id).single();
 
-    const { data, error } = await client
+    if (!profile?.tenant_id) return [];
+
+    let { data, error } = await client
       .from('tenant_notification_configs')
       .select('*')
-      .eq('tenant_id', profile?.tenant_id);
+      .eq('tenant_id', profile.tenant_id);
     if (error) throw error;
+
+    if (!data || data.length === 0) {
+      const defaultConfigs = [
+        { tenant_id: profile.tenant_id, role: 'manager', is_active: true },
+        { tenant_id: profile.tenant_id, role: 'kasir', is_active: true },
+        { tenant_id: profile.tenant_id, role: 'stok', is_active: true },
+      ];
+      const { data: seededData, error: seedError } = await client
+        .from('tenant_notification_configs')
+        .insert(defaultConfigs)
+        .select('*');
+      if (seedError) {
+        Logger.warn(`Failed to seed default notification configs: ${seedError.message}`);
+        return defaultConfigs;
+      }
+      return seededData;
+    }
+
     return data;
   }
 
+  @Get('alerts')
+  async getAlerts(@Request() req: AuthenticatedRequest) {
+    const client = this.supabaseService.getClient();
+    const { data: profile } = await client.from('profiles').select('tenant_id').eq('id', req.user.id).single();
+    if (!profile?.tenant_id) return [];
+
+    const { data, error } = await client
+      .from('smart_alerts')
+      .select('*')
+      .eq('tenant_id', profile.tenant_id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+
+    return data;
+  }
+
+  @Get('alerts/count')
+  async getUnreadAlertCount(@Request() req: AuthenticatedRequest) {
+    const client = this.supabaseService.getClient();
+    const { data: profile } = await client.from('profiles').select('tenant_id').eq('id', req.user.id).single();
+    if (!profile?.tenant_id) return { count: 0 };
+
+    const { count, error } = await client
+      .from('smart_alerts')
+      .select('*', { count: 'exact', head: true })
+      .eq('tenant_id', profile.tenant_id)
+      .eq('is_read', false);
+    if (error) throw error;
+    return { count: count || 0 };
+  }
+
   @Put('notifications/:role')
-  async updateNotification(@Request() req: any, @Param('role') role: string, @Body() body: any) {
+  async updateNotification(@Request() req: AuthenticatedRequest, @Param('role') role: string, @Body() body: any) {
     const client = this.supabaseService.getClient();
     const { data: profile } = await client.from('profiles').select('tenant_id').eq('id', req.user.id).single();
 
@@ -222,6 +311,14 @@ export class BusinessProfileController {
       .select()
       .single();
     if (error) throw error;
+
+    await client.from('activity_logs').insert({
+      tenant_id: profile?.tenant_id,
+      user_id: req.user.id,
+      action: 'notification_config_updated',
+      details: { role, updated_fields: Object.keys(body) },
+    });
+
     return data;
   }
 
@@ -239,7 +336,7 @@ export class BusinessProfileController {
   }
 
   @Post('account/delete')
-  async deleteAccount(@Request() req: any) {
+  async deleteAccount(@Request() req: AuthenticatedRequest) {
     const client = this.supabaseService.getClient();
     
     // 1. Get the profile to find the tenant_id
@@ -288,7 +385,7 @@ export class BusinessProfileController {
     if (authError) {
       // We log this but don't necessarily fail the whole process if DB was cleaned up, 
       // but it's better to notify.
-      console.error(`Failed to delete user from Auth: ${authError.message}`);
+      Logger.warn(`Failed to delete user from Auth: ${authError.message}`);
     }
 
     return { success: true, message: 'Akun dan semua data berhasil dihapus secara permanen' };

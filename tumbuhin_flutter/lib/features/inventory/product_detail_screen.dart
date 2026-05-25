@@ -15,7 +15,8 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
   const ProductDetailScreen({super.key, required this.product});
 
   @override
-  ConsumerState<ProductDetailScreen> createState() => _ProductDetailScreenState();
+  ConsumerState<ProductDetailScreen> createState() =>
+      _ProductDetailScreenState();
 }
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
@@ -25,8 +26,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Hapus Produk?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text('Apakah Anda yakin ingin menghapus "${widget.product.name}"? Tindakan ini tidak dapat dibatalkan.'),
+        title: Text(
+          'Hapus Produk?',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus "${widget.product.name}"? Tindakan ini tidak dapat dibatalkan.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -50,10 +56,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
   Future<void> _deleteProduct() async {
     setState(() => _isDeleting = true);
-    
+
     try {
-      await ref.read(inventoryRepositoryProvider).deleteProduct(widget.product.id);
-      
+      await ref
+          .read(inventoryRepositoryProvider)
+          .deleteProduct(widget.product.id);
+
       if (mounted) {
         ref.invalidate(inventoryProductsProvider);
         context.pop(); // Go back to inventory list
@@ -77,25 +85,40 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
-    final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text('Detail Produk', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Detail Produk',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_note_rounded),
-            onPressed: _isDeleting ? null : () => context.push('/inventory/edit', extra: widget.product),
+            onPressed: _isDeleting
+                ? null
+                : () => context.push('/inventory/edit', extra: widget.product),
           ),
           IconButton(
-            icon: _isDeleting 
-              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.delete_outline_rounded, color: Colors.red),
-            onPressed: _isDeleting ? null : () => _showDeleteConfirmation(context),
+            icon: _isDeleting
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.delete_outline_rounded, color: Colors.red),
+            onPressed: _isDeleting
+                ? null
+                : () => _showDeleteConfirmation(context),
           ),
         ],
       ),
@@ -123,9 +146,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   Expanded(
                     flex: 4,
                     child: Column(
-                      children: [
-                        _buildHeader(currencyFormat, isTablet: true),
-                      ],
+                      children: [_buildHeader(currencyFormat, isTablet: true)],
                     ),
                   ),
                   const SizedBox(width: 24),
@@ -173,24 +194,33 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       child: CachedNetworkImage(
                         imageUrl: widget.product.imageUrl!,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(color: Colors.grey.shade100),
-                        errorWidget: (context, url, error) => const Icon(Icons.error_outline),
+                        placeholder: (context, url) =>
+                            Container(color: Colors.grey.shade100),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error_outline),
                       ),
                     ),
                   )
                 : Hero(
                     tag: 'product-image-${widget.product.id}',
-                    child: Icon(Icons.image, size: isTablet ? 64 : 48, color: Colors.grey),
+                    child: Icon(
+                      Icons.image,
+                      size: isTablet ? 64 : 48,
+                      color: Colors.grey,
+                    ),
                   ),
           ),
           const SizedBox(height: 16),
           Text(
             widget.product.name,
             textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(fontSize: isTablet ? 28 : 24, fontWeight: FontWeight.bold),
+            style: GoogleFonts.outfit(
+              fontSize: isTablet ? 28 : 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           Text(
-            widget.product.skuCode ?? 'Tanpa SKU',
+            widget.product.sku ?? widget.product.barcode ?? 'Tanpa SKU',
             style: TextStyle(color: Colors.grey.shade600),
           ),
           const SizedBox(height: 12),
@@ -210,7 +240,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   Widget _buildStockSection() {
     return Column(
       children: [
-        const _SectionHeader(title: 'Stok Gudang', icon: Icons.warehouse_rounded),
+        const _SectionHeader(
+          title: 'Stok Gudang',
+          icon: Icons.warehouse_rounded,
+        ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(16),
@@ -220,9 +253,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           ),
           child: Column(
             children: [
-              _StockRow(label: 'Gudang Utama', value: '${widget.product.stock} unit'),
+              _StockRow(
+                label: 'Gudang Utama',
+                value: '${widget.product.stock} unit',
+              ),
               const Divider(height: 24),
-              _StockRow(label: 'Total Keseluruhan', value: '${widget.product.stock} unit', isTotal: true),
+              _StockRow(
+                label: 'Total Keseluruhan',
+                value: '${widget.product.stock} unit',
+                isTotal: true,
+              ),
             ],
           ),
         ),
@@ -233,7 +273,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   Widget _buildRecipeSection() {
     return Column(
       children: [
-        const _SectionHeader(title: 'Resep / Bahan Baku', icon: Icons.receipt_long_rounded),
+        const _SectionHeader(
+          title: 'Resep / Bahan Baku',
+          icon: Icons.receipt_long_rounded,
+        ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(16),
@@ -241,7 +284,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: (widget.product.recipes == null || widget.product.recipes!.isEmpty)
+          child:
+              (widget.product.recipes == null ||
+                  widget.product.recipes!.isEmpty)
               ? const Center(child: Text('Produk ini tidak memiliki resep.'))
               : Column(
                   children: widget.product.recipes!.map((r) {
@@ -249,7 +294,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       children: [
                         _RecipeRow(
                           name: r.rawMaterial?.name ?? 'Unknown Material',
-                          qty: '${r.quantityNeeded} ${r.rawMaterial?.unit ?? ''}',
+                          qty:
+                              '${r.quantityNeeded} ${r.rawMaterial?.unit ?? ''}',
                         ),
                         if (r != widget.product.recipes!.last) const Divider(),
                       ],
@@ -295,14 +341,23 @@ class _StockRow extends StatelessWidget {
   final String value;
   final bool isTotal;
 
-  const _StockRow({required this.label, required this.value, this.isTotal = false});
+  const _StockRow({
+    required this.label,
+    required this.value,
+    this.isTotal = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontWeight: isTotal ? FontWeight.bold : FontWeight.normal)),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
         Text(
           value,
           style: GoogleFonts.outfit(
@@ -331,7 +386,10 @@ class _RecipeRow extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(color: Color(0xFFFDB827), shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFDB827),
+              shape: BoxShape.circle,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(name)),

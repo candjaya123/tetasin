@@ -8,8 +8,12 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../providers/pos_providers.dart';
 import '../../../shared/models/product.dart';
+import '../../../shared/models/cart_item.dart';
 import '../../../shared/widgets/polish_widgets.dart';
 import '../../../core/theme/responsive.dart';
+import '../../../core/theme/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'product_selection_sheet.dart';
 
 class ProductGrid extends ConsumerWidget {
   const ProductGrid({super.key});
@@ -42,12 +46,12 @@ class ProductGrid extends ConsumerWidget {
         return AppRefreshIndicator(
           onRefresh: () => ref.refresh(productsProvider.future),
           child: GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               childAspectRatio: 0.75,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
             ),
             itemCount: filteredProducts.length,
             itemBuilder: (context, index) {
@@ -60,7 +64,6 @@ class ProductGrid extends ConsumerWidget {
         );
       },
 
-      // ✅ FIX LOADING
       loading: () {
         final crossAxisCount = context.screenWidth < 600
             ? 2
@@ -69,12 +72,12 @@ class ProductGrid extends ConsumerWidget {
             : 4;
 
         return GridView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             childAspectRatio: 0.75,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
           ),
           itemCount: 6,
           itemBuilder: (context, index) {
@@ -100,6 +103,42 @@ class ProductItem extends ConsumerWidget {
 
   const ProductItem({super.key, required this.product});
 
+  Future<void> _handleTap(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.lightImpact();
+
+    final hasRequiredVariants =
+        product.variantGroups?.any((g) => g.isRequired) ?? false;
+    final hasRequiredAddons =
+        product.addonGroups?.any((g) => g.isRequired) ?? false;
+
+    if (hasRequiredVariants || hasRequiredAddons) {
+      final cartItem = await showModalBottomSheet<CartItem>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => ProductSelectionSheet(product: product),
+      );
+      if (cartItem != null && context.mounted) {
+        ref.read(cartProvider.notifier).addToCart(cartItem);
+        _showSnackBar(context, '${product.name} ditambah ke keranjang');
+      }
+    } else {
+      ref
+          .read(cartProvider.notifier)
+          .addToCart(CartItem(product: product, quantity: 1));
+      _showSnackBar(context, '${product.name} ditambah ke keranjang');
+    }
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(milliseconds: 500),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currencyFormat = NumberFormat.currency(
@@ -109,29 +148,12 @@ class ProductItem extends ConsumerWidget {
     );
 
     return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        ref.read(cartProvider.notifier).addToCart(product);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${product.name} ditambah ke keranjang'),
-            duration: const Duration(milliseconds: 500),
-          ),
-        );
-      },
+      onTap: () => _handleTap(context, ref),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              // ✅ FIX: withValues → withOpacity
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.borderLight, width: 0.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,23 +162,39 @@ class ProductItem extends ConsumerWidget {
               child: product.imageUrl != null
                   ? ClipRRect(
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
+                        top: Radius.circular(20),
                       ),
                       child: CachedNetworkImage(
                         imageUrl: product.imageUrl!,
                         fit: BoxFit.cover,
+                        width: double.infinity,
                         placeholder: (context, url) =>
-                            Container(color: Colors.grey.shade100),
-                        errorWidget: (context, url, error) =>
-                            const Icon(Icons.error_outline),
+                            Container(color: AppColors.surfaceSecondary),
+                        errorWidget: (context, url, error) => const Icon(
+                          Icons.error_outline,
+                          color: AppColors.textTertiary,
+                        ),
                       ),
                     )
-                  : const Center(
-                      child: Icon(Icons.image, color: Colors.grey, size: 40),
+                  : Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceSecondary,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: AppColors.textTertiary,
+                          size: 28,
+                        ),
+                      ),
                     ),
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -164,20 +202,29 @@ class ProductItem extends ConsumerWidget {
                     product.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    currencyFormat.format(product.price),
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.bold,
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
+                    currencyFormat.format(product.price),
+                    style: GoogleFonts.outfit(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
                     'Stok: ${product.stock}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      color: AppColors.textTertiary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),

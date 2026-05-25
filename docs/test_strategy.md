@@ -1,4 +1,4 @@
-# Tumbuhin — Test Strategy
+# Tetasin — Test Strategy
 
 > **Document Purpose:** Defines testing philosophy, pyramid, coverage requirements, test patterns, and CI gates.
 > **Who Should Read This:** All engineers, QA, and DevOps.

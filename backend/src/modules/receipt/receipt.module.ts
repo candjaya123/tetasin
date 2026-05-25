@@ -9,6 +9,7 @@ import { DuplicateDetectionService } from './services/duplicate-detection.servic
 import { ReceiptScanProcessor } from './processors/receipt-scan.processor';
 import { CoreModule } from '../../core/core.module';
 import { AccountingModule } from '../accounting/accounting.module';
+import { AiModule } from '../ai/ai.module';
 import { ReceiptRepository } from './repositories/receipt.repository';
 
 @Module({
@@ -18,6 +19,7 @@ import { ReceiptRepository } from './repositories/receipt.repository';
     }),
     CoreModule,
     AccountingModule,
+    AiModule,
   ],
   controllers: [ReceiptController],
   providers: [

@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../../../core/api/api_provider.dart';
 import '../../../shared/models/user_profile.dart';
@@ -11,22 +13,24 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final repo = ref.watch(profileRepositoryProvider);
   final errorInterceptor = ref.watch(errorInterceptorProvider);
-  
+
   final notifier = AuthNotifier(client, repo);
-  
+
   // Listen to 401 errors from API
   final subscription = errorInterceptor.onUnauthorized.listen((_) {
     notifier.signOut();
   });
-  
+
   ref.onDispose(() => subscription.cancel());
-  
+
   return notifier;
 });
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final SupabaseClient _client;
   final ProfileRepository _repo;
+  static const _storage = FlutterSecureStorage();
+  static const _guestKey = 'is_guest_mode';
 
   AuthNotifier(this._client, this._repo) : super(const AuthState()) {
     _init();
@@ -44,8 +48,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (initialSession != null) {
       setSession(initialSession);
     } else {
-      state = state.copyWith(isLoading: false);
+      // Check if guest mode was previously active
+      _restoreGuestMode();
     }
+  }
+
+  Future<void> _restoreGuestMode() async {
+    try {
+      final isGuest = await _storage.read(key: _guestKey);
+      if (isGuest == 'true') {
+        loginAsGuest();
+        return;
+      }
+    } catch (e) {
+      debugPrint('Guest mode restore error: $e');
+    }
+    state = state.copyWith(isLoading: false);
   }
 
   void setSession(Session? session) {
@@ -54,7 +72,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isLoading: session != null,
       isGuest: false,
     );
-    
+
     if (session != null) {
       fetchProfile();
     } else {
@@ -68,7 +86,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(profile: profile);
       fetchTenant();
     } catch (e) {
-      state = state.copyWith(isLoading: false);
+      debugPrint('fetchProfile error: $e');
+      // Force logout and clear state on profile fetch failure
+      await signOut();
     }
   }
 
@@ -77,7 +97,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final tenant = await _repo.getTenant();
       state = state.copyWith(tenant: tenant, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false);
+      debugPrint('fetchTenant error: $e');
+      // Force logout and clear state on tenant fetch failure
+      await signOut();
     }
   }
 
@@ -99,13 +121,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
         tier: 'trial',
       ),
     );
+    _storage.write(key: _guestKey, value: 'true');
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    await _client.auth.resetPasswordForEmail(email);
   }
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true);
     try {
-      final response = await _client.auth.signInWithPassword(email: email, password: password);
-      
+      final response = await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
       // Verifikasi apakah profil masih ada (untuk mendeteksi akun yang sudah dihapus di DB tapi masih ada di Auth)
       final profileData = await _client
           .from('profiles')
@@ -115,7 +145,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (profileData == null) {
         await _client.auth.signOut();
-        throw const AuthException('Email belum terdaftar atau akun telah dihapus.');
+        throw const AuthException(
+          'Email belum terdaftar atau akun telah dihapus.',
+        );
       }
     } catch (e) {
       state = state.copyWith(isLoading: false);
@@ -144,8 +176,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signOut() async {
     if (state.isGuest) {
       state = const AuthState(isLoading: false);
+      await _storage.delete(key: _guestKey);
       return;
     }
+    await _storage.delete(key: _guestKey);
     await _client.auth.signOut();
   }
 }

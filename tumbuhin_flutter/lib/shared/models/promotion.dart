@@ -16,5 +16,6 @@ class Promotion with _$Promotion {
     @Default(true) bool isActive,
   }) = _Promotion;
 
-  factory Promotion.fromJson(Map<String, dynamic> json) => _$PromotionFromJson(json);
+  factory Promotion.fromJson(Map<String, dynamic> json) =>
+      _$PromotionFromJson(json);
 }

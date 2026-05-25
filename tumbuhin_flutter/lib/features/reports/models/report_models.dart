@@ -31,6 +31,9 @@ class JournalEntry {
   final String referenceNumber;
   final double totalAmount;
   final List<JournalLine> lines;
+  final String? sourceType;
+  final String? paymentMethod;
+  final String? referenceId;
 
   JournalEntry({
     required this.id,
@@ -39,18 +42,26 @@ class JournalEntry {
     required this.referenceNumber,
     required this.totalAmount,
     required this.lines,
+    this.sourceType,
+    this.paymentMethod,
+    this.referenceId,
   });
 
   factory JournalEntry.fromJson(Map<String, dynamic> json) {
     return JournalEntry(
       id: json['id'],
-      date: DateTime.parse(json['date'] ?? json['created_at']),
+      date:
+          DateTime.tryParse(json['date'] ?? json['created_at'] ?? '') ??
+          DateTime.now(),
       description: json['description'] ?? '',
       referenceNumber: json['reference_doc'] ?? '',
       totalAmount: (json['total_amount'] ?? 0.0).toDouble(),
       lines: (json['journal_lines'] as List? ?? [])
           .map((l) => JournalLine.fromJson(l))
           .toList(),
+      sourceType: json['source_type'] as String?,
+      paymentMethod: json['payment_method'] as String?,
+      referenceId: json['reference_id'] as String?,
     );
   }
 }
@@ -107,10 +118,13 @@ class LedgerEntry {
     required this.balance,
   });
 
-  factory LedgerEntry.fromJson(Map<String, dynamic> json, double currentBalance) {
+  factory LedgerEntry.fromJson(
+    Map<String, dynamic> json,
+    double currentBalance,
+  ) {
     return LedgerEntry(
       id: json['id'],
-      date: DateTime.parse(json['created_at']),
+      date: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       description: json['journal_entries']?['description'] ?? '',
       reference: json['journal_entries']?['reference_number'] ?? '',
       debit: (json['debit'] ?? 0.0).toDouble(),
@@ -140,7 +154,7 @@ class SalesReportItem {
   factory SalesReportItem.fromJson(Map<String, dynamic> json) {
     return SalesReportItem(
       id: json['id'],
-      date: DateTime.parse(json['created_at']),
+      date: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       orderNumber: json['order_number'] ?? '',
       customerName: json['customer_name'] ?? 'Guest',
       totalAmount: (json['total_amount'] ?? 0.0).toDouble(),
@@ -173,7 +187,8 @@ class StockReportItem {
       sku: json['sku_code'] ?? json['sku'] ?? '',
       currentStock: (json['stock'] ?? json['current_stock'] ?? 0) as int,
       minStock: (json['min_stock'] ?? 5) as int,
-      unitPrice: ((json['selling_price'] ?? json['price'] ?? 0.0) as num).toDouble(),
+      unitPrice: ((json['selling_price'] ?? json['price'] ?? 0.0) as num)
+          .toDouble(),
     );
   }
 }

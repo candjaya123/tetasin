@@ -56,7 +56,7 @@ export default function LedgerPage() {
 
         <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
           <div className="min-w-[200px]">
-            <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+            <Select value={selectedAccountId} onValueChange={(v) => setSelectedAccountId(v || '')}>
               <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-none text-xs font-bold">
                 <SelectValue placeholder="Pilih Akun" />
               </SelectTrigger>

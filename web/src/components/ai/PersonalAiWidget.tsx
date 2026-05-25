@@ -2,14 +2,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { 
-  MessageSquare, 
-  X, 
-  Send, 
-  Loader2, 
-  Bot, 
+import {
+  MessageSquare,
+  X,
+  Send,
+  Loader2,
+  Bot,
   User,
   Sparkles,
   Wallet
@@ -54,7 +54,7 @@ export function PersonalAiWidget() {
       });
 
       if (!response.ok) throw new Error('Gagal mendapatkan respon AI');
-      
+
       const data = await response.json();
       setMessages(prev => [...prev, { role: 'ai', content: data.response }]);
     } catch (error: any) {
@@ -67,41 +67,48 @@ export function PersonalAiWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {isOpen ? (
-        <Card className="w-[380px] h-[500px] shadow-2xl border-none flex flex-col overflow-hidden bg-white">
-          <CardHeader className="bg-secondary text-white p-4 flex flex-row items-center justify-between space-y-0">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-white/20 rounded-lg">
+        <Card className="w-[380px] h-[520px] shadow-2xl border-border/40 flex flex-col overflow-hidden bg-card/95 backdrop-blur-2xl rounded-3xl">
+          {/* Header */}
+          <div className="bg-secondary text-secondary-foreground p-4 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-white/10 rounded-xl">
                 <Wallet className="w-5 h-5" />
               </div>
               <div>
-                <CardTitle className="text-sm font-bold">Asisten Finansial</CardTitle>
-                <p className="text-[10px] text-white/70">Siap membantu berhemat</p>
+                <span className="text-sm font-semibold block">Asisten Finansial</span>
+                <span className="text-[10px] text-secondary-foreground/50">Siap membantu berhemat</span>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/10"
+              className="text-secondary-foreground/60 hover:text-secondary-foreground hover:bg-white/10 rounded-xl"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </Button>
-          </CardHeader>
-          
-          <CardContent 
-            className="flex-grow overflow-y-auto p-4 space-y-4 bg-slate-50/50"
+          </div>
+
+          {/* Messages */}
+          <div
+            className="flex-grow overflow-y-auto p-4 space-y-4 bg-muted/30"
             ref={scrollRef}
           >
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === 'user' ? 'bg-slate-200' : 'bg-secondary/10'}`}>
-                    {msg.role === 'user' ? <User className="w-4 h-4 text-slate-600" /> : <Sparkles className="w-4 h-4 text-secondary" />}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    msg.role === 'user' ? 'bg-muted border border-border/40' : 'bg-secondary/10'
+                  }`}>
+                    {msg.role === 'user'
+                      ? <User className="w-4 h-4 text-muted-foreground" />
+                      : <Sparkles className="w-4 h-4 text-secondary" />
+                    }
                   </div>
-                  <div className={`p-3 rounded-2xl text-sm ${
-                    msg.role === 'user' 
-                      ? 'bg-secondary text-white rounded-tr-none' 
-                      : 'bg-white text-slate-700 shadow-sm border border-slate-100 rounded-tl-none'
+                  <div className={`p-3 rounded-2xl text-sm leading-relaxed ${
+                    msg.role === 'user'
+                      ? 'bg-secondary text-secondary-foreground rounded-tr-md'
+                      : 'bg-card text-foreground shadow-sm border border-border/20 rounded-tl-md'
                   }`}>
                     {msg.content}
                   </div>
@@ -110,30 +117,31 @@ export function PersonalAiWidget() {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="flex gap-2 items-center bg-white p-3 rounded-2xl shadow-sm border border-slate-100 rounded-tl-none">
+                <div className="flex gap-2 items-center bg-card p-3 rounded-2xl shadow-sm border border-border/20 rounded-tl-md">
                   <Loader2 className="w-4 h-4 animate-spin text-secondary" />
-                  <span className="text-xs text-slate-400">AI sedang berpikir...</span>
+                  <span className="text-xs text-muted-foreground">AI sedang berpikir...</span>
                 </div>
               </div>
             )}
-          </CardContent>
+          </div>
 
-          <div className="p-4 border-t bg-white">
-            <form 
+          {/* Input */}
+          <div className="p-4 border-t border-border/30 bg-card">
+            <form
               onSubmit={(e) => { e.preventDefault(); handleSend(); }}
               className="flex gap-2"
             >
-              <Input 
+              <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Tanya soal uang..."
-                className="bg-slate-50 border-none focus-visible:ring-secondary"
+                className="bg-muted/50 border-none rounded-xl focus-visible:ring-secondary text-sm"
               />
-              <Button 
-                type="submit" 
-                size="icon" 
+              <Button
+                type="submit"
+                size="icon-sm"
                 disabled={!input.trim() || isLoading}
-                className="bg-secondary hover:bg-secondary/90 shadow-md transition-transform active:scale-95"
+                className="bg-secondary hover:bg-secondary/90 shadow-md shadow-secondary/20 rounded-xl transition-transform active:scale-95"
               >
                 <Send className="w-4 h-4" />
               </Button>
@@ -141,12 +149,13 @@ export function PersonalAiWidget() {
           </div>
         </Card>
       ) : (
-        <Button 
+        <Button
           onClick={() => setIsOpen(true)}
-          className="w-14 h-14 rounded-full shadow-2xl bg-secondary hover:bg-secondary/90 transition-all hover:scale-110 active:scale-95"
+          size="icon-lg"
+          className="w-14 h-14 rounded-2xl shadow-xl shadow-secondary/30 bg-secondary hover:bg-secondary/90 transition-all hover:scale-105 active:scale-95"
         >
           <MessageSquare className="w-6 h-6" />
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 border-2 border-white rounded-full"></div>
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full border-2 border-white" />
         </Button>
       )}
     </div>

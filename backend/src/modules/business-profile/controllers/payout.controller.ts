@@ -2,9 +2,13 @@ import { Controller, Post, Param, UseGuards, Request, Get, Body } from '@nestjs/
 import { SupabaseService } from '../../../shared/supabase.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { MidtransService } from '../../../shared/midtrans.service';
+import { RequireTier } from '../../../core/auth/tier.decorator';
+import { SubscriptionTier } from '../../../core/constants/subscription-tier.enum';
+import type { AuthenticatedRequest } from '../../../core/auth/authenticated-request.interface';
 
 @Controller('api/v1/payouts')
 @UseGuards(JwtAuthGuard)
+@RequireTier(SubscriptionTier.PRO)
 export class PayoutController {
   constructor(
     private readonly supabaseService: SupabaseService,
@@ -12,7 +16,7 @@ export class PayoutController {
   ) {}
 
   @Get()
-  async getAllPayouts(@Request() req: any) {
+  async getAllPayouts(@Request() req: AuthenticatedRequest) {
     // ... rest of the code
     const client = this.supabaseService.getClient();
     const { data, error } = await client

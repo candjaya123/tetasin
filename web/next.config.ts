@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  allowedDevOrigins: ['tetasin.com', 'api.tetasin.com', 'localhost'],
 };
 
 export default nextConfig;

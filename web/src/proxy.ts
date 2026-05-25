@@ -1,74 +1,78 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+
+const BUSINESS_ROUTES = [
+  '/tenant/pos',
+  '/tenant/inventory',
+  '/tenant/pesanan',
+  '/tenant/orders',
+  '/tenant/procurement',
+  '/tenant/staff',
+  '/tenant/receipt',
+  '/tenant/promos',
+  '/tenant/marketing',
+  '/tenant/withdrawal',
+];
+
+const PERSONAL_ROUTES = [
+  '/tenant/personal',
+  '/tenant/personal/goals',
+  '/tenant/personal/transfer',
+  '/tenant/personal/recurring',
+  '/tenant/personal/budgets',
+  '/tenant/income',
+  '/tenant/expense',
+  '/tenant/budget',
+];
 
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  const { pathname } = request.nextUrl;
+
+  if (!pathname.startsWith('/tenant') || pathname === '/tenant/onboarding') {
+    return NextResponse.next();
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
+        getAll: () => request.cookies.getAll(),
+        setAll: () => {},
       },
-    }
-  )
+    },
+  );
 
-  // refreshing the auth token
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (request.nextUrl.pathname.startsWith('/tenant') || request.nextUrl.pathname.startsWith('/admin')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    // Role check logic
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    if (request.nextUrl.pathname.startsWith('/admin') && profile.role !== 'super_admin') {
-      return NextResponse.redirect(new URL('/tenant', request.url))
-    }
-
-    if (request.nextUrl.pathname.startsWith('/tenant') && !['manager', 'kasir', 'stok', 'super_admin'].includes(profile.role)) {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
+  if (!session) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  return supabaseResponse
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('account_type')
+    .eq('id', session.user.id)
+    .single();
+
+  const isPersonal = profile?.account_type === 'personal';
+
+  if (isPersonal && BUSINESS_ROUTES.some((r) => pathname.startsWith(r))) {
+    return NextResponse.redirect(new URL('/tenant', request.url));
+  }
+
+  if (!isPersonal && PERSONAL_ROUTES.some((r) => pathname.startsWith(r))) {
+    return NextResponse.redirect(new URL('/tenant', request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-}
+  matcher: ['/tenant/:path*'],
+};

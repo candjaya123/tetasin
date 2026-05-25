@@ -1,4 +1,4 @@
-# Tumbuhin Platform — Project Overview
+# Tetasin Platform — Project Overview
 
 > **Document Purpose:** High-level entry point for all stakeholders — engineers, architects, PMs, QA, and AI coding assistants — to understand the product vision, scope, actors, and system boundaries.
 > **Who Should Read This:** Everyone joining or contributing to the project.
@@ -8,7 +8,7 @@
 
 ## 1. Product Vision
 
-**Tumbuhin** is a **multi-tenant SaaS ERP and AI platform** purpose-built for Indonesian SMEs (UMKM). It digitizes the full operational lifecycle of a small-to-medium business — from point-of-sale to procurement, inventory, accounting, and financial reporting — under a single, subscription-based roof.
+**Tetasin** is a **multi-tenant SaaS ERP and AI platform** purpose-built for Indonesian SMEs (UMKM). It digitizes the full operational lifecycle of a small-to-medium business — from point-of-sale to procurement, inventory, accounting, and financial reporting — under a single, subscription-based roof.
 
 **Core Promise:**
 > "Upload a receipt → Automatically becomes a double-entry journal. One platform to run your entire business."
@@ -19,17 +19,22 @@
 
 ## 2. Target Users (Actors)
 
-| Actor | Description | Primary Platforms |
-|---|---|---|
-| **Business Owner (Manager)** | Registers the tenant, configures the business, views financial reports, approves POs | Web Dashboard, Mobile App |
-| **Cashier (Kasir)** | Operates the POS terminal, processes daily sales | Web POS, Mobile App |
-| **Stock Manager (Stok)** | Manages raw materials, inventory replenishment, stock opnames | Web Dashboard, Mobile App |
-| **Super Admin** | Platform-level administration, tenant management, subscription billing | Admin Panel (Web) |
-| **AI Virtual CFO** | Autonomous agent that reads aggregated financial data and generates insights/recommendations | Chat Widget (Web + Mobile) |
+| Actor | Account Type | Description | Primary Platforms |
+|---|---|---|---|
+| **Personal User** | `personal` | Individual tracking personal income, expenses, savings goals, and net worth | Mobile App (primary), Web Dashboard |
+| **Business Owner (Manager)** | `business` | Registers the tenant, configures the business, views financial reports, approves POs | Web Dashboard, Mobile App |
+| **Cashier (Kasir)** | `business` | Operates the POS terminal, processes daily sales | Web POS, Mobile App |
+| **Stock Manager (Stok)** | `business` | Manages raw materials, inventory replenishment, stock opnames | Web Dashboard, Mobile App |
+| **Super Admin** | — | Platform-level administration, tenant management, subscription billing | Admin Panel (Web) |
+| **AI Virtual CFO** | `business` | Autonomous agent that reads aggregated financial data and generates insights/recommendations | Chat Widget (Web + Mobile) |
+
+> ⚠️ **`account_type` is immutable.** It is set once at registration and can never be changed. Personal and business accounts are completely separate product modes. There is no upgrade path from personal → business.
 
 ---
 
-## 3. Core Business Domains
+## 3. Core Domains
+
+### 3.1 Business Account Domains (`account_type = 'business'`)
 
 | Domain | Description |
 |---|---|
@@ -43,20 +48,33 @@
 | **AI CFO Assistant** | Gemini-powered chat, receipt scanning (OCR), financial forecasting, RAG memory |
 | **Promotions Engine** | Discount and promo logic applied deterministically during checkout |
 | **Staff & RBAC** | Role-based access control (Manager / Kasir / Stok) per tenant |
-| **Subscription & Billing** | 3-tier SaaS model (Free / Full / Franchise), enforced at API and UI layers |
+| **Subscription & Billing** | Tier model enforced at API and UI layers |
+| **Bill Tracker & Reminder** | Track hutang/piutang (payables/receivables) with due-date smart alerts and one-tap payment journaling |
+
+### 3.2 Personal Account Domains (`account_type = 'personal'`)
+
+| Domain | Description |
+|---|---|
+| **Personal Finance Tracker** | Income/expense logging with double-entry integrity; replaces POS for personal users |
+| **Budget Management** | Monthly per-category spending limits with real-time vs-actual progress tracking |
+| **Financial Goals** | Savings targets, debt payoff goals, and emergency fund building with progress rings |
+| **Recurring Transactions** | Scheduled income/expense reminders with one-tap journal confirmation (`premium` only) |
+| **Net Worth Dashboard** | Real-time snapshot of total assets minus liabilities |
+| **Financial Reporting** | Monthly cash flow, net worth trend, expense breakdown by category |
+| **Bill Tracker & Reminder** | Track personal hutang/piutang (loans owed and owed to you) with due-date reminders and payment journaling |
 
 ---
 
 ## 4. Platform Scope
 
-### 4.1 What Tumbuhin IS
+### 4.1 What Tetasin IS
 
 - A **multi-tenant SaaS platform** — each business gets its own isolated data environment
 - A **deterministic ERP engine** — all financial calculations are mathematically exact; AI is advisory only
 - A **cross-platform product** — Web Dashboard (Next.js), Mobile App (Flutter), and a shared Backend API (NestJS)
 - An **AI-augmented** (not AI-driven) platform — Gemini handles communication, not computation
 
-### 4.2 What Tumbuhin IS NOT
+### 4.2 What Tetasin IS NOT
 
 - Not a payment gateway (uses Midtrans as an integration)
 - Not a raw marketplace (B2C sales to end-consumers happen via POS, not an e-commerce storefront)
@@ -67,28 +85,61 @@
 
 ## 5. Subscription Tiers
 
-Tumbuhin uses a **3-tier subscription model** designed for clarity and simplicity:
+> ⚠️ **Tiers are split by account_type.** Personal and business accounts have completely separate tier tracks. A tier valid for one track is **invalid** for the other. The backend enforces this with `AccountTypeGuard` + `TierGuard` on every request.
 
-| Feature | Free | Full | Franchise |
+### 5.1 Personal Account Tiers
+
+| Tier | DB Value | Price | Description |
 |---|---|---|---|
-| **Target** | Personal / hobby / trial | Single business owner | Multi-branch / franchise operator |
-| **Price** | Free | Rp 99k–249k/mo | Rp 499k+/mo |
-| **POS Transactions** | Limited (100/month) | Unlimited | Unlimited (all branches) |
-| **Inventory** | 1 warehouse, basic | Multi-warehouse, transfers, opname | All branches centralized |
-| **Promotions** | None | Full promo engine | Centralized promo across branches |
-| **Staff Accounts (RBAC)** | Owner only | Manager + Kasir + Stok | Per-branch RBAC + franchise admin |
-| **Accounting** | Basic income tracking | Full double-entry: P&L, balance sheet, cash flow, ledger | Consolidated reports across branches |
-| **AI Features** | None | AI CFO chat + receipt scan + forecasting | AI insights across all branches |
-| **Multi-Account Management** | ❌ | ❌ (single tenant only) | ✅ Monitor & manage N branches from one dashboard |
-| **Consolidated Reporting** | ❌ | ❌ | ✅ Aggregated P&L, inventory, revenue per branch |
-| **History** | 30 days | Unlimited | Unlimited |
-| **Export** | None | CSV + PDF | CSV + PDF + API + consolidated export |
+| Personal Free | `free` | Rp 0 | Basic income/expense tracking, limited entries |
+| Personal Premium | `premium` | Rp 49k/mo | Unlimited tracking, goals, recurring, export |
 
-### Tier Definitions
+### 5.2 Business Account Tiers
 
-- **Free** — Entry-level access for personal use or trying the platform. Feature-gated, no staff, no multi-warehouse, no AI.
-- **Full** — Complete ERP for a single business. All features unlocked for one tenant. No multi-account management.
-- **Franchise** — Enterprise tier for franchise owners or holding companies. One Franchise account can **create, manage, and monitor** multiple branch tenant accounts. Includes consolidated dashboards and cross-branch analytics.
+| Tier | DB Value | Price | Description |
+|---|---|---|---|
+| Business Free | `free` | Rp 0 | Trial POS, 100 transactions/month |
+| Business Pro | `pro` | Rp 99k–249k/mo | Full ERP, staff RBAC, multi-warehouse, AI |
+| Business Franchise | `franchise` | Rp 499k+/mo | Multi-branch consolidated operations |
+
+### 5.3 Feature Matrix
+
+| Feature | Personal Free | Personal Premium | Business Free | Business Pro | Business Franchise |
+|---|---|---|---|---|---|
+| Income/Expense Logging | ✅ 100/mo | ✅ Unlimited | ❌ | ❌ | ❌ |
+| POS Sales | ❌ | ❌ | ✅ 100/mo | ✅ Unlimited | ✅ All branches |
+| Budget Management | ✅ 3 categories | ✅ Unlimited | ❌ | ❌ | ❌ |
+| Financial Goals | ✅ 2 goals | ✅ Unlimited | ❌ | ❌ | ❌ |
+| Recurring Transactions | ❌ | ✅ Unlimited | ❌ | ❌ | ❌ |
+| Net Worth Dashboard | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Inventory + Products | ❌ | ❌ | ✅ Basic | ✅ Full | ✅ Multi-branch |
+| Raw Materials (BOM/HPP) | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Staff RBAC | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Multi-Warehouse | ❌ | ❌ | ❌ | ✅ | ✅ |
+| AI Chat + Receipt OCR | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Consolidated Reports | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Financial Reports | Monthly summary | Full P&L, Neraca | Monthly | Full | All branches |
+| Transaction History | 3 months | Unlimited | 30 days | Unlimited | Unlimited |
+| Export | ❌ | CSV + PDF | ❌ | CSV + PDF | CSV + PDF + API |
+
+### 5.4 Canonical Tier Values
+
+```typescript
+// subscription_tier ENUM in DB:
+enum SubscriptionTier {
+  FREE      = 'free',      // Both personal & business entry tier
+  PREMIUM   = 'premium',   // Personal accounts ONLY
+  PRO       = 'pro',       // Business accounts ONLY
+  FRANCHISE = 'franchise', // Business accounts ONLY
+}
+
+// Valid tiers per account_type:
+PERSONAL_TIERS  = ['free', 'premium']
+BUSINESS_TIERS  = ['free', 'pro', 'franchise']
+```
+
+> ⚠️ **NEVER** use old values `'starter'`, `'business'`, `'full'`, or `'ai'`
+> ⚠️ **NEVER** assign `'premium'` to a business account or `'pro'`/`'franchise'` to a personal account — backend raises `ACCOUNT_TYPE_TIER_MISMATCH (403)`
 
 ---
 

@@ -1,4 +1,4 @@
-# Tumbuhin — Platform Vision & Roadmap
+# Tetasin — Platform Vision & Roadmap
 
 > **Document Purpose:** Long-term product vision, evolution goals, and strategic roadmap.
 > **Who Should Read This:** Engineering leadership, product management, and senior engineers.
@@ -7,7 +7,7 @@
 
 ## 1. Three-Year Vision
 
-Tumbuhin becomes the **default financial operating system for Indonesian SMEs** — replacing paper notebooks, spreadsheets, and isolated apps with a single AI-augmented platform that handles POS, inventory, procurement, accounting, and financial intelligence.
+Tetasin becomes the **default financial operating system for Indonesian SMEs** — replacing paper notebooks, spreadsheets, and isolated apps with a single AI-augmented platform that handles POS, inventory, procurement, accounting, and financial intelligence.
 
 ### 1.1 Year 1 — Foundation (Complete)
 > "One platform that reliably runs a single-store Indonesian SME."
@@ -35,7 +35,7 @@ Tumbuhin becomes the **default financial operating system for Indonesian SMEs** 
 ### 1.3 Year 3 — Ecosystem
 > "The financial intelligence backbone for 100,000 Indonesian SMEs."
 
-- Developer marketplace (partner apps on Tumbuhin platform)
+- Developer marketplace (partner apps on Tetasin platform)
 - Embedded lending (revenue-based financing via bank partnerships)
 - Industry-specific vertical modules (pharmacy, manufacturing, F&B)
 - Regional expansion (SEA markets)

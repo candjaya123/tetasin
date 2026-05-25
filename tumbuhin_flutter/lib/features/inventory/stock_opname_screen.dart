@@ -63,7 +63,10 @@ class _StockOpnameScreenState extends ConsumerState<StockOpnameScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Stok Opname', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Stok Opname',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -74,7 +77,11 @@ class _StockOpnameScreenState extends ConsumerState<StockOpnameScreen> {
           children: [
             Text(
               'Pilih Gudang',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.grey.shade700),
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.grey.shade700,
+              ),
             ),
             const SizedBox(height: 10),
             Container(
@@ -95,14 +102,18 @@ class _StockOpnameScreenState extends ConsumerState<StockOpnameScreen> {
                       child: Text(w['name']),
                     );
                   }).toList(),
-                  onChanged: (val) => setState(() => _selectedWarehouseId = val),
+                  onChanged: (val) =>
+                      setState(() => _selectedWarehouseId = val),
                 ),
               ),
             ),
             const SizedBox(height: 32),
             Text(
               'Daftar Produk untuk Disesuaikan',
-              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
@@ -114,7 +125,11 @@ class _StockOpnameScreenState extends ConsumerState<StockOpnameScreen> {
               ),
               child: Column(
                 children: [
-                  Icon(Icons.add_circle_outline_rounded, size: 48, color: Colors.grey.shade300),
+                  Icon(
+                    Icons.add_circle_outline_rounded,
+                    size: 48,
+                    color: Colors.grey.shade300,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Tambah produk untuk mulai opname',
@@ -126,7 +141,11 @@ class _StockOpnameScreenState extends ConsumerState<StockOpnameScreen> {
             const SizedBox(height: 32),
             Text(
               'Catatan Tambahan',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.grey.shade700),
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.grey.shade700,
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -144,7 +163,9 @@ class _StockOpnameScreenState extends ConsumerState<StockOpnameScreen> {
             ),
           ],
         ),
-        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDB827))),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFFFDB827)),
+        ),
         error: (err, _) => Center(child: Text('Error memuat gudang: $err')),
       ),
       bottomNavigationBar: Padding(
@@ -155,14 +176,19 @@ class _StockOpnameScreenState extends ConsumerState<StockOpnameScreen> {
             backgroundColor: const Color(0xFF2D3436),
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 60),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             elevation: 0,
           ),
           child: _isSubmitting
               ? const CircularProgressIndicator(color: Colors.white)
               : Text(
                   'Simpan Hasil Opname',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
         ),
       ),

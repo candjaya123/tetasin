@@ -1,6 +1,6 @@
-# Tumbuhin — Universal Commerce Engine: Upgrade Plan
+# Tetasin — Universal Commerce Engine: Upgrade Plan
 
-> **Document Purpose:** Planning-level upgrade roadmap to evolve the Tumbuhin POS product system into a modular universal commerce engine supporting multiple business industries.
+> **Document Purpose:** Planning-level upgrade roadmap to evolve the Tetasin POS product system into a modular universal commerce engine supporting multiple business industries.
 > **Who Should Read This:** CTO, Product Lead, Backend Lead, Mobile Lead, QA Lead.
 > **Why It Matters:** The current product system is optimized for a single industry profile. Supporting 8+ industries without this plan will result in hardcoded branches, duplicated flows, and unmaintainable technical debt.
 > **Related ADRs:** ADR-001 (Modular Monolith), ADR-003 (Deterministic Core), ADR-004 (Universal Product Engine), ADR-005 (Industry Profile Config)
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-Tumbuhin's current POS product system treats all products identically: fixed price, physical stock, simple BOM/recipe. This plan upgrades it into a **Universal Product Engine** — a modular, configurable, industry-agnostic commerce engine.
+Tetasin's current POS product system treats all products identically: fixed price, physical stock, simple BOM/recipe. This plan upgrades it into a **Universal Product Engine** — a modular, configurable, industry-agnostic commerce engine.
 
 **Current System:**
 ```

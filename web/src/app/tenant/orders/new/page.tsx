@@ -13,11 +13,12 @@ import {
   ShoppingBag,
   Package
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import { productService } from '@/lib/api/productService';
 import { 
   Select, 
   SelectContent, 
@@ -34,13 +35,17 @@ export default function NewOrderPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const { data } = await supabase.from('products').select('*').order('name');
-      if (data) setProducts(data);
-      setLoading(false);
+      try {
+        const data = await productService.getProducts();
+        if (data) setProducts(data);
+      } catch (err) {
+        console.error('Failed to fetch products', err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchProducts();
   }, []);
@@ -101,24 +106,31 @@ export default function NewOrderPage() {
 
   return (
     <div className="space-y-8 pb-20">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/tenant/orders">
-            <Button variant="ghost" size="icon">
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link
+            href="/tenant/orders"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "icon" }),
+              "rounded-xl flex items-center justify-center"
+            )}
+          >
+            <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{type === 'SO' ? 'Sales Order Baru' : 'Purchase Order Baru'}</h1>
-            <p className="text-slate-500">Mulai pembuatan dokumen pesanan profesional.</p>
+            <h1 className="text-xl sm:text-3xl font-black text-slate-800 tracking-tight">
+              {type === 'SO' ? 'Sales Order Baru' : 'Purchase Order Baru'}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">Mulai pembuatan dokumen pesanan profesional.</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="flex gap-2" onClick={() => window.print()}>
+        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+          <Button variant="outline" className="flex-1 sm:flex-none flex gap-2 rounded-xl h-10 sm:h-11 font-bold text-xs sm:text-sm" onClick={() => window.print()}>
             <Printer className="w-4 h-4" />
-            Cetak Preview
+            <span className="hidden xs:inline">Cetak Preview</span>
+            <span className="xs:hidden">Cetak</span>
           </Button>
-          <Button className="flex gap-2" onClick={handleSave} disabled={isSubmitting}>
+          <Button className="flex-1 sm:flex-none flex gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl h-10 sm:h-11 shadow-lg text-xs sm:text-sm" onClick={handleSave} disabled={isSubmitting}>
             <Save className="w-4 h-4" />
             {isSubmitting ? 'Menyimpan...' : 'Simpan & Terbitkan'}
           </Button>
@@ -133,7 +145,7 @@ export default function NewOrderPage() {
               <CardTitle className="text-lg">Informasi Dasar</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2">
                   <Label>Tipe Dokumen</Label>
                   <Select value={type} onValueChange={(val: any) => setType(val)}>
@@ -169,11 +181,11 @@ export default function NewOrderPage() {
             <CardContent>
               <div className="space-y-4">
                 {items.map((item, idx) => (
-                  <div key={item.id} className="flex gap-4 items-end pb-4 border-b border-slate-100 last:border-0">
-                    <div className="flex-1 space-y-2">
-                      <Label className={idx === 0 ? '' : 'hidden'}>Pilih Produk</Label>
+                  <div key={item.id} className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end pb-4 border-b border-slate-100 last:border-0 relative">
+                    <div className="flex-grow space-y-2">
+                      <Label className={idx === 0 ? 'block' : 'block sm:hidden'}>Pilih Produk</Label>
                       <Select value={item.product_id} onValueChange={(val) => updateItem(item.id, 'product_id', val)}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 sm:h-11 rounded-xl">
                           <SelectValue placeholder="Pilih Produk" />
                         </SelectTrigger>
                         <SelectContent>
@@ -183,25 +195,36 @@ export default function NewOrderPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="w-24 space-y-2">
-                      <Label className={idx === 0 ? '' : 'hidden'}>Qty</Label>
-                      <Input 
-                        type="number" 
-                        value={item.qty} 
-                        onChange={(e) => updateItem(item.id, 'qty', e.target.value)}
-                      />
+                    <div className="flex gap-3">
+                      <div className="flex-1 sm:w-24 space-y-2">
+                        <Label className={idx === 0 ? 'block' : 'block sm:hidden'}>Qty</Label>
+                        <Input 
+                          type="number" 
+                          value={item.qty} 
+                          onChange={(e) => updateItem(item.id, 'qty', e.target.value)}
+                          className="h-10 sm:h-11 rounded-xl"
+                        />
+                      </div>
+                      <div className="flex-[2] sm:w-40 space-y-2">
+                        <Label className={idx === 0 ? 'block' : 'block sm:hidden'}>Harga Satuan</Label>
+                        <Input 
+                          type="number" 
+                          value={item.price} 
+                          onChange={(e) => updateItem(item.id, 'price', e.target.value)}
+                          className="h-10 sm:h-11 rounded-xl"
+                        />
+                      </div>
+                      <div className="flex items-end justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-red-400 hover:text-red-600 hover:bg-red-50 h-10 w-10 sm:h-11 sm:w-11 rounded-xl shrink-0 mt-2 sm:mt-0" 
+                          onClick={() => removeItem(item.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="w-40 space-y-2">
-                      <Label className={idx === 0 ? '' : 'hidden'}>Harga Satuan</Label>
-                      <Input 
-                        type="number" 
-                        value={item.price} 
-                        onChange={(e) => updateItem(item.id, 'price', e.target.value)}
-                      />
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-red-400" onClick={() => removeItem(item.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
                 ))}
               </div>
@@ -225,7 +248,7 @@ export default function NewOrderPage() {
               <div className="grid grid-cols-2 gap-10 mb-10 text-sm">
                 <div>
                   <p className="text-slate-400 font-bold mb-1 uppercase text-[10px]">Dari:</p>
-                  <p className="font-black text-slate-800">Tumbuhin Business Unit</p>
+                  <p className="font-black text-slate-800">Tetasin Business Unit</p>
                   <p className="text-slate-500">Jakarta, Indonesia</p>
                 </div>
                 <div className="text-right">
@@ -275,7 +298,7 @@ export default function NewOrderPage() {
               </div>
 
               <div className="mt-20 pt-10 border-t border-slate-100 text-[10px] text-slate-400 text-center uppercase tracking-widest font-bold">
-                Dokumen ini diterbitkan secara otomatis oleh Sistem Tumbuhin ERP
+                Dokumen ini diterbitkan secara otomatis oleh Sistem Tetasin ERP
               </div>
             </div>
           </div>

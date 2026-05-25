@@ -23,6 +23,10 @@ CartItem _$CartItemFromJson(Map<String, dynamic> json) {
 mixin _$CartItem {
   Product get product => throw _privateConstructorUsedError;
   int get quantity => throw _privateConstructorUsedError;
+  List<VariantOption> get selectedVariants =>
+      throw _privateConstructorUsedError;
+  List<Addon> get selectedAddons => throw _privateConstructorUsedError;
+  String? get specialInstructions => throw _privateConstructorUsedError;
 
   /// Serializes this CartItem to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -39,7 +43,13 @@ abstract class $CartItemCopyWith<$Res> {
   factory $CartItemCopyWith(CartItem value, $Res Function(CartItem) then) =
       _$CartItemCopyWithImpl<$Res, CartItem>;
   @useResult
-  $Res call({Product product, int quantity});
+  $Res call({
+    Product product,
+    int quantity,
+    List<VariantOption> selectedVariants,
+    List<Addon> selectedAddons,
+    String? specialInstructions,
+  });
 
   $ProductCopyWith<$Res> get product;
 }
@@ -58,7 +68,13 @@ class _$CartItemCopyWithImpl<$Res, $Val extends CartItem>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? product = null, Object? quantity = null}) {
+  $Res call({
+    Object? product = null,
+    Object? quantity = null,
+    Object? selectedVariants = null,
+    Object? selectedAddons = null,
+    Object? specialInstructions = freezed,
+  }) {
     return _then(
       _value.copyWith(
             product: null == product
@@ -69,6 +85,18 @@ class _$CartItemCopyWithImpl<$Res, $Val extends CartItem>
                 ? _value.quantity
                 : quantity // ignore: cast_nullable_to_non_nullable
                       as int,
+            selectedVariants: null == selectedVariants
+                ? _value.selectedVariants
+                : selectedVariants // ignore: cast_nullable_to_non_nullable
+                      as List<VariantOption>,
+            selectedAddons: null == selectedAddons
+                ? _value.selectedAddons
+                : selectedAddons // ignore: cast_nullable_to_non_nullable
+                      as List<Addon>,
+            specialInstructions: freezed == specialInstructions
+                ? _value.specialInstructions
+                : specialInstructions // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -94,7 +122,13 @@ abstract class _$$CartItemImplCopyWith<$Res>
   ) = __$$CartItemImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({Product product, int quantity});
+  $Res call({
+    Product product,
+    int quantity,
+    List<VariantOption> selectedVariants,
+    List<Addon> selectedAddons,
+    String? specialInstructions,
+  });
 
   @override
   $ProductCopyWith<$Res> get product;
@@ -113,7 +147,13 @@ class __$$CartItemImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? product = null, Object? quantity = null}) {
+  $Res call({
+    Object? product = null,
+    Object? quantity = null,
+    Object? selectedVariants = null,
+    Object? selectedAddons = null,
+    Object? specialInstructions = freezed,
+  }) {
     return _then(
       _$CartItemImpl(
         product: null == product
@@ -124,6 +164,18 @@ class __$$CartItemImplCopyWithImpl<$Res>
             ? _value.quantity
             : quantity // ignore: cast_nullable_to_non_nullable
                   as int,
+        selectedVariants: null == selectedVariants
+            ? _value._selectedVariants
+            : selectedVariants // ignore: cast_nullable_to_non_nullable
+                  as List<VariantOption>,
+        selectedAddons: null == selectedAddons
+            ? _value._selectedAddons
+            : selectedAddons // ignore: cast_nullable_to_non_nullable
+                  as List<Addon>,
+        specialInstructions: freezed == specialInstructions
+            ? _value.specialInstructions
+            : specialInstructions // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -131,8 +183,16 @@ class __$$CartItemImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$CartItemImpl implements _CartItem {
-  const _$CartItemImpl({required this.product, required this.quantity});
+class _$CartItemImpl extends _CartItem {
+  const _$CartItemImpl({
+    required this.product,
+    this.quantity = 1,
+    final List<VariantOption> selectedVariants = const [],
+    final List<Addon> selectedAddons = const [],
+    this.specialInstructions,
+  }) : _selectedVariants = selectedVariants,
+       _selectedAddons = selectedAddons,
+       super._();
 
   factory _$CartItemImpl.fromJson(Map<String, dynamic> json) =>
       _$$CartItemImplFromJson(json);
@@ -140,11 +200,33 @@ class _$CartItemImpl implements _CartItem {
   @override
   final Product product;
   @override
+  @JsonKey()
   final int quantity;
+  final List<VariantOption> _selectedVariants;
+  @override
+  @JsonKey()
+  List<VariantOption> get selectedVariants {
+    if (_selectedVariants is EqualUnmodifiableListView)
+      return _selectedVariants;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_selectedVariants);
+  }
+
+  final List<Addon> _selectedAddons;
+  @override
+  @JsonKey()
+  List<Addon> get selectedAddons {
+    if (_selectedAddons is EqualUnmodifiableListView) return _selectedAddons;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_selectedAddons);
+  }
+
+  @override
+  final String? specialInstructions;
 
   @override
   String toString() {
-    return 'CartItem(product: $product, quantity: $quantity)';
+    return 'CartItem(product: $product, quantity: $quantity, selectedVariants: $selectedVariants, selectedAddons: $selectedAddons, specialInstructions: $specialInstructions)';
   }
 
   @override
@@ -154,12 +236,29 @@ class _$CartItemImpl implements _CartItem {
             other is _$CartItemImpl &&
             (identical(other.product, product) || other.product == product) &&
             (identical(other.quantity, quantity) ||
-                other.quantity == quantity));
+                other.quantity == quantity) &&
+            const DeepCollectionEquality().equals(
+              other._selectedVariants,
+              _selectedVariants,
+            ) &&
+            const DeepCollectionEquality().equals(
+              other._selectedAddons,
+              _selectedAddons,
+            ) &&
+            (identical(other.specialInstructions, specialInstructions) ||
+                other.specialInstructions == specialInstructions));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, product, quantity);
+  int get hashCode => Object.hash(
+    runtimeType,
+    product,
+    quantity,
+    const DeepCollectionEquality().hash(_selectedVariants),
+    const DeepCollectionEquality().hash(_selectedAddons),
+    specialInstructions,
+  );
 
   /// Create a copy of CartItem
   /// with the given fields replaced by the non-null parameter values.
@@ -175,11 +274,15 @@ class _$CartItemImpl implements _CartItem {
   }
 }
 
-abstract class _CartItem implements CartItem {
+abstract class _CartItem extends CartItem {
   const factory _CartItem({
     required final Product product,
-    required final int quantity,
+    final int quantity,
+    final List<VariantOption> selectedVariants,
+    final List<Addon> selectedAddons,
+    final String? specialInstructions,
   }) = _$CartItemImpl;
+  const _CartItem._() : super._();
 
   factory _CartItem.fromJson(Map<String, dynamic> json) =
       _$CartItemImpl.fromJson;
@@ -188,6 +291,12 @@ abstract class _CartItem implements CartItem {
   Product get product;
   @override
   int get quantity;
+  @override
+  List<VariantOption> get selectedVariants;
+  @override
+  List<Addon> get selectedAddons;
+  @override
+  String? get specialInstructions;
 
   /// Create a copy of CartItem
   /// with the given fields replaced by the non-null parameter values.

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "332891805432",
+    "project_id": "tetasin-1165c",
+    "storage_bucket": "tetasin-1165c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:332891805432:android:048ce53e65623b09bccd0d",
+        "android_client_info": {
+          "package_name": "com.tetasin.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2kvSFEzRMgcavRAOJIzwJtQ-hnhrm0EU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

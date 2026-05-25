@@ -9,9 +9,7 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       body: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-        ),
+        decoration: const BoxDecoration(color: Colors.white),
         child: SafeArea(
           child: Center(
             child: Column(
@@ -42,7 +40,7 @@ class SplashScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  'Tumbuhin',
+                  'Tetasin',
                   style: GoogleFonts.outfit(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
@@ -65,7 +63,9 @@ class SplashScreen extends StatelessWidget {
                   height: 40,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFDB827)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFFFDB827),
+                    ),
                   ),
                 ),
               ],

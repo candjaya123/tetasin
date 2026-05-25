@@ -14,5 +14,6 @@ class SmartAlert with _$SmartAlert {
     @Default(false) bool isRead,
   }) = _SmartAlert;
 
-  factory SmartAlert.fromJson(Map<String, dynamic> json) => _$SmartAlertFromJson(json);
+  factory SmartAlert.fromJson(Map<String, dynamic> json) =>
+      _$SmartAlertFromJson(json);
 }

@@ -1,4 +1,4 @@
-# Tumbuhin — Deployment & Operations
+# Tetasin — Deployment & Operations
 
 > **Document Purpose:** Defines deployment architecture, CI/CD pipelines, health checks, environment configuration, monitoring, backup schedules, and runbook procedures.
 > **Who Should Read This:** DevOps engineers, backend engineers, and on-call responders.
@@ -13,7 +13,7 @@
 ├──────────────────────────────────────────────────────────────────────┤
 │                                                                        │
 │  Web (Vercel)            Admin (Vercel)            Flutter (App Store) │
-│  tumbuhin.com            admin.tumbuhin.com        iOS + Android       │
+│  tetasin.com            admin.tetasin.com        iOS + Android       │
 │       │                        │                                       │
 │       └────────────────────────┘                                       │
 │                         │                                              │
@@ -21,7 +21,7 @@
 │                         │                                              │
 │              ┌──────────▼──────────────┐                              │
 │              │  NestJS API (Docker)     │                              │
-│              │  api.tumbuhin.com        │                              │
+│              │  api.tetasin.com        │                              │
 │              │  Port 3001               │                              │
 │              └──────────┬──────────────┘                              │
 │           ┌─────────────┼─────────────┐                               │
@@ -62,15 +62,15 @@ USE_MOCK_REDIS=false                   # true ONLY in local dev
 # App
 NODE_ENV=production
 PORT=3001
-WEB_URL=https://tumbuhin.com
-ADMIN_URL=https://admin.tumbuhin.com
+WEB_URL=https://tetasin.com
+ADMIN_URL=https://admin.tetasin.com
 ```
 
 ### 2.2 Frontend Environment Variables
 
 ```bash
 # Web (.env.local) — NEXT_PUBLIC_ prefix = safe for browser
-NEXT_PUBLIC_BACKEND_URL=https://api.tumbuhin.com
+NEXT_PUBLIC_BACKEND_URL=https://api.tetasin.com
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...   # Anon key only, NOT service role
 ```
@@ -153,11 +153,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker image
-        run: docker build -t tumbuhin-api:${{ github.sha }} ./backend
+        run: docker build -t tetasin-api:${{ github.sha }} ./backend
       - name: Deploy to staging
         run: |
-          docker push $REGISTRY/tumbuhin-api:${{ github.sha }}
-          kubectl set image deployment/api api=$REGISTRY/tumbuhin-api:${{ github.sha }} -n staging
+          docker push $REGISTRY/tetasin-api:${{ github.sha }}
+          kubectl set image deployment/api api=$REGISTRY/tetasin-api:${{ github.sha }} -n staging
 
   deploy-production:
     needs: deploy-staging
@@ -166,7 +166,7 @@ jobs:
     steps:
       - name: Deploy to production
         run: |
-          kubectl set image deployment/api api=$REGISTRY/tumbuhin-api:${{ github.sha }} -n production
+          kubectl set image deployment/api api=$REGISTRY/tetasin-api:${{ github.sha }} -n production
       - name: Verify rollout
         run: kubectl rollout status deployment/api -n production --timeout=5m
 ```

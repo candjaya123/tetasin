@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/pos_providers.dart';
+import '../../../shared/models/cart_item.dart';
 
 class BarcodeScannerScreen extends ConsumerStatefulWidget {
   const BarcodeScannerScreen({super.key});
 
   @override
-  ConsumerState<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
+  ConsumerState<BarcodeScannerScreen> createState() =>
+      _BarcodeScannerScreenState();
 }
 
 class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
@@ -28,7 +30,7 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
           MobileScanner(
             onDetect: (capture) {
               if (!_isScanning) return;
-              
+
               final List<Barcode> barcodes = capture.barcodes;
               for (final barcode in barcodes) {
                 if (barcode.rawValue != null) {
@@ -56,7 +58,11 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
             child: Text(
               'Arahkan kamera ke barcode produk',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -66,14 +72,18 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
 
   void _handleBarcode(String code) {
     setState(() => _isScanning = false);
-    
+
     // Logic to find product in productsProvider
     final productsAsync = ref.read(productsProvider);
     productsAsync.whenData((products) {
       try {
-        final product = products.firstWhere((p) => p.skuCode == code || p.id == code);
-        ref.read(cartProvider.notifier).addToCart(product);
-        
+        final product = products.firstWhere(
+          (p) => (p.sku == code || p.barcode == code) || p.id == code,
+        );
+        ref
+            .read(cartProvider.notifier)
+            .addToCart(CartItem(product: product, quantity: 1));
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${product.name} ditambahkan'),

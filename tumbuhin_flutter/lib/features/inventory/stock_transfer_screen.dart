@@ -8,7 +8,8 @@ class StockTransferScreen extends ConsumerStatefulWidget {
   const StockTransferScreen({super.key});
 
   @override
-  ConsumerState<StockTransferScreen> createState() => _StockTransferScreenState();
+  ConsumerState<StockTransferScreen> createState() =>
+      _StockTransferScreenState();
 }
 
 class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
@@ -33,7 +34,9 @@ class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
 
     if (_fromWarehouseId == _toWarehouseId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gudang asal dan tujuan tidak boleh sama')),
+        const SnackBar(
+          content: Text('Gudang asal dan tujuan tidak boleh sama'),
+        ),
       );
       return;
     }
@@ -45,15 +48,15 @@ class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
         'from_warehouse_id': _fromWarehouseId,
         'to_warehouse_id': _toWarehouseId,
         // TODO: In a real app, you'd select a product first
-        'product_id': 'temporary-id', 
+        'product_id': 'temporary-id',
         'quantity': double.tryParse(_quantityController.text) ?? 0,
       });
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transfer stok berhasil')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Transfer stok berhasil')));
       }
     } catch (e) {
       if (mounted) {
@@ -73,7 +76,10 @@ class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Transfer Stok', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Transfer Stok',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -93,7 +99,10 @@ class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
               child: Center(
                 child: CircleAvatar(
                   backgroundColor: Color(0xFFFDB827),
-                  child: Icon(Icons.arrow_downward_rounded, color: Colors.white),
+                  child: Icon(
+                    Icons.arrow_downward_rounded,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -106,7 +115,10 @@ class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
             const SizedBox(height: 32),
             Text(
               'Detail Transfer',
-              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -125,7 +137,9 @@ class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
             ),
           ],
         ),
-        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFFDB827))),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFFFDB827)),
+        ),
         error: (err, _) => Center(child: Text('Error memuat gudang: $err')),
       ),
       bottomNavigationBar: Padding(
@@ -136,14 +150,19 @@ class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
             backgroundColor: const Color(0xFF2D3436),
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 60),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             elevation: 0,
           ),
           child: _isSubmitting
               ? const CircularProgressIndicator(color: Colors.white)
               : Text(
                   'Konfirmasi Transfer',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
         ),
       ),
@@ -159,7 +178,14 @@ class _StockTransferScreenState extends ConsumerState<StockTransferScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.grey.shade700)),
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Colors.grey.shade700,
+          ),
+        ),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),

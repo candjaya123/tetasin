@@ -8,11 +8,11 @@
 
 ## Decision
 
-Tumbuhin backend uses **Modular Monolith** with **Event-Driven** async processing via BullMQ.
+Tetasin backend uses **Modular Monolith** with **Event-Driven** async processing via BullMQ.
 
 ## Context
 
-Tumbuhin serves 15 business domains from a single platform. The architecture choice must balance:
+Tetasin serves 15 business domains from a single platform. The architecture choice must balance:
 - Clean domain isolation (for future microservice extraction)
 - Operational simplicity (2–5 person engineering team)
 - ACID transaction support (financial integrity requirement)

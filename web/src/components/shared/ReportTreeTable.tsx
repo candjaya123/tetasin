@@ -47,7 +47,7 @@ export const ReportTreeTable: React.FC<ReportTreeTableProps> = ({ data, netTitle
   };
 
   return (
-    <div className="w-full bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+    <div className="w-full bg-card rounded-3xl border border-border overflow-hidden shadow-sm">
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">

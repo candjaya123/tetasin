@@ -8,7 +8,9 @@ export class SupabaseStrategy extends PassportStrategy(Strategy, 'supabase') {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.SUPABASE_JWT_SECRET || 'fallback_secret_for_initialization',
+      secretOrKey: process.env.SUPABASE_JWT_SECRET || (() => {
+        throw new Error('SUPABASE_JWT_SECRET environment variable is required');
+      })(),
     });
   }
 

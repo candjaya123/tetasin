@@ -20,7 +20,8 @@ import {
   ListPlus,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Pencil
 } from "lucide-react";
 import { productService } from '@/lib/api/productService';
 import { useToast } from "@/hooks/use-toast";
@@ -29,9 +30,10 @@ interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  editingProduct?: any;
 }
 
-export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalProps) {
+export function AddProductModal({ isOpen, onClose, onSuccess, editingProduct }: AddProductModalProps) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [barcode, setBarcode] = useState('');
@@ -40,10 +42,25 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const isEditing = !!editingProduct;
 
   useEffect(() => {
     if (isOpen) {
       fetchRawMaterials();
+      if (editingProduct) {
+        setName(editingProduct.name || '');
+        setPrice(String(editingProduct.selling_price || editingProduct.price || ''));
+        setBarcode(editingProduct.barcode || '');
+      }
+    }
+  }, [isOpen, editingProduct]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setName('');
+      setPrice('');
+      setBarcode('');
+      setRecipe([]);
     }
   }, [isOpen]);
 
@@ -51,7 +68,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
     try {
       setLoading(true);
       const data = await productService.getRawMaterials();
-      setRawMaterials(data);
+      setRawMaterials(data as any[]);
     } catch (error) {
       console.error('Error fetching raw materials:', error);
     } finally {
@@ -95,24 +112,29 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
 
     setIsSubmitting(true);
     try {
-      await productService.createProduct({
-        p_name: name,
-        p_selling_price: parseFloat(price),
-        p_barcode: barcode || undefined,
-        p_recipe: recipe.filter(r => r.materialId && r.quantity > 0)
-      });
-
-      toast({
-        title: "Berhasil",
-        description: "Produk berhasil ditambahkan",
-      });
+      if (isEditing) {
+        await productService.updateProduct(editingProduct.id, {
+          name,
+          selling_price: parseFloat(price),
+          barcode: barcode || undefined,
+        });
+        toast({ title: "Berhasil", description: "Produk berhasil diperbarui" });
+      } else {
+        await productService.createProduct({
+          p_name: name,
+          p_selling_price: parseFloat(price),
+          p_barcode: barcode || undefined,
+          p_recipe: recipe.filter(r => r.materialId && r.quantity > 0)
+        });
+        toast({ title: "Berhasil", description: "Produk berhasil ditambahkan" });
+      }
       
       onSuccess();
-      handleClose();
+      onClose();
     } catch (error: any) {
       toast({
         title: "Gagal",
-        description: error.message || "Terjadi kesalahan saat menambah produk",
+        description: error.message || "Terjadi kesalahan",
         variant: "destructive"
       });
     } finally {
@@ -120,25 +142,17 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
     }
   };
 
-  const handleClose = () => {
-    setName('');
-    setPrice('');
-    setBarcode('');
-    setRecipe([]);
-    onClose();
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] bg-white border-none shadow-2xl rounded-3xl overflow-hidden">
         <form onSubmit={handleSubmit}>
           <DialogHeader className="p-6 bg-slate-50/50">
             <DialogTitle className="text-2xl font-black text-slate-800 flex items-center gap-2">
-              <Package className="w-6 h-6 text-primary" />
-              Tambah Produk Baru
+              {isEditing ? <Pencil className="w-6 h-6 text-primary" /> : <Package className="w-6 h-6 text-primary" />}
+              {isEditing ? 'Edit Produk' : 'Tambah Produk Baru'}
             </DialogTitle>
             <DialogDescription className="font-medium text-slate-500">
-              Daftarkan produk jualan Anda ke dalam sistem inventaris.
+              {isEditing ? 'Perbarui informasi produk Anda.' : 'Daftarkan produk jualan Anda ke dalam sistem inventaris.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -202,6 +216,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
               </div>
             </div>
 
+            {!isEditing && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Resep / Bahan Baku (Opsional)</Label>
@@ -258,6 +273,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
                 </div>
               )}
             </div>
+            )}
           </div>
 
           <DialogFooter className="p-6 bg-slate-50/50">
@@ -265,7 +281,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
               type="button" 
               variant="ghost" 
               className="font-bold text-slate-500 rounded-xl"
-              onClick={handleClose}
+              onClick={onClose}
             >
               Batal
             </Button>
@@ -282,7 +298,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
               ) : (
                 <>
                   <ListPlus className="w-4 h-4 mr-2" />
-                  Simpan Produk
+                  {isEditing ? 'Simpan Perubahan' : 'Simpan Produk'}
                 </>
               )}
             </Button>

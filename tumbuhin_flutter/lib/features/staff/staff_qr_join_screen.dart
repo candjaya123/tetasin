@@ -26,7 +26,10 @@ class StaffQRJoinScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Undang Staf', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'Undang Staf',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(30),
@@ -39,12 +42,20 @@ class StaffQRJoinScreen extends ConsumerWidget {
             ElevatedButton.icon(
               onPressed: () => _handleShare(joinCode, tenant?.name),
               icon: const Icon(HugeIcons.strokeRoundedShare01),
-              label: const Text('Bagikan Kode Undangan', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              label: const Text(
+                'Bagikan Kode Undangan',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFDB827),
                 foregroundColor: const Color(0xFF1A1A1A),
-                padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25,
+                  vertical: 15,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
             const SizedBox(height: 30),
@@ -58,15 +69,23 @@ class StaffQRJoinScreen extends ConsumerWidget {
   Widget _buildInfoCard() {
     return Column(
       children: [
-        const Icon(Icons.verified_user_rounded, size: 40, color: Color(0xFF10B981)),
+        const Icon(
+          Icons.verified_user_rounded,
+          size: 40,
+          color: Color(0xFF10B981),
+        ),
         const SizedBox(height: 15),
         const Text(
           'Undang via QR Code',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A)),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF1A1A1A),
+          ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Minta staf Anda untuk memindai kode di bawah ini dari layar Login aplikasi Tumbuhin mereka.',
+          'Minta staf Anda untuk memindai kode di bawah ini dari layar Login aplikasi Tetasin mereka.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.4),
         ),
@@ -106,7 +125,11 @@ class StaffQRJoinScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           Text(
             tenantName ?? 'Toko Anda',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A)),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1A1A1A),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -129,13 +152,18 @@ class StaffQRJoinScreen extends ConsumerWidget {
       child: const Text(
         'PENTING: Hanya berikan kode ini kepada staf resmi Anda. Kode ini memberikan akses terbatas sesuai role default (Kasir).',
         textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 11, color: Color(0xFF92400E), fontStyle: FontStyle.italic),
+        style: TextStyle(
+          fontSize: 11,
+          color: Color(0xFF92400E),
+          fontStyle: FontStyle.italic,
+        ),
       ),
     );
   }
 
   void _handleShare(String code, String? tenantName) {
-    final message = 'Bergabunglah ke tim ${tenantName ?? "Tumbuhin"} di Tumbuhin menggunakan kode ini: $code';
+    final message =
+        'Bergabunglah ke tim ${tenantName ?? "Tetasin"} di Tetasin menggunakan kode ini: $code';
     Share.share(message);
   }
 }

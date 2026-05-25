@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../../shared/supabase.service';
 import { AccountingRepository } from '../repositories/accounting.repository';
-import { Decimal } from 'decimal.js';
+import Decimal from 'decimal.js';
 
 @Injectable()
 export class AccountingService {
@@ -55,6 +55,16 @@ export class AccountingService {
   /**
    * Menginisialisasi COA untuk tenant baru berdasarkan master table di DB
    */
+  private inferKategori(type: string): string {
+    const t = (type || '').toLowerCase();
+    if (t.includes('aset') || t.includes('asset')) return 'ASET';
+    if (t.includes('kewajiban') || t.includes('liability')) return 'KEWAJIBAN';
+    if (t.includes('ekuitas') || t.includes('equity')) return 'EKUITAS';
+    if (t.includes('pendapatan') || t.includes('revenue')) return 'PENDAPATAN';
+    if (t.includes('hpp') || t.includes('harga pokok') || t.includes('cogs') || t.includes('cost of sales')) return 'HPP / BIAYA LANGSUNG';
+    return 'BEBAN OPERASIONAL';
+  }
+
   async initializeCOA(tenantId: string, industry?: string, scale?: string, accountType: string = 'business') {
     this.logger.log(`Initializing COA for tenant: ${tenantId}, industry: ${industry}, scale: ${scale}, type: ${accountType}`);
     
@@ -83,7 +93,9 @@ export class AccountingService {
           { code: '6-60006', name: 'Tabungan & Investasi', type: 'expense', normal_balance: 'debit' },
         ].map(acc => ({ ...acc, tenant_id: tenantId }));
 
-        const { error } = await client.from('accounts').insert(personalAccounts);
+        const { error } = await client.from('chart_of_accounts').insert(
+          personalAccounts.map(a => ({ ...a, kategori: this.inferKategori(a.type), is_system: true }))
+        );
         if (error) {
           this.logger.error(`Error seeding Personal COA: ${error.message}`);
           throw error;
@@ -92,60 +104,50 @@ export class AccountingService {
         return;
       }
 
-      const { data: masterAccounts, error: fetchError } = await client
-        .from('master_chart_of_accounts')
-        .select('*');
+      // Try canonical chart_of_accounts first, fall back to legacy
+    let { data: masterAccounts, error: fetchError } = await client
+      .from('chart_of_accounts')
+      .select('*')
+      .eq('is_system', true)
+      .limit(1);
 
-      if (fetchError || !masterAccounts) {
-        this.logger.error(`Failed to fetch master COA: ${fetchError?.message}`);
-        return;
-      }
+    const targetTable = !fetchError && masterAccounts && masterAccounts.length > 0
+      ? 'chart_of_accounts'
+      : 'master_chart_of_accounts';
 
-      const accountsToInsert = [];
-      const isJasa = industry === 'Jasa';
-      const isMikro = scale === 'Mikro';
+    const { data: accounts, error: masterError } = await client
+      .from(targetTable)
+      .select('*')
+      .is('tenant_id', null)
+      .limit(1000);
 
-      for (const master of masterAccounts) {
-        const code = master.code;
-        const name = master.name;
-        const type = master.type;
-        const normalBalance = master.normal_balance;
-        const categoryRaw = master.category_raw || '';
-        
-        // 2. Filter Industri Jasa (Lewati Persediaan & HPP)
-        if (isJasa && (categoryRaw.includes('PERSEDIAAN') || categoryRaw.includes('HPP') || categoryRaw.includes('HARGA POKOK'))) {
-          continue;
-        }
+    if (masterError || !accounts) {
+      this.logger.error(`Failed to fetch master COA: ${masterError?.message}`);
+      return;
+    }
 
-        // 3. Filter Skala Mikro (Lewati akun kompleks)
-        if (isMikro && (
-          categoryRaw.includes('TANGGUHAN') || 
-          name.toUpperCase().includes('OBLIGASI') || 
-          (code.startsWith('2-2') && normalBalance === 'credit') // Hutang Jangka Panjang
-        )) {
-          continue;
-        }
+    const isJasa = industry === 'Jasa';
+    const isMikro = scale === 'Mikro';
 
-        accountsToInsert.push({
-          tenant_id: tenantId,
-          code,
-          name: name.replace(/"/g, ''),
-          type,
-          normal_balance: normalBalance,
-        });
-      }
+    for (const master of accounts) {
+      const code = master.code;
+      const name = (master.name || '').replace(/"/g, '');
+      const type = master.type;
+      const normalBalance = master.normal_balance;
+      const kategori = master.kategori || master.category_raw || this.inferKategori(type);
+      const categoryRaw = (master.category_raw || '').toUpperCase();
 
-      if (accountsToInsert.length > 0) {
-        const { error } = await client
-          .from('accounts')
-          .insert(accountsToInsert);
-        
-        if (error) {
-          this.logger.error(`Error seeding COA: ${error.message}`);
-          throw error;
-        }
-        this.logger.log(`Successfully seeded ${accountsToInsert.length} accounts for tenant ${tenantId}`);
-      }
+      if (isJasa && (categoryRaw.includes('PERSEDIAAN') || categoryRaw.includes('HPP') || categoryRaw.includes('HARGA POKOK'))) continue;
+      if (isMikro && (categoryRaw.includes('TANGGUHAN') || name.toUpperCase().includes('OBLIGASI') || (code.startsWith('2-2') && normalBalance === 'credit'))) continue;
+
+      const { error: insError } = await client
+        .from('chart_of_accounts')
+        .upsert({ tenant_id: tenantId, code, name, type, normal_balance: normalBalance, kategori, is_system: true }, { onConflict: 'tenant_id,code', ignoreDuplicates: true });
+
+      if (insError) this.logger.warn(`COA insert warning: ${insError.message}`);
+    }
+
+    this.logger.log(`Seeded ${accounts.length} COA accounts for tenant ${tenantId} via ${targetTable}`);
     } catch (err) {
       this.logger.error(`Failed to initialize COA: ${err.message}`);
     }

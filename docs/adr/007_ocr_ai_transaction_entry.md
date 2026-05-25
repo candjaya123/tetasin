@@ -10,7 +10,7 @@
 
 ## Context
 
-Tumbuhin's core promise is:
+Tetasin's core promise is:
 
 > "Upload a receipt → Automatically becomes a double-entry journal."
 

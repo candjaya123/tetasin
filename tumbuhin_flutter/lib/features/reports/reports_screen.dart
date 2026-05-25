@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../shared/widgets/polish_widgets.dart';
-
 import '../../core/theme/app_colors.dart';
 import 'providers/report_providers.dart';
 import 'widgets/report_tabs.dart';
@@ -19,7 +17,8 @@ class ReportsScreen extends ConsumerStatefulWidget {
   ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
 }
 
-class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTickerProviderStateMixin {
+class _ReportsScreenState extends ConsumerState<ReportsScreen>
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -41,7 +40,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
     final dateRange = ref.watch(reportDateRangeProvider);
     final dateFormat = DateFormat('dd MMM yyyy');
     final authState = ref.watch(authProvider);
-    final isPersonal = (authState.profile?.accountType ?? 'business') == 'personal';
+    final isPersonal =
+        (authState.profile?.accountType ?? 'business') == 'personal';
 
     final tabs = [
       if (!isPersonal) const Tab(text: 'Jurnal'),
@@ -63,12 +63,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isPersonal ? 'Laporan Keuangan Pribadi' : 'Laporan Keuangan Bisnis',
-              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900),
+              isPersonal ? 'Laporan Pribadi' : 'Laporan Keuangan Bisnis',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
             Text(
               '${dateFormat.format(dateRange.start)} - ${dateFormat.format(dateRange.end)}',
-              style: GoogleFonts.outfit(fontSize: 11, color: AppColors.mediumGrey, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
@@ -86,43 +86,69 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          labelColor: AppColors.black,
-          unselectedLabelColor: AppColors.mediumGrey,
+          labelColor: AppColors.textPrimary,
+          unselectedLabelColor: AppColors.textTertiary,
           indicatorColor: AppColors.primary,
           indicatorWeight: 3,
-          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 13),
-          unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13),
+          labelStyle: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800),
+          unselectedLabelStyle: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
           tabs: tabs,
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          if (!isPersonal) _buildTabContent(ref.watch(journalProvider), (data) => JournalTab(entries: data)),
+          if (!isPersonal)
+            _buildTabContent(
+              ref.watch(journalProvider),
+              (data) => JournalTab(entries: data),
+            ),
           if (!isPersonal) const LedgerTab(),
-          if (!isPersonal) _buildTabContent(ref.watch(balanceSheetProvider), (data) => TrialBalanceTab(items: data)),
-          if (!isPersonal) _buildTabContent(ref.watch(salesReportProvider), (data) => SalesTab(sales: data)),
-          if (!isPersonal) ref.watch(incomeStatementProvider).when(
-            data: (data) => IncomeStatementTab(data: data),
-            loading: () => ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: 8,
-              itemBuilder: (context, index) => SkeletonLoader.listTile(),
+          if (!isPersonal)
+            _buildTabContent(
+              ref.watch(balanceSheetProvider),
+              (data) => TrialBalanceTab(items: data),
             ),
-            error: (e, _) => ErrorStateWidget(
-              error: e.toString(),
-              onRetry: () => ref.refresh(incomeStatementProvider),
+          if (!isPersonal)
+            _buildTabContent(
+              ref.watch(salesReportProvider),
+              (data) => SalesTab(sales: data),
             ),
-          ),
+          if (!isPersonal)
+            ref
+                .watch(incomeStatementProvider)
+                .when(
+                  data: (data) => IncomeStatementTab(data: data),
+                  loading: () => ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: 8,
+                    itemBuilder: (context, index) => SkeletonLoader.listTile(),
+                  ),
+                  error: (e, _) => ErrorStateWidget(
+                    error: e.toString(),
+                    onRetry: () => ref.refresh(incomeStatementProvider),
+                  ),
+                ),
           const CashFlowTab(),
-          if (!isPersonal) _buildTabContent(ref.watch(stockReportProvider), (data) => StockTab(items: data)),
-          if (!isPersonal) _buildTabContent(ref.watch(balanceSheetProvider), (data) => BalanceSheetTab(items: data)),
+          if (!isPersonal)
+            _buildTabContent(
+              ref.watch(stockReportProvider),
+              (data) => StockTab(items: data),
+            ),
+          if (!isPersonal)
+            _buildTabContent(
+              ref.watch(balanceSheetProvider),
+              (data) => BalanceSheetTab(items: data),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _exportCurrentTab,
-        backgroundColor: AppColors.black,
-        child: const Icon(Icons.download_rounded, color: AppColors.primary),
+        child: const Icon(Icons.download_rounded),
       ),
     );
   }
@@ -133,7 +159,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      initialDateRange: DateTimeRange(start: dateRange.start, end: dateRange.end),
+      initialDateRange: DateTimeRange(
+        start: dateRange.start,
+        end: dateRange.end,
+      ),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -150,7 +179,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
     );
 
     if (picked != null) {
-      ref.read(reportDateRangeProvider.notifier).state = (start: picked.start, end: picked.end);
+      ref.read(reportDateRangeProvider.notifier).state = (
+        start: picked.start,
+        end: picked.end,
+      );
     }
   }
 
@@ -163,7 +195,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
     );
   }
 
-  Widget _buildTabContent<T>(AsyncValue<List<T>> asyncValue, Widget Function(List<T>) builder) {
+  Widget _buildTabContent<T>(
+    AsyncValue<List<T>> asyncValue,
+    Widget Function(List<T>) builder,
+  ) {
     return asyncValue.when(
       data: (data) => builder(data).animate().fadeIn(duration: 400.ms),
       loading: () => ListView.builder(
@@ -173,21 +208,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
       ),
       error: (e, s) => ErrorStateWidget(
         error: e.toString(),
-        onRetry: () => asyncValue.hasError ? null : null, // Provider refresh handled by caller if needed
+        onRetry: () => asyncValue.hasError
+            ? null
+            : null, // Provider refresh handled by caller if needed
       ),
     );
   }
 
-
   Future<void> _exportCurrentTab() async {
     final currentIndex = _tabController.index;
-    
+
     // Unified model: no more tier paywall
     try {
       List<List<dynamic>> rows = [];
       String fileName = 'Laporan';
 
-      if (currentIndex == 0) { // Jurnal
+      if (currentIndex == 0) {
+        // Jurnal
         final journals = await ref.read(journalProvider.future);
         fileName = 'Jurnal_Transaksi';
         rows.add(['Tanggal', 'Referensi', 'Akun', 'Debit', 'Kredit']);
@@ -204,13 +241,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ekspor untuk tab ini sedang dikembangkan')),
+          const SnackBar(
+            content: Text('Ekspor untuk tab ini sedang dikembangkan'),
+          ),
         );
         return;
       }
 
       String csvData = const ListToCsvConverter().convert(rows);
-      debugPrint('Generated CSV for $fileName:\n$csvData');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -219,11 +257,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengekspor: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal mengekspor: $e')));
       }
     }
   }
 }
-

@@ -1,19 +1,23 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Patch, Param, Body, UseGuards, Request } from '@nestjs/common';
 import { SalesService } from '../services/sales.service';
 import { ProcessSaleDto } from './process-sale.dto';
 import { MidtransService } from '../../../shared/midtrans.service';
 import { JwtAuthGuard } from '../../business-profile/guards/jwt-auth.guard';
+import { RequireTier } from '../../../core/auth/tier.decorator';
+import { SubscriptionTier } from '../../../core/constants/subscription-tier.enum';
+import type { AuthenticatedRequest } from '../../../core/auth/authenticated-request.interface';
 
 @Controller('api/v1/sales')
+@UseGuards(JwtAuthGuard)
 export class SalesController {
   constructor(
     private readonly salesService: SalesService,
     private readonly midtransService: MidtransService,
   ) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Post('process')
-  async processSale(@Request() req: any, @Body() payload: ProcessSaleDto) {
+  @Post()
+  @RequireTier(SubscriptionTier.FREE)
+  async processSale(@Request() req: AuthenticatedRequest, @Body() payload: ProcessSaleDto) {
     // Auto-inject entity_id from token if not provided
     payload.entity_id = payload.entity_id || req.user.tenant_id;
     
@@ -35,9 +39,15 @@ export class SalesController {
     return await this.salesService.processSale(req.user, payload);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Patch(':id/void')
+  @RequireTier(SubscriptionTier.PRO)
+  async voidSale(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    return await this.salesService.voidSale(req.user, id);
+  }
+
   @Post('checkout-midtrans')
-  async checkoutMidtrans(@Body() payload: any, @Request() req: any) {
+  @RequireTier(SubscriptionTier.FREE)
+  async checkoutMidtrans(@Body() payload: any, @Request() req: AuthenticatedRequest) {
     const { amount, items } = payload;
     const orderId = `ORDER-${Date.now()}-${req.user.id.slice(0, 5)}`;
     

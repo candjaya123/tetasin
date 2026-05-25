@@ -3,12 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'user_profile.freezed.dart';
 part 'user_profile.g.dart';
 
-enum UserRole {
-  manager,
-  kasir,
-  stok,
-  personal,
-}
+enum UserRole { manager, kasir, stok, personal }
 
 @freezed
 class UserProfile with _$UserProfile {
@@ -22,5 +17,6 @@ class UserProfile with _$UserProfile {
     @JsonKey(name: 'account_type') String? accountType,
   }) = _UserProfile;
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
+  factory UserProfile.fromJson(Map<String, dynamic> json) =>
+      _$UserProfileFromJson(json);
 }

@@ -9,7 +9,8 @@ class PrinterSettingsScreen extends ConsumerStatefulWidget {
   const PrinterSettingsScreen({super.key});
 
   @override
-  ConsumerState<PrinterSettingsScreen> createState() => _PrinterSettingsScreenState();
+  ConsumerState<PrinterSettingsScreen> createState() =>
+      _PrinterSettingsScreenState();
 }
 
 class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
@@ -27,14 +28,18 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
       await ref.read(bluetoothPrinterServiceProvider).connect(device);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Terhubung ke ${device.platformName.isEmpty ? device.remoteId : device.platformName}')),
+          SnackBar(
+            content: Text(
+              'Terhubung ke ${device.platformName.isEmpty ? device.remoteId : device.platformName}',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal terhubung: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal terhubung: $e')));
       }
     } finally {
       if (mounted) setState(() => _isConnecting = false);
@@ -48,9 +53,9 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
       await service.printReceipt(bytes);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mencetak: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal mencetak: $e')));
       }
     }
   }
@@ -62,7 +67,10 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Printer Bluetooth', style: GoogleFonts.outfit(fontWeight: FontWeight.w900)),
+        title: Text(
+          'Printer Bluetooth',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.w900),
+        ),
         backgroundColor: AppColors.background,
         elevation: 0,
         actions: [
@@ -71,10 +79,16 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
             initialData: false,
             builder: (c, snapshot) {
               if (snapshot.data!) {
-                return const Center(child: Padding(
-                  padding: EdgeInsets.only(right: 16),
-                  child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                ));
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
               }
               return IconButton(
                 icon: const Icon(Icons.refresh_rounded),
@@ -105,11 +119,19 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
                       children: [
                         Text(
                           'Printer Terhubung',
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: Colors.green.shade900),
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.w900,
+                            color: Colors.green.shade900,
+                          ),
                         ),
                         Text(
-                          service.connectedDevice?.platformName ?? service.connectedDevice?.remoteId.str ?? '',
-                          style: GoogleFonts.outfit(fontSize: 12, color: Colors.green.shade700),
+                          service.connectedDevice?.platformName ??
+                              service.connectedDevice?.remoteId.str ??
+                              '',
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            color: Colors.green.shade700,
+                          ),
                         ),
                       ],
                     ),
@@ -121,7 +143,7 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
                 ],
               ),
             ),
-          
+
           Expanded(
             child: StreamBuilder<List<ScanResult>>(
               stream: service.scanResults,
@@ -133,11 +155,17 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.bluetooth_searching_rounded, size: 48, color: AppColors.lightGrey),
+                        const Icon(
+                          Icons.bluetooth_searching_rounded,
+                          size: 48,
+                          color: AppColors.lightGrey,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Mencari printer...',
-                          style: GoogleFonts.outfit(color: AppColors.mediumGrey),
+                          style: GoogleFonts.outfit(
+                            color: AppColors.mediumGrey,
+                          ),
                         ),
                       ],
                     ),
@@ -148,26 +176,47 @@ class _PrinterSettingsScreenState extends ConsumerState<PrinterSettingsScreen> {
                   itemCount: results.length,
                   itemBuilder: (c, i) {
                     final d = results[i].device;
-                    final isConnecting = _isConnecting && service.connectedDevice == null;
-                    
+                    final isConnecting =
+                        _isConnecting && service.connectedDevice == null;
+
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: ListTile(
                         leading: const Icon(Icons.print_rounded),
-                        title: Text(d.platformName.isEmpty ? d.remoteId.str : d.platformName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                        subtitle: Text(d.remoteId.str, style: GoogleFonts.outfit(fontSize: 11)),
-                        trailing: service.connectedDevice?.remoteId == d.remoteId
-                          ? const Icon(Icons.check_circle_rounded, color: Colors.green)
-                          : ElevatedButton(
-                              onPressed: _isConnecting ? null : () => _connect(d),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.black,
-                                foregroundColor: AppColors.primary,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        title: Text(
+                          d.platformName.isEmpty
+                              ? d.remoteId.str
+                              : d.platformName,
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          d.remoteId.str,
+                          style: GoogleFonts.outfit(fontSize: 11),
+                        ),
+                        trailing:
+                            service.connectedDevice?.remoteId == d.remoteId
+                            ? const Icon(
+                                Icons.check_circle_rounded,
+                                color: Colors.green,
+                              )
+                            : ElevatedButton(
+                                onPressed: _isConnecting
+                                    ? null
+                                    : () => _connect(d),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.black,
+                                  foregroundColor: AppColors.primary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(isConnecting ? '...' : 'Hubungkan'),
                               ),
-                              child: Text(isConnecting ? '...' : 'Hubungkan'),
-                            ),
                       ),
                     );
                   },

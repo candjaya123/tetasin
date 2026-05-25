@@ -58,7 +58,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                 children: [
                   Text(
                     isIncome ? 'Catat Pemasukan' : 'Catat Pengeluaran',
-                    style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900),
+                    style: GoogleFonts.outfit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
@@ -70,11 +73,20 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
-                style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w900),
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Nominal (Rp)',
-                  labelStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.mediumGrey),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  labelStyle: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.mediumGrey,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   prefixText: 'Rp ',
                 ),
                 validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
@@ -87,46 +99,65 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                     final type = (a['type'] ?? '').toString().toLowerCase();
                     final code = (a['code'] ?? '').toString();
                     if (isIncome) {
-                      // Personal: type='revenue', code starts with 4-
-                      // Business: type='income'/'pendapatan', code starts with 4-
-                      return type == 'income' || type == 'pendapatan' || 
-                             type == 'revenue' || code.startsWith('4-');
+                      return type == 'income' ||
+                          type == 'pendapatan' ||
+                          type == 'revenue' ||
+                          code.startsWith('4-');
                     } else {
-                      // Personal: type='expense', code starts with 6-
-                      // Business: type='expense'/'beban', code starts with 5- or 6-
-                      return type == 'expense' || type == 'expenses' || 
-                             type == 'beban' || code.startsWith('5-') || code.startsWith('6-');
+                      return type == 'expense' ||
+                          type == 'expenses' ||
+                          type == 'beban' ||
+                          code.startsWith('5-') ||
+                          code.startsWith('6-');
                     }
                   }).toList();
 
                   final paymentAccounts = accounts.where((a) {
                     final type = (a['type'] ?? '').toString().toLowerCase();
                     final code = (a['code'] ?? '').toString();
-                    // Personal: Kas Tunai, Rekening Bank, E-Wallet = type='asset', code=1-10xxx
-                    // Business: Asset, code starts with 1-10 or 1-11
-                    return (type == 'asset' || type == 'assets' || type == 'aset') &&
-                        (code.startsWith('1-10') || code.startsWith('1-11'));
+                    return (type == 'asset' ||
+                            type == 'assets' ||
+                            type == 'aset') &&
+                        (code.startsWith('1-10') ||
+                            code.startsWith('1-11') ||
+                            code == '1110' ||
+                            code == '1120' ||
+                            code.startsWith('1'));
                   }).toList();
 
-                  final categoryName = _selectedCategoryAccount?['name'] ?? 'Pilih Kategori';
-                  final paymentName = _selectedPaymentAccount?['name'] ?? (isIncome ? 'Masuk ke Rekening' : 'Pilih Sumber Dana');
+                  final categoryName =
+                      _selectedCategoryAccount?['name'] ?? 'Pilih Kategori';
+                  final paymentName =
+                      _selectedPaymentAccount?['name'] ??
+                      (isIncome ? 'Masuk ke Rekening' : 'Pilih Sumber Dana');
 
                   return Column(
                     children: [
                       _buildSelectionField(
-                        label: isIncome ? 'Kategori Pemasukan' : 'Kategori Pengeluaran',
+                        label: isIncome
+                            ? 'Kategori Pemasukan'
+                            : 'Kategori Pengeluaran',
                         value: categoryName,
-                        icon: isIncome ? Icons.trending_up_rounded : Icons.category_rounded,
-                        onTap: () => _showCategorySelector(context, categoryAccounts, isIncome: isIncome),
-                        hasError: _triedSubmit && _selectedCategoryAccount == null,
+                        icon: isIncome
+                            ? Icons.trending_up_rounded
+                            : Icons.category_rounded,
+                        onTap: () => _showCategorySelector(
+                          context,
+                          categoryAccounts,
+                          isIncome: isIncome,
+                        ),
+                        hasError:
+                            _triedSubmit && _selectedCategoryAccount == null,
                       ),
                       const SizedBox(height: 16),
                       _buildSelectionField(
                         label: isIncome ? 'Penyimpanan' : 'Sumber Dana',
                         value: paymentName,
                         icon: Icons.account_balance_wallet_rounded,
-                        onTap: () => _showPaymentSelector(context, paymentAccounts),
-                        hasError: _triedSubmit && _selectedPaymentAccount == null,
+                        onTap: () =>
+                            _showPaymentSelector(context, paymentAccounts),
+                        hasError:
+                            _triedSubmit && _selectedPaymentAccount == null,
                       ),
                     ],
                   );
@@ -145,7 +176,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                   ),
                   child: Text(
                     'Gagal memuat daftar akun. Pastikan backend berjalan.',
-                    style: GoogleFonts.outfit(color: Colors.red.shade700, fontSize: 13),
+                    style: GoogleFonts.outfit(
+                      color: Colors.red.shade700,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
@@ -154,8 +188,12 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                 controller: _descController,
                 decoration: InputDecoration(
                   labelText: 'Keterangan',
-                  hintText: isIncome ? 'Contoh: Gaji bulanan, bonus...' : 'Contoh: Bayar listrik, beli kemasan...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  hintText: isIncome
+                      ? 'Contoh: Gaji bulanan, bonus...'
+                      : 'Contoh: Bayar listrik, beli kemasan...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 maxLines: 2,
               ),
@@ -168,13 +206,20 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.black,
                     foregroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   child: _isSubmitting
-                      ? const CircularProgressIndicator(color: AppColors.primary)
+                      ? const CircularProgressIndicator(
+                          color: AppColors.primary,
+                        )
                       : Text(
                           isIncome ? 'Simpan Pemasukan' : 'Simpan Pengeluaran',
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                 ),
               ),
@@ -192,7 +237,8 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
     required VoidCallback onTap,
     required bool hasError,
   }) {
-    final isPlaceholder = value.startsWith('Pilih') || value.startsWith('Masuk');
+    final isPlaceholder =
+        value.startsWith('Pilih') || value.startsWith('Masuk');
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -208,7 +254,11 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: hasError ? Colors.red.shade400 : AppColors.mediumGrey, size: 24),
+            Icon(
+              icon,
+              color: hasError ? Colors.red.shade400 : AppColors.mediumGrey,
+              size: 24,
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -218,7 +268,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                     label,
                     style: GoogleFonts.outfit(
                       fontSize: 12,
-                      color: hasError ? Colors.red.shade400 : AppColors.mediumGrey,
+                      color: hasError
+                          ? Colors.red.shade400
+                          : AppColors.mediumGrey,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -226,9 +278,13 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                     value,
                     style: GoogleFonts.outfit(
                       fontSize: 14,
-                      fontWeight: isPlaceholder ? FontWeight.normal : FontWeight.bold,
+                      fontWeight: isPlaceholder
+                          ? FontWeight.normal
+                          : FontWeight.bold,
                       color: isPlaceholder
-                          ? (hasError ? Colors.red.shade400 : AppColors.mediumGrey)
+                          ? (hasError
+                                ? Colors.red.shade400
+                                : AppColors.mediumGrey)
                           : AppColors.black,
                     ),
                   ),
@@ -245,7 +301,11 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
     );
   }
 
-  void _showCategorySelector(BuildContext context, List<dynamic> accounts, {required bool isIncome}) {
+  void _showCategorySelector(
+    BuildContext context,
+    List<dynamic> accounts, {
+    required bool isIncome,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -272,8 +332,13 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                   ),
                 ),
                 Text(
-                  isIncome ? 'Pilih Kategori Pemasukan' : 'Pilih Kategori Pengeluaran',
-                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                  isIncome
+                      ? 'Pilih Kategori Pemasukan'
+                      : 'Pilih Kategori Pengeluaran',
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Expanded(
@@ -281,7 +346,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                       ? Center(
                           child: Text(
                             'Tidak ada kategori tersedia.',
-                            style: GoogleFonts.outfit(color: AppColors.mediumGrey),
+                            style: GoogleFonts.outfit(
+                              color: AppColors.mediumGrey,
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -290,10 +357,15 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                           itemCount: accounts.length,
                           itemBuilder: (ctx, i) {
                             final account = accounts[i];
-                            final isSelected = _selectedCategoryAccount?['id']?.toString() == account['id']?.toString();
+                            final isSelected =
+                                _selectedCategoryAccount?['id']?.toString() ==
+                                account['id']?.toString();
                             return ListTile(
                               onTap: () {
-                                setState(() => _selectedCategoryAccount = Map<String, dynamic>.from(account));
+                                setState(
+                                  () => _selectedCategoryAccount =
+                                      Map<String, dynamic>.from(account),
+                                );
                                 Navigator.pop(ctx);
                               },
                               leading: Container(
@@ -305,23 +377,35 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
-                                  isIncome ? Icons.trending_up_rounded : Icons.receipt_long_rounded,
-                                  color: isSelected ? AppColors.primary : AppColors.mediumGrey,
+                                  isIncome
+                                      ? Icons.trending_up_rounded
+                                      : Icons.receipt_long_rounded,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.mediumGrey,
                                   size: 20,
                                 ),
                               ),
                               title: Text(
                                 account['name'] ?? '',
                                 style: GoogleFonts.outfit(
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
                               subtitle: Text(
                                 'Kode: ${account['code'] ?? ''}',
-                                style: GoogleFonts.outfit(fontSize: 11, color: AppColors.mediumGrey),
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  color: AppColors.mediumGrey,
+                                ),
                               ),
                               trailing: isSelected
-                                  ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+                                  ? const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: AppColors.primary,
+                                    )
                                   : null,
                               contentPadding: EdgeInsets.zero,
                             );
@@ -351,7 +435,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             children: [
               Text(
                 'Pilih Rekening Kas/Bank',
-                style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               if (accounts.isEmpty)
@@ -364,10 +451,15 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                 )
               else
                 ...accounts.map((account) {
-                  final isSelected = _selectedPaymentAccount?['id']?.toString() == account['id']?.toString();
+                  final isSelected =
+                      _selectedPaymentAccount?['id']?.toString() ==
+                      account['id']?.toString();
                   return ListTile(
                     onTap: () {
-                      setState(() => _selectedPaymentAccount = Map<String, dynamic>.from(account));
+                      setState(
+                        () => _selectedPaymentAccount =
+                            Map<String, dynamic>.from(account),
+                      );
                       Navigator.pop(ctx);
                     },
                     leading: Container(
@@ -380,22 +472,32 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                       ),
                       child: Icon(
                         Icons.account_balance_wallet_rounded,
-                        color: isSelected ? AppColors.primary : AppColors.mediumGrey,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.mediumGrey,
                         size: 20,
                       ),
                     ),
                     title: Text(
                       account['name'] ?? '',
                       style: GoogleFonts.outfit(
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     subtitle: Text(
                       'Kode: ${account['code'] ?? ''}',
-                      style: GoogleFonts.outfit(fontSize: 11, color: AppColors.mediumGrey),
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: AppColors.mediumGrey,
+                      ),
                     ),
                     trailing: isSelected
-                        ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            color: AppColors.primary,
+                          )
                         : null,
                     contentPadding: EdgeInsets.zero,
                   );
@@ -427,7 +529,8 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
 
     setState(() => _isSubmitting = true);
     try {
-      final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0;
+      final amount =
+          double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0;
       if (amount <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Nominal harus lebih dari 0')),
@@ -436,21 +539,29 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       }
 
       final now = DateTime.now();
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final dateStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       final isIncome = widget.isIncome;
 
       final payload = {
-        'reference_number': '${isIncome ? "INC" : "EXP"}-${DateTime.now().millisecondsSinceEpoch}',
-        'description': _descController.text.isEmpty ? (isIncome ? 'Pemasukan Manual' : 'Pengeluaran Manual') : _descController.text,
+        'reference_number':
+            '${isIncome ? "INC" : "EXP"}-${DateTime.now().millisecondsSinceEpoch}',
+        'description': _descController.text.isEmpty
+            ? (isIncome ? 'Pemasukan Manual' : 'Pengeluaran Manual')
+            : _descController.text,
         'date': dateStr,
         'lines': [
           {
-            'account_id': isIncome ? _selectedPaymentAccount!['id'].toString() : _selectedCategoryAccount!['id'].toString(),
+            'account_id': isIncome
+                ? _selectedPaymentAccount!['id'].toString()
+                : _selectedCategoryAccount!['id'].toString(),
             'debit': amount,
             'credit': 0,
           },
           {
-            'account_id': isIncome ? _selectedCategoryAccount!['id'].toString() : _selectedPaymentAccount!['id'].toString(),
+            'account_id': isIncome
+                ? _selectedCategoryAccount!['id'].toString()
+                : _selectedPaymentAccount!['id'].toString(),
             'debit': 0,
             'credit': amount,
           },
@@ -466,7 +577,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isIncome ? '✅ Pemasukan berhasil dicatat' : '✅ Pengeluaran berhasil dicatat',
+              isIncome
+                  ? '✅ Pemasukan berhasil dicatat'
+                  : '✅ Pengeluaran berhasil dicatat',
               style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
             ),
             backgroundColor: Colors.green.shade600,

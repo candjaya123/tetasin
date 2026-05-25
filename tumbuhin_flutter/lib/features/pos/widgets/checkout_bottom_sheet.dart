@@ -12,7 +12,8 @@ class CheckoutBottomSheet extends ConsumerStatefulWidget {
   const CheckoutBottomSheet({super.key});
 
   @override
-  ConsumerState<CheckoutBottomSheet> createState() => _CheckoutBottomSheetState();
+  ConsumerState<CheckoutBottomSheet> createState() =>
+      _CheckoutBottomSheetState();
 }
 
 class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
@@ -25,21 +26,47 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
     try {
       final cart = ref.read(cartProvider);
       final cartNotifier = ref.read(cartProvider.notifier);
-      
+
       final checkoutData = {
-        'items': cart.map((item) => {
-          'product_id': item.product.id,
-          'quantity': item.quantity,
-          'price': item.product.price,
-        }).toList(),
+        'items': cart
+            .map(
+              (item) => {
+                'product_id': item.product.id,
+                'quantity': item.quantity,
+                'price': item.unitPrice,
+                'selected_variants': item.selectedVariants
+                    .map(
+                      (v) => {
+                        'variant_option_id': v.id,
+                        'name': v.name,
+                        'price_delta': v.priceDelta,
+                      },
+                    )
+                    .toList(),
+                'selected_addons': item.selectedAddons
+                    .map(
+                      (a) => {
+                        'addon_id': a.id,
+                        'name': a.name,
+                        'price': a.price,
+                      },
+                    )
+                    .toList(),
+                if (item.specialInstructions != null)
+                  'special_instructions': item.specialInstructions,
+              },
+            )
+            .toList(),
         'payment_method': _selectedPayment,
         'subtotal': cartNotifier.subtotal,
-        'tax_amount': cartNotifier.taxAmount, // Aligned with backend DTO
+        'tax_amount': cartNotifier.taxAmount,
         'total': cartNotifier.total,
       };
 
-      final result = await ref.read(posRepositoryProvider).processCheckout(checkoutData);
-      
+      final result = await ref
+          .read(posRepositoryProvider)
+          .processCheckout(checkoutData);
+
       if (mounted) {
         final itemsSnapshot = List<CartItem>.from(cart);
         final totalSnapshot = cartNotifier.total;
@@ -48,34 +75,46 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
 
         ref.read(cartProvider.notifier).clearCart();
         Navigator.pop(context); // Close checkout sheet
-        
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => ReceiptBottomSheet(
-            items: itemsSnapshot,
-            orderId: orderNumber,
-            total: totalSnapshot,
-            paymentMethod: paymentSnapshot,
-          ),
-        );
+
+        try {
+          await showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => ReceiptBottomSheet(
+              items: itemsSnapshot,
+              orderId: orderNumber,
+              total: totalSnapshot,
+              paymentMethod: paymentSnapshot,
+            ),
+          );
+        } catch (receiptErr) {
+          // If receipt sheet fails, still show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Transaksi $orderNumber berhasil.'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         String errorMessage = e.toString();
-        
+
         if (e is DioException && e.response != null) {
           final statusCode = e.response?.statusCode;
           final data = e.response?.data;
           errorMessage = 'Server Error ($statusCode): $data';
         } else if (e.toString().contains('timeout')) {
-          errorMessage = 'Koneksi Timeout. Pastikan server aktif dan terjangkau oleh HP.';
+          errorMessage =
+              'Koneksi Timeout. Pastikan server aktif dan terjangkau oleh HP.';
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage), 
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
@@ -89,10 +128,16 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final cartNotifier = ref.watch(cartProvider.notifier);
-    final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -104,16 +149,25 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
           Container(
             width: 40,
             height: 4,
-            decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Konfirmasi Pembayaran', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Konfirmasi Pembayaran',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 24),
-                const Text('Metode Pembayaran', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Metode Pembayaran',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 12),
                 _PaymentOption(
                   label: 'Tunai',
@@ -138,7 +192,13 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Total Bayar', style: TextStyle(fontSize: 16)),
-                    Text(currencyFormat.format(cartNotifier.total), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      currencyFormat.format(cartNotifier.total),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -150,11 +210,19 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1A1A1A),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Selesaikan Transaksi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        : const Text(
+                            'Selesaikan Transaksi',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -172,18 +240,30 @@ class _PaymentOption extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _PaymentOption({required this.label, required this.icon, required this.isSelected, required this.onTap});
+  const _PaymentOption({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       onTap: onTap,
-      leading: Icon(icon, color: isSelected ? const Color(0xFFFDB827) : Colors.grey),
+      leading: Icon(
+        icon,
+        color: isSelected ? const Color(0xFFFDB827) : Colors.grey,
+      ),
       title: Text(label),
-      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFFFDB827)) : null,
+      trailing: isSelected
+          ? const Icon(Icons.check_circle, color: Color(0xFFFDB827))
+          : null,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: isSelected ? const Color(0xFFFDB827) : Colors.grey.shade200),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFFFDB827) : Colors.grey.shade200,
+        ),
       ),
     );
   }

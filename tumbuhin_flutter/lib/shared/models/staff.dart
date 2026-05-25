@@ -14,7 +14,8 @@ class StaffAccount with _$StaffAccount {
     @JsonKey(name: 'created_at') DateTime? createdAt,
   }) = _StaffAccount;
 
-  factory StaffAccount.fromJson(Map<String, dynamic> json) => _$StaffAccountFromJson(json);
+  factory StaffAccount.fromJson(Map<String, dynamic> json) =>
+      _$StaffAccountFromJson(json);
 }
 
 @freezed
@@ -26,5 +27,6 @@ class StaffLog with _$StaffLog {
     @JsonKey(name: 'created_at') required DateTime createdAt,
   }) = _StaffLog;
 
-  factory StaffLog.fromJson(Map<String, dynamic> json) => _$StaffLogFromJson(json);
+  factory StaffLog.fromJson(Map<String, dynamic> json) =>
+      _$StaffLogFromJson(json);
 }

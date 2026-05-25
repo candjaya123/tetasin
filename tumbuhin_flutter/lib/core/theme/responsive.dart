@@ -26,7 +26,7 @@ class Responsive extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
-    
+
     // If width is greater than 1024, return desktop if available, else tablet or mobile
     if (size.width >= 1024) {
       return desktop ?? tablet ?? mobile;
@@ -45,10 +45,10 @@ extension ResponsiveExtension on BuildContext {
   bool get isMobile => Responsive.isMobile(this);
   bool get isTablet => Responsive.isTablet(this);
   bool get isDesktop => Responsive.isDesktop(this);
-  
+
   double get screenWidth => MediaQuery.of(this).size.width;
   double get screenHeight => MediaQuery.of(this).size.height;
-  
+
   // Helper for adaptive values
   double adaptiveValue({
     required double mobile,

@@ -10,15 +10,15 @@ export class OnboardingService {
 
     const coaTemplates = {
       jasa: [
-        { code: '1-1001', name: 'Kas Utama', type: 'aset' },
-        { code: '4-1001', name: 'Pendapatan Jasa', type: 'pendapatan' },
-        { code: '5-1001', name: 'Beban Operasional', type: 'beban' },
+        { code: '1-1001', name: 'Kas Utama', type: 'aset', kategori: 'ASET', normal_balance: 'debit' },
+        { code: '4-1001', name: 'Pendapatan Jasa', type: 'pendapatan', kategori: 'PENDAPATAN', normal_balance: 'credit' },
+        { code: '5-1001', name: 'Beban Operasional', type: 'beban', kategori: 'BEBAN OPERASIONAL', normal_balance: 'debit' },
       ],
       retail: [
-        { code: '1-1001', name: 'Kas Utama', type: 'aset' },
-        { code: '1-2001', name: 'Persediaan Barang Dagang', type: 'aset' },
-        { code: '4-1001', name: 'Pendapatan Penjualan', type: 'pendapatan' },
-        { code: '5-1001', name: 'Beban HPP', type: 'beban' },
+        { code: '1-1001', name: 'Kas Utama', type: 'aset', kategori: 'ASET', normal_balance: 'debit' },
+        { code: '1-2001', name: 'Persediaan Barang Dagang', type: 'aset', kategori: 'ASET', normal_balance: 'debit' },
+        { code: '4-1001', name: 'Pendapatan Penjualan', type: 'pendapatan', kategori: 'PENDAPATAN', normal_balance: 'credit' },
+        { code: '5-1001', name: 'Beban HPP', type: 'beban', kategori: 'HPP / BIAYA LANGSUNG', normal_balance: 'debit' },
       ],
     };
 

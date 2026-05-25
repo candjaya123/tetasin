@@ -1,59 +1,23 @@
-import { createClient } from '../supabase/client';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-const getHeaders = async () => {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('No session found');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${session.access_token}`,
-  };
-};
+import { apiGet, apiPost, apiPut, apiPatch } from './client';
 
 export const orderService = {
-  async getOrders(type: 'SO' | 'PO' = 'SO') {
-    const endpoint = type === 'PO' ? 'purchase' : 'sales';
-    const response = await fetch(`${BACKEND_URL}/api/v1/orders/${endpoint}`, {
-      headers: await getHeaders(),
-    });
-    
-    if (response.status === 403) {
-      return []; 
-    }
-    
-    if (!response.ok) throw new Error(`Failed to fetch ${type} orders`);
-    const data = await response.json();
-    // Add type to each order for UI consistency
-    return data.map((order: any) => ({ ...order, type }));
+  getOrders: (params?: { status?: string; source?: string }) => {
+    const queryParams: Record<string, string> = {};
+    if (params?.status) queryParams.status = params.status;
+    if (params?.source) queryParams.source = params.source;
+    return apiGet<any[]>('/api/v1/orders', queryParams);
   },
-
-  async getOrderById(id: string) {
-    const response = await fetch(`${BACKEND_URL}/api/v1/order/${id}`, {
-      headers: await getHeaders(),
-    });
-    if (!response.ok) throw new Error('Failed to fetch order details');
-    return response.json();
-  },
-
-  async createOrder(data: any) {
-    const response = await fetch(`${BACKEND_URL}/api/v1/order`, {
-      method: 'POST',
-      headers: await getHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create order');
-    return response.json();
-  },
-
-  async updateOrderStatus(id: string, status: string) {
-    const response = await fetch(`${BACKEND_URL}/api/v1/order/${id}/status`, {
-      method: 'PATCH',
-      headers: await getHeaders(),
-      body: JSON.stringify({ status }),
-    });
-    if (!response.ok) throw new Error('Failed to update order status');
-    return response.json();
-  }
+  getOrderById: (id: string) => apiGet(`/api/v1/orders/${id}`),
+  createOrder: (data: any) => apiPost('/api/v1/orders', data),
+  updateOrderStatus: (id: string, status: string, division_note?: string, division?: string) =>
+    apiPatch(`/api/v1/orders/${id}/status`, { status, division_note, division }),
+  voidOrder: (id: string) => apiPatch(`/api/v1/orders/${id}/void`),
+  updateDivisionNotes: (id: string, notes: { kasir?: string; stok?: string; dapur?: string }) =>
+    apiPatch(`/api/v1/orders/${id}/division-notes`, notes),
+  // Purchase Orders
+  getPurchaseOrders: () => apiGet<any[]>('/api/v1/orders/purchase'),
+  createPurchaseOrder: (data: any) => apiPost('/api/v1/orders/purchase', data),
+  updatePurchaseOrder: (id: string, data: any) => apiPut(`/api/v1/orders/purchase/${id}`, data),
+  receivePurchaseOrder: (id: string, items: Array<{ item_id: string; received_qty: number }>) =>
+    apiPost(`/api/v1/orders/purchase/${id}/receive`, { items }),
 };

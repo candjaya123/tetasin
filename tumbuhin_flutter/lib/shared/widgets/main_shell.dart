@@ -7,8 +7,8 @@ import '../models/user_profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../features/reports/widgets/add_expense_sheet.dart';
 import '../../features/reports/widgets/add_budget_sheet.dart';
-
-import '../../../core/theme/responsive.dart';
+import '../../core/theme/responsive.dart';
+import '../../core/theme/dimens.dart';
 
 class MainShell extends ConsumerWidget {
   final Widget child;
@@ -23,64 +23,64 @@ class MainShell extends ConsumerWidget {
     final accountType = authState.profile?.accountType ?? 'business';
     final isPersonal = accountType == 'personal';
 
-    final List<Map<String, dynamic>> tabs = isPersonal ? [
-      {
-        'path': '/reports', // Dashboard for personal
-        'label': 'Ringkasan',
-        'icon': Icons.dashboard_outlined,
-        'activeIcon': Icons.dashboard_rounded,
-      },
-      {
-        'path': '/transactions', // Dedicated transactions screen
-        'label': 'Transaksi',
-        'icon': Icons.receipt_long_outlined,
-        'activeIcon': Icons.receipt_long_rounded,
-      },
-      {
-        'path': '/budget', // Dedicated budget screen
-        'label': 'Anggaran',
-        'icon': Icons.savings_outlined,
-        'activeIcon': Icons.savings_rounded,
-      },
-    ] : [
-      {
-        'path': '/pos',
-        'label': 'Kasir',
-        'icon': Icons.shopping_bag_outlined,
-        'activeIcon': Icons.shopping_bag_rounded,
-      },
-      {
-        'path': '/inventory',
-        'label': 'Stok',
-        'icon': Icons.inventory_2_outlined,
-        'activeIcon': Icons.inventory_2_rounded,
-      },
-    ];
+    final List<_NavTab> tabs = isPersonal
+        ? [
+            _NavTab(
+              '/personal',
+              'Ringkasan',
+              Icons.dashboard_outlined,
+              Icons.dashboard_rounded,
+            ),
+            _NavTab(
+              '/transaksi',
+              'Transaksi',
+              Icons.receipt_long_outlined,
+              Icons.receipt_long_rounded,
+            ),
+            _NavTab(
+              '/budget',
+              'Anggaran',
+              Icons.savings_outlined,
+              Icons.savings_rounded,
+            ),
+          ]
+        : [
+            _NavTab(
+              '/pos',
+              'Kasir',
+              Icons.shopping_bag_outlined,
+              Icons.shopping_bag_rounded,
+            ),
+            _NavTab(
+              '/inventory',
+              'Stok',
+              Icons.inventory_2_outlined,
+              Icons.inventory_2_rounded,
+            ),
+            _NavTab(
+              '/transaksi',
+              'Transaksi',
+              Icons.swap_horiz_outlined,
+              Icons.swap_horiz_rounded,
+            ),
+          ];
 
-    if (!isPersonal && userRole == UserRole.manager) {
-      tabs.add({
-        'path': '/reports',
-        'label': 'Keuangan',
-        'icon': Icons.account_balance_wallet_outlined,
-        'activeIcon': Icons.account_balance_wallet_rounded,
-      });
+    final tier = authState.tenant?.tier;
+    final isProOrFranchise = tier == 'pro' || tier == 'franchise';
+    if (!isPersonal && userRole == UserRole.manager && isProOrFranchise) {
+      tabs.add(
+        _NavTab(
+          '/reports',
+          'Keuangan',
+          Icons.account_balance_wallet_outlined,
+          Icons.account_balance_wallet_rounded,
+        ),
+      );
     }
 
     int getSelectedIndex() {
-      final index = tabs.indexWhere((tab) => location.startsWith(tab['path']));
+      final index = tabs.indexWhere((tab) => location.startsWith(tab.path));
       return index == -1 ? 0 : index;
-    }
-
-    String getTitle() {
-      switch (location) {
-        case String l when l.startsWith('/pos'): return 'Kasir';
-        case String l when l.startsWith('/transactions'): return 'Daftar Transaksi';
-        case String l when l.startsWith('/inventory'): return 'Inventaris';
-        case String l when l.startsWith('/budget'): return 'Anggaran';
-        case String l when l.startsWith('/reports'): return isPersonal ? 'Ringkasan' : 'Keuangan';
-        case String l when l.startsWith('/settings'): return 'Pengaturan';
-        default: return 'Tumbuhin';
-      }
     }
 
     void showTransactionSheet(BuildContext context, {required bool isIncome}) {
@@ -99,133 +99,176 @@ class MainShell extends ConsumerWidget {
       required Color color,
       required VoidCallback onTap,
     }) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.bold,
-                  color: color,
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: Dimens.brMd,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: color, size: 32),
+                const SizedBox(height: Dimens.md),
+                Text(
+                  label,
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
     }
 
+    final selectedIndex = getSelectedIndex();
+
     return Responsive(
       mobile: Scaffold(
         appBar: AppBar(
-          backgroundColor: AppColors.white,
-          foregroundColor: AppColors.black,
-          elevation: 0,
-          scrolledUnderElevation: 1,
-          shadowColor: AppColors.border,
-          title: Row(
-            children: [
-              Image.asset('assets/images/Logo-awal.png', height: 30),
-              const SizedBox(width: 10),
-              Text(
-                getTitle(),
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.black,
+          title: Padding(
+            padding: const EdgeInsets.only(left: Dimens.sm),
+            child: Row(
+              children: [
+                Image.asset('assets/images/Logo-awal.png', height: 22),
+                const SizedBox(width: Dimens.sm),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    'tetasin',
+                    style: GoogleFonts.outfit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => context.push('/settings'),
+              icon: const Icon(Icons.settings_outlined, size: 22),
+              onPressed: location.startsWith('/settings')
+                  ? null
+                  : () => context.push('/settings'),
+              tooltip: 'Pengaturan',
             ),
           ],
         ),
         body: child,
-        floatingActionButton: isPersonal ? FloatingActionButton(
-          onPressed: () {
-            if (location.startsWith('/budget')) {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => const AddBudgetSheet(),
-              );
-              return;
-            }
-            
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              builder: (ctx) => Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Pilih Jenis Transaksi',
-                      style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: buildTransactionOption(
-                            context,
-                            icon: Icons.trending_up_rounded,
-                            label: 'Pemasukan',
-                            color: Colors.green,
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              showTransactionSheet(context, isIncome: true);
-                            },
+        floatingActionButton: isPersonal
+            ? FloatingActionButton(
+                onPressed: () {
+                  if (location.startsWith('/budget')) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const AddBudgetSheet(),
+                    );
+                    return;
+                  }
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
+                    builder: (ctx) => Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.vertical(
+                          top: Dimens.radiusXl,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            Dimens.xl,
+                            Dimens.xxl,
+                            Dimens.xl,
+                            Dimens.xxxl,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: AppColors.border,
+                                  borderRadius: Dimens.brXs,
+                                ),
+                              ),
+                              const SizedBox(height: Dimens.xxl),
+                              Text(
+                                'Pilih Jenis Transaksi',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: Dimens.xxl),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: buildTransactionOption(
+                                      context,
+                                      icon: Icons.trending_up_rounded,
+                                      label: 'Pemasukan',
+                                      color: AppColors.success,
+                                      onTap: () {
+                                        Navigator.pop(ctx);
+                                        showTransactionSheet(
+                                          context,
+                                          isIncome: true,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: Dimens.lg),
+                                  Expanded(
+                                    child: buildTransactionOption(
+                                      context,
+                                      icon: Icons.trending_down_rounded,
+                                      label: 'Pengeluaran',
+                                      color: AppColors.error,
+                                      onTap: () {
+                                        Navigator.pop(ctx);
+                                        showTransactionSheet(
+                                          context,
+                                          isIncome: false,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: buildTransactionOption(
-                            context,
-                            icon: Icons.trending_down_rounded,
-                            label: 'Pengeluaran',
-                            color: Colors.red,
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              showTransactionSheet(context, isIncome: false);
-                            },
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
-            );
-          },
-          backgroundColor: AppColors.primary,
-          child: const Icon(Icons.add_rounded, size: 28, color: AppColors.onPrimary),
-        ) : null,
-        bottomNavigationBar: _PremiumBottomNav(
+                  );
+                },
+                child: const Icon(Icons.add_rounded, size: 22),
+              )
+            : null,
+        bottomNavigationBar: _BottomNav(
           tabs: tabs,
-          selectedIndex: getSelectedIndex(),
-          onTap: (index) => context.go(tabs[index]['path']),
+          selectedIndex: selectedIndex,
+          onTap: (i) => context.go(tabs[i].path),
         ),
       ),
       tablet: Scaffold(
@@ -233,12 +276,12 @@ class MainShell extends ConsumerWidget {
           children: [
             NavigationRail(
               extended: context.screenWidth >= 1100,
-              backgroundColor: AppColors.white,
+              backgroundColor: AppColors.surface,
               indicatorColor: AppColors.primary,
-              minWidth: 80,
+              minWidth: 72,
               leading: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Image.asset('assets/images/Logo-awal.png', height: 40),
+                child: Image.asset('assets/images/Logo-awal.png', height: 32),
               ),
               trailing: Expanded(
                 child: Align(
@@ -246,37 +289,74 @@ class MainShell extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 24),
                     child: IconButton(
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => context.push('/settings'),
+                      icon: const Icon(Icons.settings_outlined, size: 22),
+                      onPressed: location.startsWith('/settings')
+                          ? null
+                          : () => context.push('/settings'),
                     ),
                   ),
                 ),
               ),
-              selectedIndex: getSelectedIndex(),
-              onDestinationSelected: (index) => context.go(tabs[index]['path']),
-              labelType: context.screenWidth >= 1100 ? NavigationRailLabelType.none : NavigationRailLabelType.all,
-              unselectedLabelTextStyle: GoogleFonts.outfit(fontSize: 12, color: AppColors.lightGrey, fontWeight: FontWeight.w500),
-              selectedLabelTextStyle: GoogleFonts.outfit(fontSize: 12, color: AppColors.black, fontWeight: FontWeight.w800),
-              unselectedIconTheme: const IconThemeData(color: AppColors.lightGrey),
-              selectedIconTheme: const IconThemeData(color: AppColors.black),
-              destinations: tabs.map((tab) => NavigationRailDestination(
-                icon: Icon(tab['icon']),
-                selectedIcon: Icon(tab['activeIcon']),
-                label: Text(tab['label']),
-              )).toList(),
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (i) => context.go(tabs[i].path),
+              labelType: context.screenWidth >= 1100
+                  ? NavigationRailLabelType.none
+                  : NavigationRailLabelType.all,
+              unselectedLabelTextStyle: GoogleFonts.outfit(
+                fontSize: 12,
+                color: AppColors.textTertiary,
+                fontWeight: FontWeight.w500,
+              ),
+              selectedLabelTextStyle: GoogleFonts.outfit(
+                fontSize: 12,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+              unselectedIconTheme: const IconThemeData(
+                color: AppColors.textTertiary,
+              ),
+              selectedIconTheme: const IconThemeData(
+                color: AppColors.onPrimary,
+              ),
+              groupAlignment: 0.0,
+              destinations: tabs
+                  .map(
+                    (t) => NavigationRailDestination(
+                      icon: Icon(t.icon),
+                      selectedIcon: Icon(t.activeIcon),
+                      label: Text(t.label),
+                    ),
+                  )
+                  .toList(),
             ),
-            const VerticalDivider(thickness: 1, width: 1, color: AppColors.border),
+            const VerticalDivider(
+              thickness: 1,
+              width: 1,
+              color: AppColors.divider,
+            ),
             Expanded(
               child: Column(
                 children: [
                   AppBar(
-                    backgroundColor: AppColors.white,
+                    backgroundColor: AppColors.surface,
                     elevation: 0,
-                    title: Text(
-                      getTitle(),
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.w800),
+                    title: Row(
+                      children: [
+                        Image.asset('assets/images/Logo-awal.png', height: 22),
+                        const SizedBox(width: Dimens.sm),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            'tetasin',
+                            style: GoogleFonts.outfit(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    centerTitle: false,
                   ),
                   Expanded(child: child),
                 ],
@@ -289,12 +369,21 @@ class MainShell extends ConsumerWidget {
   }
 }
 
-class _PremiumBottomNav extends StatelessWidget {
-  final List<Map<String, dynamic>> tabs;
+class _NavTab {
+  final String path;
+  final String label;
+  final IconData icon;
+  final IconData activeIcon;
+
+  const _NavTab(this.path, this.label, this.icon, this.activeIcon);
+}
+
+class _BottomNav extends StatelessWidget {
+  final List<_NavTab> tabs;
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
-  const _PremiumBottomNav({
+  const _BottomNav({
     required this.tabs,
     required this.selectedIndex,
     required this.onTap,
@@ -303,61 +392,71 @@ class _PremiumBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.divider)),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: tabs.asMap().entries.map((entry) {
-              final index = entry.key;
-              final tab = entry.value;
-              final isSelected = selectedIndex == index;
-
-              return Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => onTap(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOut,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      // Stronger yellow accent on active tab
-                      color: isSelected ? AppColors.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            isSelected ? tab['activeIcon'] : tab['icon'],
-                            key: ValueKey(isSelected),
-                            // Black icon on yellow, grey on inactive
-                            color: isSelected ? AppColors.onPrimary : AppColors.lightGrey,
-                            size: 22,
-                          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final maxTabWidth = constraints.maxWidth / tabs.length;
+              final useCompact = maxTabWidth < 60;
+              return Row(
+                children: tabs.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final tab = entry.value;
+                  final isSelected = selectedIndex == index;
+                  return Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => onTap(index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        padding: EdgeInsets.symmetric(
+                          vertical: useCompact ? 6 : 8,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          tab['label'],
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                            color: isSelected ? AppColors.onPrimary : AppColors.lightGrey,
-                          ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          borderRadius: Dimens.brXs,
                         ),
-                      ],
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isSelected ? tab.activeIcon : tab.icon,
+                              color: isSelected
+                                  ? AppColors.onPrimary
+                                  : AppColors.textTertiary,
+                              size: useCompact ? 18 : 20,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              tab.label,
+                              style: GoogleFonts.outfit(
+                                fontSize: useCompact ? 9 : 10,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? AppColors.onPrimary
+                                    : AppColors.textTertiary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }).toList(),
               );
-            }).toList(),
+            },
           ),
         ),
       ),

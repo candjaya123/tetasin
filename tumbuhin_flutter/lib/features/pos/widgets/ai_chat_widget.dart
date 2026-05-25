@@ -35,7 +35,7 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             itemCount: messages.length,
             itemBuilder: (context, index) {
               final msg = messages[index];
@@ -45,21 +45,24 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
         ),
         if (notifier.isLoading)
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             child: Row(
               children: [
                 SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: 18,
+                  height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                SizedBox(width: 12),
-                Text('CFO Virtual sedang berpikir...', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                SizedBox(width: 10),
+                Text(
+                  'CFO Virtual sedang berpikir...',
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                ),
               ],
             ),
           ),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border(top: BorderSide(color: Colors.grey.shade200)),
@@ -71,13 +74,20 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
                   controller: _controller,
                   decoration: InputDecoration(
                     hintText: 'Tanya CFO Virtual...',
+                    hintStyle: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                    ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
                     fillColor: Colors.grey.shade100,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                   ),
                   onSubmitted: (val) {
                     notifier.sendMessage(val);
@@ -93,7 +103,7 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
                   _controller.clear();
                   _scrollToBottom();
                 },
-                icon: const Icon(Icons.send),
+                icon: const Icon(Icons.send, size: 20),
                 color: const Color(0xFFFDB827),
               ),
             ],
@@ -114,23 +124,25 @@ class _ChatBubble extends StatelessWidget {
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
-          color: message.isUser ? const Color(0xFFFDB827) : Colors.grey.shade200,
+          color: message.isUser
+              ? const Color(0xFFFDB827).withValues(alpha: 0.15)
+              : Colors.grey.shade200,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(message.isUser ? 16 : 0),
-            bottomRight: Radius.circular(message.isUser ? 0 : 16),
+            topLeft: const Radius.circular(14),
+            topRight: const Radius.circular(14),
+            bottomLeft: Radius.circular(message.isUser ? 14 : 0),
+            bottomRight: Radius.circular(message.isUser ? 0 : 14),
           ),
         ),
         child: Text(
           message.text,
-          style: TextStyle(
-            color: message.isUser ? Colors.black : Colors.black87,
-          ),
+          style: const TextStyle(color: Colors.black87, fontSize: 14),
         ),
       ),
     );

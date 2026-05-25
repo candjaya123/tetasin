@@ -43,39 +43,36 @@ export class AggregationService {
     const client = this.supabaseService.getClient();
 
     // 1. Ambil Penjualan dari journal_entries & journal_lines
-    // Kita cari entri di tanggal tersebut untuk tenant tersebut
     const { data: entries, error: entriesError } = await client
       .from('journal_entries')
-      .select(`
-        id,
-        reference_doc,
-        journal_lines (
-          debit,
-          credit,
-          account_id (
-            code,
-            type
-          )
-        )
-      `)
+      .select('id, reference_doc')
       .eq('tenant_id', tenantId)
       .eq('date', date);
 
     if (entriesError) throw entriesError;
 
+    const ids = entries.map((e: any) => e.id);
     let totalRevenue = 0;
     let totalCogs = 0;
 
-    entries.forEach(entry => {
-      entry.journal_lines.forEach((line: any) => {
-        if (line.account_id.type === 'revenue' || line.account_id.type === 'pendapatan') {
+    if (ids.length > 0) {
+      const { data: lines, error: linesError } = await client
+        .from('journal_lines')
+        .select('debit, credit, chart_of_accounts!inner(code, type)')
+        .in('entry_id', ids);
+
+      if (linesError) throw linesError;
+
+      for (const line of lines || []) {
+        const acct = line.chart_of_accounts?.[0];
+        if (acct?.type === 'revenue' || acct?.type === 'pendapatan') {
           totalRevenue += line.credit;
         }
-        if (line.account_id.type === 'expense' && line.account_id.code === '5-50000') {
+        if (acct?.type === 'expense' && acct?.code === '5-50000') {
           totalCogs += line.debit;
         }
-      });
-    });
+      }
+    }
 
     // 2. Simpan ke Cache Metrik
     await client.from('tenant_metrics_cache').upsert({

@@ -27,13 +27,13 @@ export class RuleEngineService {
     // RULE 1: Low Stock Detection
     const { data: lowStockItems, error: stockError } = await client
       .from('products')
-      .select('name, stock')
+      .select('name, current_stock')
       .eq('tenant_id', tenantId)
-      .lt('stock', 5);
+      .lt('current_stock', 5);
 
     if (!stockError && lowStockItems) {
       for (const item of lowStockItems) {
-        await this.createAlert(tenantId, 'low_stock', `Stok produk "${item.name}" menipis (Sisa: ${item.stock})`);
+        await this.createAlert(tenantId, 'low_stock', `Stok produk "${item.name}" menipis (Sisa: ${item.current_stock})`);
       }
     }
 

@@ -10,6 +10,18 @@ class SaleItemDto {
 
   @IsNumber()
   price: number;
+
+  @IsOptional()
+  @IsNumber()
+  discount?: number;
+
+  @IsOptional()
+  @IsArray()
+  selected_variants?: any[];
+
+  @IsOptional()
+  @IsArray()
+  selected_addons?: any[];
 }
 
 export class PaymentLineDto {
@@ -79,4 +91,24 @@ export class ProcessSaleDto {
   @IsOptional()
   @IsUUID()
   branch_id?: string;
+
+  @IsOptional()
+  @IsString()
+  payment_method?: string;
+
+  @IsOptional()
+  @IsString()
+  idempotency_key?: string;
+
+  @IsOptional()
+  @IsString()
+  customer_name?: string;
+
+  @IsOptional()
+  @IsString()
+  pesanan_number?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

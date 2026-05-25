@@ -52,7 +52,7 @@ export default function IncomeStatementPage() {
         start.setMonth(start.getMonth() - 1);
         const end = new Date();
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/reports/income-statement?startDate=${start.toISOString()}&endDate=${end.toISOString()}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/reports/income-statement?startDate=${start.toISOString()}&endDate=${end.toISOString()}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

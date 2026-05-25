@@ -23,13 +23,14 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final isPersonal = ref.read(authProvider).profile?.accountType == 'personal';
+      final isPersonal =
+          ref.read(authProvider).profile?.accountType == 'personal';
       setState(() {
         _messages.add({
           'role': 'ai',
-          'text': isPersonal 
-              ? 'Halo! Saya asisten finansial pribadi Anda. Siap membantu mengatur anggaran dan menabung!' 
-              : 'Halo! Saya CFO Virtual Anda. Siap menganalisa performa dan strategi bisnis Anda!'
+          'text': isPersonal
+              ? 'Halo! Saya asisten finansial pribadi Anda. Siap membantu mengatur anggaran dan menabung!'
+              : 'Halo! Saya CFO Virtual Anda. Siap menganalisa performa dan strategi bisnis Anda!',
         });
       });
     });
@@ -39,8 +40,11 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final isPersonal = ref.read(authProvider).profile?.accountType == 'personal';
-    final endpoint = isPersonal ? '/api/v1/ai/personal/chat' : '/api/v1/ai/business/chat';
+    final isPersonal =
+        ref.read(authProvider).profile?.accountType == 'personal';
+    final endpoint = isPersonal
+        ? '/api/v1/ai/personal/chat'
+        : '/api/v1/ai/business/chat';
 
     setState(() {
       _messages.add({'role': 'user', 'text': text});
@@ -51,15 +55,13 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
     try {
       final dio = ref.read(apiClientProvider).dio;
-      final response = await dio.post(endpoint, data: {
-        'prompt': text,
-      });
+      final response = await dio.post(endpoint, data: {'prompt': text});
 
       if (mounted) {
         setState(() {
           _messages.add({
             'role': 'ai',
-            'text': response.data['response'] ?? 'Maaf, saya tidak mengerti.'
+            'text': response.data['response'] ?? 'Maaf, saya tidak mengerti.',
           });
           _isTyping = false;
         });
@@ -70,7 +72,8 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         setState(() {
           _messages.add({
             'role': 'ai',
-            'text': 'Waduh, koneksi ke otak AI saya terputus. Coba lagi nanti ya!'
+            'text':
+                'Waduh, koneksi ke otak AI saya terputus. Coba lagi nanti ya!',
           });
           _isTyping = false;
         });
@@ -106,14 +109,18 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                 color: AppColors.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: AppColors.primary,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Tumbuhin AI',
+                  'Tetasin AI',
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -175,7 +182,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: isUser ? AppColors.primary : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.only(
@@ -234,7 +243,11 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                   color: AppColors.secondary,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.send_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ],

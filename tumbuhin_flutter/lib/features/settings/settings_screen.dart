@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../auth/providers/auth_provider.dart';
 import '../../shared/models/tenant.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/dimens.dart';
 import 'widgets/edit_sheets.dart';
 import 'printer_settings_screen.dart';
 import '../../shared/models/user_profile.dart';
@@ -25,14 +23,17 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Pengaturan', style: GoogleFonts.outfit(fontWeight: FontWeight.w900)),
+        title: Text(
+          'Pengaturan',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: Dimens.sm),
         children: [
-          if (isGuest) _buildGuestBanner(),
+          if (isGuest) _buildGuestBanner(context),
 
           // Profile Header
           _buildProfileHeader(context, profile, isGuest),
@@ -43,11 +44,22 @@ class SettingsScreen extends ConsumerWidget {
           _buildTierCard(context, tenant, isPersonal),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(28, 24, 16, 12),
-            child: Text(isPersonal ? 'PENGATURAN' : 'BISNIS & PENGATURAN', style: _sectionHeaderStyle),
+            padding: const EdgeInsets.fromLTRB(
+              Dimens.xxl,
+              Dimens.sectionGap,
+              Dimens.lg,
+              Dimens.sm,
+            ),
+            child: Text(
+              isPersonal ? 'PENGATURAN' : 'BISNIS & PENGATURAN',
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+            ),
           ),
 
           _buildSettingsTile(
+            context,
             icon: Icons.store_rounded,
             title: isPersonal ? 'Informasi Akun' : 'Informasi Bisnis',
             subtitle: tenant?.name ?? 'Belum diatur',
@@ -56,13 +68,15 @@ class SettingsScreen extends ConsumerWidget {
 
           if (!isPersonal) ...[
             _buildSettingsTile(
+              context,
               icon: Icons.shopping_bag_rounded,
               title: 'Daftar Pesanan',
               subtitle: 'Lihat histori SO & PO',
-              onTap: () => context.push('/orders'),
+              onTap: () => context.push('/pesanan'),
             ),
 
             _buildSettingsTile(
+              context,
               icon: Icons.local_offer_rounded,
               title: 'Katalog Promo',
               subtitle: 'Manajemen diskon & penawaran',
@@ -71,6 +85,7 @@ class SettingsScreen extends ConsumerWidget {
 
             if (profile?.role == UserRole.manager)
               _buildSettingsTile(
+                context,
                 icon: Icons.people_alt_rounded,
                 title: 'Manajemen Tim',
                 subtitle: 'Atur akses staf & pantau log',
@@ -78,14 +93,21 @@ class SettingsScreen extends ConsumerWidget {
               ),
 
             _buildSettingsTile(
+              context,
               icon: Icons.print_rounded,
               title: 'Printer Bluetooth',
               subtitle: 'Atur printer thermal untuk struk',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const PrinterSettingsScreen())),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (c) => const PrinterSettingsScreen(),
+                ),
+              ),
             ),
           ],
 
           _buildSettingsTile(
+            context,
             icon: Icons.notifications_none_rounded,
             title: 'Notifikasi',
             subtitle: 'Atur pengingat stok dan laporan',
@@ -93,18 +115,30 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           _buildSettingsTile(
+            context,
             icon: Icons.help_outline_rounded,
             title: 'Panduan Pengguna',
             subtitle: 'Cari bantuan & tutorial',
             onTap: () => _showUserGuide(context),
           ),
 
-          const Padding(
-            padding: EdgeInsets.fromLTRB(28, 24, 16, 12),
-            child: Text('AKUN', style: _sectionHeaderStyle),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Dimens.xxl,
+              Dimens.sectionGap,
+              Dimens.lg,
+              Dimens.sm,
+            ),
+            child: Text(
+              'AKUN',
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
+            ),
           ),
 
           _buildSettingsTile(
+            context,
             icon: Icons.logout_rounded,
             title: 'Keluar',
             subtitle: 'Selesaikan sesi Anda sekarang',
@@ -112,43 +146,48 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => ref.read(authProvider.notifier).signOut(),
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: Dimens.xxxl),
           Center(
             child: Text(
-              'Tumbuhin v1.0.0 Stable',
-              style: GoogleFonts.outfit(fontSize: 12, color: AppColors.lightGrey, fontWeight: FontWeight.bold),
+              'Tetasin v1.0.0 Stable',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: Dimens.xl),
         ],
       ),
     );
   }
 
-  static const _sectionHeaderStyle = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w800,
-    color: AppColors.lightGrey,
-    letterSpacing: 1.5,
-  );
-
-  Widget _buildGuestBanner() {
+  Widget _buildGuestBanner(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.fromLTRB(Dimens.lg, 0, Dimens.lg, Dimens.lg),
+      padding: const EdgeInsets.symmetric(
+        vertical: Dimens.sm,
+        horizontal: Dimens.md,
+      ),
       decoration: BoxDecoration(
         color: Colors.amber.shade50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: Dimens.brSm,
         border: Border.all(color: Colors.amber.shade200),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: Colors.amber.shade800),
-          const SizedBox(width: 8),
+          Icon(
+            Icons.info_outline_rounded,
+            size: 16,
+            color: Colors.amber.shade800,
+          ),
+          const SizedBox(width: Dimens.sm),
           Expanded(
             child: Text(
               'Anda dalam Mode Tamu. Data hanya disimpan di memori.',
-              style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.amber.shade900,
+              ),
             ),
           ),
         ],
@@ -156,43 +195,60 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, UserProfile? profile, bool isGuest) {
+  Widget _buildProfileHeader(
+    BuildContext context,
+    UserProfile? profile,
+    bool isGuest,
+  ) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(
+        horizontal: Dimens.lg,
+        vertical: Dimens.xs,
+      ),
+      padding: Dimens.card,
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface,
+        borderRadius: Dimens.brXl,
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 30,
             backgroundColor: AppColors.primary,
-            child: const Icon(Icons.person_rounded, color: AppColors.onPrimary, size: 30),
+            child: const Icon(
+              Icons.person_rounded,
+              color: AppColors.onPrimary,
+              size: 30,
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: Dimens.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   profile?.fullName ?? 'User',
-                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.black),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 if (profile?.accountType != 'personal')
                   Text(
                     profile?.role.name.toUpperCase() ?? 'MANAGER',
-                    style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.mediumGrey, letterSpacing: 1.1),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(letterSpacing: 1.1),
                   ),
               ],
             ),
           ),
           if (!isGuest)
             IconButton(
-              onPressed: () => _showEditSheet(context, const ProfileEditSheet()),
-              icon: const Icon(Icons.edit_note_rounded, color: AppColors.mediumGrey),
+              onPressed: () =>
+                  _showEditSheet(context, const ProfileEditSheet()),
+              icon: const Icon(
+                Icons.edit_note_rounded,
+                color: AppColors.textTertiary,
+              ),
             ),
         ],
       ),
@@ -200,19 +256,19 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildTierCard(BuildContext context, Tenant? tenant, bool isPersonal) {
-    // Transition to unified model: everything is Full
-    const isFull = true; 
-    
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(
+        horizontal: Dimens.lg,
+        vertical: Dimens.sm,
+      ),
+      padding: Dimens.card,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.black, Color(0xFF2D2D2D)],
+          colors: [AppColors.surface, Color(0xFF2D2D2D)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: Dimens.brXl,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -221,55 +277,49 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(14),
+          Container(
+            padding: const EdgeInsets.all(Dimens.sm),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: Dimens.brSm,
+            ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: AppColors.primary,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: Dimens.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Membership Full Access',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: AppColors.white),
                 ),
-                child: const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: AppColors.primary,
-                  size: 24,
+                Text(
+                  isPersonal
+                      ? 'Akses penuh fitur AI Planner & Budgeting'
+                      : 'Akses penuh ekosistem ERP & AI Analyst',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.7),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Membership Full Access',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.white,
-                      ),
-                    ),
-                    Text(
-                      isPersonal 
-                        ? 'Akses penuh fitur AI Planner & Budgeting' 
-                        : 'Akses penuh ekosistem ERP & AI Analyst',
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        color: AppColors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsTile({
+  Widget _buildSettingsTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -277,24 +327,35 @@ class SettingsScreen extends ConsumerWidget {
     Color? iconColor,
   }) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(
+        horizontal: Dimens.lg,
+        vertical: Dimens.xs,
+      ),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface,
+        borderRadius: Dimens.brLg,
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: ListTile(
         leading: Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(Dimens.sm),
           decoration: BoxDecoration(
             color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: Dimens.brSm,
           ),
-          child: Icon(icon, color: iconColor ?? AppColors.black, size: 20),
+          child: Icon(
+            icon,
+            color: iconColor ?? AppColors.textPrimary,
+            size: 20,
+          ),
         ),
-        title: Text(title, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: GoogleFonts.outfit(fontSize: 12, color: AppColors.mediumGrey)),
-        trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.lightGrey),
+        title: Text(title, style: Theme.of(context).textTheme.titleSmall),
+        subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          size: 20,
+          color: AppColors.textTertiary,
+        ),
         onTap: onTap,
       ),
     );
@@ -317,12 +378,6 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => const _UserGuideSheet(),
     );
   }
-
-  void _showNotImplemented(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fitur ini akan segera hadir!')),
-    );
-  }
 }
 
 class _UserGuideSheet extends StatefulWidget {
@@ -334,11 +389,28 @@ class _UserGuideSheet extends StatefulWidget {
 
 class _UserGuideSheetState extends State<_UserGuideSheet> {
   final List<Map<String, String>> _guides = [
-    {'q': 'Cara mencatat penjualan?', 'a': 'Gunakan tab POS, pilih produk, lalu tekan Bayar.'},
-    {'q': 'Bagaimana melihat laporan?', 'a': 'Buka menu Laporan di tab bawah untuk melihat Jurnal, Buku Besar, dll.'},
-    {'q': 'Cara menambah produk?', 'a': 'Buka menu Produk, tekan tombol tambah (+) di pojok kanan bawah.'},
-    {'q': 'Apa itu Double-Entry?', 'a': 'Sistem akuntansi otomatis Tumbuhin yang mencatat setiap transaksi ke dua akun (Debit & Kredit).'},
-    {'q': 'Cara upgrade ke Full?', 'a': 'Buka Pengaturan, klik tombol Upgrade di kartu Membership.'},
+    {
+      'q': 'Cara mencatat penjualan?',
+      'a': 'Gunakan tab POS, pilih produk, lalu tekan Bayar.',
+    },
+    {
+      'q': 'Bagaimana melihat laporan?',
+      'a':
+          'Buka menu Laporan di tab bawah untuk melihat Jurnal, Buku Besar, dll.',
+    },
+    {
+      'q': 'Cara menambah produk?',
+      'a': 'Buka menu Produk, tekan tombol tambah (+) di pojok kanan bawah.',
+    },
+    {
+      'q': 'Apa itu Double-Entry?',
+      'a':
+          'Sistem akuntansi otomatis Tetasin yang mencatat setiap transaksi ke dua akun (Debit & Kredit).',
+    },
+    {
+      'q': 'Cara upgrade ke Full?',
+      'a': 'Buka Pengaturan, klik tombol Upgrade di kartu Membership.',
+    },
   ];
 
   String _searchQuery = '';
@@ -352,42 +424,51 @@ class _UserGuideSheetState extends State<_UserGuideSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      padding: const EdgeInsets.all(Dimens.xl),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Dimens.radiusXl),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Panduan Tumbuhin', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 16),
+          Text(
+            'Panduan Tetasin',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: Dimens.lg),
           TextField(
             onChanged: (v) => setState(() => _searchQuery = v),
             decoration: InputDecoration(
               hintText: 'Cari bantuan...',
               prefixIcon: const Icon(Icons.search_rounded),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              border: OutlineInputBorder(borderRadius: Dimens.brMd),
               filled: true,
               fillColor: AppColors.background,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: Dimens.xl),
           Expanded(
-            child: filtered.isEmpty 
-              ? const Center(child: Text('Tidak ada hasil bantuan ditemukan'))
-              : ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) => ExpansionTile(
-                    title: Text(filtered[index]['q']!, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(filtered[index]['a']!, style: GoogleFonts.outfit(color: AppColors.mediumGrey)),
+            child: filtered.isEmpty
+                ? const Center(child: Text('Tidak ada hasil bantuan ditemukan'))
+                : ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) => ExpansionTile(
+                      title: Text(
+                        filtered[index]['q']!,
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
-                    ],
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(Dimens.md),
+                          child: Text(
+                            filtered[index]['a']!,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
           ),
         ],
       ),

@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../../shared/supabase.service';
 import { PoolClient } from 'pg';
 
 @Injectable()
 export class AccountingRepository {
+  private readonly logger = new Logger(AccountingRepository.name);
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   getClient() {
@@ -12,71 +14,99 @@ export class AccountingRepository {
 
   async createTransactionWithLines(entry: any, lines: any[], dbClient?: PoolClient) {
     if (dbClient) {
-      // 1. DYNAMIC INSERT: Check available columns first
-      console.log('Detecting journal_entries columns...');
       const columnCheck = await dbClient.query(`
         SELECT column_name FROM information_schema.columns 
         WHERE table_schema = 'public' AND table_name = 'journal_entries'
       `);
       const cols = columnCheck.rows.map(r => r.column_name);
-      
-      const insertData = {
+
+      const insertData: Record<string, any> = {
         tenant_id: entry.tenant_id,
         description: entry.description || entry.transaction_type,
-        // Map date column
         [cols.includes('transaction_date') ? 'transaction_date' : 'date']: entry.date || new Date().toISOString(),
-        // Map reference column
-        [cols.includes('reference_doc_id') ? 'reference_doc_id' : 'reference_doc']: (entry.reference_number && entry.reference_number.length === 36) ? entry.reference_number : (cols.includes('reference_doc') ? entry.reference_number : null),
       };
 
-      // Add debit/credit/amount if table is header-only (old schema)
-      if (cols.includes('debit_account_id')) insertData['debit_account_id'] = lines.find(l => (l.debit || 0) > 0)?.account_id;
-      if (cols.includes('credit_account_id')) insertData['credit_account_id'] = lines.find(l => (l.credit || 0) > 0)?.account_id;
-      if (cols.includes('amount')) insertData['amount'] = lines.reduce((acc, l) => acc + (l.debit || 0), 0);
+      // New canonical columns
+      if (cols.includes('reference_type') && entry.reference_type) insertData.reference_type = entry.reference_type;
+      if (cols.includes('reference_id') && entry.reference_id) insertData.reference_id = entry.reference_id;
+      if (cols.includes('status')) insertData.status = entry.status || 'posted';
+      if (cols.includes('idempotency_key') && entry.idempotency_key) insertData.idempotency_key = entry.idempotency_key;
+      if (cols.includes('created_by') && entry.created_by) insertData.created_by = entry.created_by;
+
+      // Legacy column fallback
+      if (cols.includes('reference_doc') && !insertData.reference_type) insertData.reference_doc = entry.reference_number;
+      if (cols.includes('debit_account_id')) insertData.debit_account_id = lines.find(l => (l.debit || 0) > 0)?.account_id;
+      if (cols.includes('credit_account_id')) insertData.credit_account_id = lines.find(l => (l.credit || 0) > 0)?.account_id;
+      if (cols.includes('amount')) insertData.amount = lines.reduce((acc, l) => acc + (l.debit || 0), 0);
 
       const keys = Object.keys(insertData).filter(k => cols.includes(k));
       const values = keys.map(k => insertData[k]);
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
 
-      console.log(`Inserting into journal_entries using columns: ${keys.join(', ')}`);
       const entryRes = await dbClient.query(`
         INSERT INTO journal_entries (${keys.join(', ')})
         VALUES (${placeholders})
         RETURNING *
       `, values);
-      
-      const journalEntry = entryRes.rows[0];
-      console.log(`Journal entry inserted: ${journalEntry.id}.`);
 
-      // 2. Insert Journal Lines via PG (Only if table exists)
+      const journalEntry = entryRes.rows[0];
+
       const tableCheck = await dbClient.query(`
         SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'journal_lines')
       `);
-      
+
       if (tableCheck.rows[0].exists) {
         for (const line of lines) {
+          const jlCols = await dbClient.query(`
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_schema = 'public' AND table_name = 'journal_lines'
+          `);
+          const jlNames = jlCols.rows.map(r => r.column_name);
+
+          const jlData: Record<string, any> = {};
+
+          // Support both new (journal_entry_id) and old (entry_id) FK column names
+          if (jlNames.includes('journal_entry_id')) jlData.journal_entry_id = journalEntry.id;
+          if (jlNames.includes('entry_id')) jlData.entry_id = journalEntry.id;
+
+          jlData.account_id = line.account_id;
+          jlData.debit = line.debit || 0;
+          jlData.credit = line.credit || 0;
+
+          const jlKeys = Object.keys(jlData).filter(k => jlNames.includes(k));
+          const jlVals = jlKeys.map(k => jlData[k]);
+          const jlPlaceholders = jlKeys.map((_, i) => `$${i + 1}`).join(', ');
+
           await dbClient.query(`
-            INSERT INTO journal_lines (entry_id, account_id, debit, credit)
-            VALUES ($1, $2, $3, $4)
-          `, [journalEntry.id, line.account_id, line.debit || 0, line.credit || 0]);
+            INSERT INTO journal_lines (${jlKeys.join(', ')})
+            VALUES (${jlPlaceholders})
+          `, jlVals);
         }
-        console.log('Journal lines inserted successfully.');
       }
 
       return journalEntry;
     }
 
     const client = this.supabaseService.getClient();
-    
-    // 1. Insert Journal Entry
+
+    const insertPayload: Record<string, any> = {
+      tenant_id: entry.tenant_id,
+      description: entry.description || entry.transaction_type,
+      date: entry.date || new Date().toISOString(),
+    };
+
+    // New fields (canonical)
+    if (entry.reference_type) insertPayload.reference_type = entry.reference_type;
+    if (entry.reference_id) insertPayload.reference_id = entry.reference_id;
+    if (entry.status) insertPayload.status = entry.status;
+    if (entry.idempotency_key) insertPayload.idempotency_key = entry.idempotency_key;
+    if (entry.created_by) insertPayload.created_by = entry.created_by;
+
+    // Legacy - handled by reference_type/reference_id above
+
     const { data: journalEntry, error: entryError } = await client
       .from('journal_entries')
-      .insert({
-        tenant_id: entry.tenant_id,
-        reference_doc: entry.reference_number,
-        description: entry.description || entry.transaction_type,
-        date: entry.date || new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -84,7 +114,6 @@ export class AccountingRepository {
       throw new Error(`Failed to create journal entry: ${entryError.message}`);
     }
 
-    // 2. Insert Journal Lines
     const journalLines = lines.map(line => ({
       entry_id: journalEntry.id,
       account_id: line.account_id,
@@ -205,45 +234,77 @@ export class AccountingRepository {
     return [];
   }
 
+  async getJournalEntryById(tenantId: string, id: string) {
+    const client = this.supabaseService.getClient();
+    const { data: entry, error } = await client
+      .from('journal_entries')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
+    if (error || !entry) throw new Error('Journal entry not found');
+
+    const { data: lines, error: linesError } = await client
+      .from('journal_lines')
+      .select('*, chart_of_accounts(*)')
+      .eq('journal_entry_id', id);
+    if (linesError) throw new Error(linesError.message);
+
+    return { ...entry, journal_lines: lines || [] };
+  }
+
   async getJournalEntries(tenantId: string, startDate?: string, endDate?: string) {
     const client = this.supabaseService.getClient();
-    // Try both table names
-    let tableName = 'accounts';
+
+    let dateCol = 'date';
     try {
-      const { error: testError } = await client.from('accounts').select('id').limit(1);
-      if (testError) tableName = 'chart_of_accounts';
+      const { data: colData } = await client.from('journal_entries').select('*').limit(1);
+      if (colData && colData.length > 0 && !('date' in colData[0]) && ('transaction_date' in colData[0])) {
+        dateCol = 'transaction_date';
+      }
     } catch (e) {
-      tableName = 'chart_of_accounts';
+      // fallback: keep 'date' as default
     }
 
     let query = client
       .from('journal_entries')
-      .select(`
-        *,
-        journal_lines (
-          *,
-          accounts:${tableName} (
-            id,
-            name,
-            code,
-            type
-          )
-        )
-      `)
+      .select(`*`)
       .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false });
+      .order(dateCol, { ascending: false });
 
-    if (startDate && startDate.length >= 10) query = query.gte('date', startDate.slice(0, 10));
-    if (endDate && endDate.length >= 10) query = query.lte('date', endDate.slice(0, 10));
+    if (startDate && startDate.length >= 10) query = query.gte(dateCol, startDate.slice(0, 10));
+    if (endDate && endDate.length >= 10) query = query.lte(dateCol, endDate.slice(0, 10));
 
-    const { data, error } = await query;
+    const { data: entries, error } = await query;
     if (error) throw new Error(error.message);
-    return data;
+
+    const ids = entries.map((e: any) => e.id);
+    if (ids.length === 0) return [];
+
+    const { data: lines, error: linesError } = await client
+      .from('journal_lines')
+      .select(`*, accounts:chart_of_accounts(id, name, code, type)`)
+      .in('entry_id', ids);
+
+    if (linesError) throw new Error(linesError.message);
+
+    const linesByEntryId: Record<string, any[]> = {};
+    for (const line of lines || []) {
+      const key = line.entry_id || line.journal_entry_id;
+      if (!linesByEntryId[key]) linesByEntryId[key] = [];
+      linesByEntryId[key].push(line);
+    }
+
+    return entries.map((entry: any) => ({
+      ...entry,
+      date: entry[dateCol] || entry.date,
+      journal_lines: linesByEntryId[entry.id] || [],
+    }));
   }
 
   async getReportSummary(tenantId: string, startDate?: string, endDate?: string) {
     if (!tenantId) {
-      console.warn('getReportSummary called without tenantId');
+      this.logger.warn('getReportSummary called without tenantId');
       return { revenue: 0, expenses: 0, net_profit: 0, low_stock_count: 0, expense_ratio: 0 };
     }
 
@@ -284,7 +345,7 @@ export class AccountingRepository {
       const { data: lines, error } = await query;
 
       if (error) {
-        console.warn(`getReportSummary query error (likely schema mismatch): ${error.message}`);
+        this.logger.warn(`getReportSummary query error (likely schema mismatch): ${error.message}`);
         // Fallback: return zeroes instead of crashing dashboard
         return { revenue: 0, expenses: 0, net_profit: 0, low_stock_count: 0, expense_ratio: 0 };
       }
@@ -314,7 +375,7 @@ export class AccountingRepository {
           .lt('current_stock', 10);
         lowStockCount = count || 0;
       } catch (stockErr) {
-        console.warn('Failed to fetch low stock count:', stockErr.message);
+        this.logger.warn('Failed to fetch low stock count:', stockErr.message);
       }
 
       return {
@@ -325,7 +386,7 @@ export class AccountingRepository {
         expense_ratio: revenue > 0 ? expenses / revenue : 0
       };
     } catch (globalErr) {
-      console.error('Global error in getReportSummary:', globalErr.message);
+      this.logger.error('Global error in getReportSummary:', globalErr.message);
       return { revenue: 0, expenses: 0, net_profit: 0, low_stock_count: 0, expense_ratio: 0 };
     }
   }
@@ -389,84 +450,126 @@ export class AccountingRepository {
 
   async getSalesReport(tenantId: string, startDate?: string, endDate?: string) {
     const client = this.supabaseService.getClient();
-    let query = client
-      .from('journal_entries')
-      .select(`
-        id,
-        created_at,
-        reference_doc,
-        description,
-        journal_lines!inner (
-          debit,
-          credit,
-          chart_of_accounts!inner (
-            code
-          )
-        )
-      `)
+
+    const { data: revenueAccounts, error: acctError } = await client
+      .from('chart_of_accounts')
+      .select('id')
       .eq('tenant_id', tenantId)
-      .ilike('journal_lines.chart_of_accounts.code', '4%') // All revenue
-      .order('created_at', { ascending: false });
+      .filter('code', 'ilike', '4%');
 
-    if (startDate) query = query.gte('created_at', startDate);
-    if (endDate) query = query.lte('created_at', endDate);
+    if (acctError) throw new Error(acctError.message);
+    if (!revenueAccounts || revenueAccounts.length === 0) return [];
 
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    return data;
+    const accountIds = revenueAccounts.map((a: any) => a.id);
+
+    let linesQuery = client
+      .from('journal_lines')
+      .select('debit, credit, entry_id')
+      .in('account_id', accountIds)
+      .not('entry_id', 'is', null);
+
+    const { data: lines, error: linesError } = await linesQuery;
+    if (linesError) throw new Error(linesError.message);
+
+    if (!lines || lines.length === 0) return [];
+
+    const entryIds = [...new Set(lines.map((l: any) => l.entry_id))];
+
+    let entriesQuery = client
+      .from('journal_entries')
+      .select('*')
+      .in('id', entryIds)
+      .order('date', { ascending: false });
+
+    if (startDate) entriesQuery = entriesQuery.gte('date', startDate);
+    if (endDate) entriesQuery = entriesQuery.lte('date', endDate);
+
+    const { data: entries, error: entriesError } = await entriesQuery;
+    if (entriesError) throw new Error(entriesError.message);
+
+    const linesByEntryId: Record<string, any[]> = {};
+    for (const line of lines || []) {
+      if (!linesByEntryId[line.entry_id]) linesByEntryId[line.entry_id] = [];
+      linesByEntryId[line.entry_id].push(line);
+    }
+
+    return (entries || []).map((entry: any) => ({
+      ...entry,
+      journal_lines: linesByEntryId[entry.id] || [],
+    }));
   }
 
   async getJournalEntriesWithLines(tenantId: string, startDate: string, endDate: string) {
     const client = this.supabaseService.getClient();
-    const { data, error } = await client
+
+    const { data: entries, error: entriesError } = await client
       .from('journal_entries')
-      .select(`
-        id,
-        date,
-        description,
-        reference_number,
-        journal_lines (
-          id,
-          account_id,
-          debit,
-          credit,
-          chart_of_accounts (
-            name,
-            code
-          )
-        )
-      `)
+      .select('*')
       .eq('tenant_id', tenantId)
       .gte('date', startDate)
       .lte('date', endDate)
       .order('date', { ascending: false });
 
-    if (error) throw error;
-    return data;
+    if (entriesError) throw entriesError;
+
+    const ids = entries.map((e: any) => e.id);
+    if (ids.length === 0) return [];
+
+    const { data: lines, error: linesError } = await client
+      .from('journal_lines')
+      .select('*, chart_of_accounts(name, code)')
+      .in('entry_id', ids);
+
+    if (linesError) throw linesError;
+
+    const linesByEntryId: Record<string, any[]> = {};
+    for (const line of lines || []) {
+      const key = line.entry_id;
+      if (!linesByEntryId[key]) linesByEntryId[key] = [];
+      linesByEntryId[key].push(line);
+    }
+
+    return entries.map((entry: any) => ({
+      ...entry,
+      journal_lines: linesByEntryId[entry.id] || [],
+    }));
   }
 
   async getLedgerLines(tenantId: string, accountId: string, startDate: string, endDate: string) {
     const client = this.supabaseService.getClient();
-    const { data, error } = await client
-      .from('journal_lines')
-      .select(`
-        id,
-        debit,
-        credit,
-        journal_entries!inner (
-          date,
-          description,
-          reference_number
-        )
-      `)
-      .eq('account_id', accountId)
-      .eq('journal_entries.tenant_id', tenantId)
-      .gte('journal_entries.date', startDate)
-      .lte('journal_entries.date', endDate)
-      .order('journal_entries.date', { ascending: true });
 
-    if (error) throw error;
-    return data;
+    const { data: lines, error: linesError } = await client
+      .from('journal_lines')
+      .select('id, debit, credit, entry_id')
+      .eq('account_id', accountId);
+
+    if (linesError) throw linesError;
+    if (!lines || lines.length === 0) return [];
+
+    const entryIds = [...new Set(lines.map((l: any) => l.entry_id))];
+
+    const { data: entries, error: entriesError } = await client
+      .from('journal_entries')
+      .select('*')
+      .in('id', entryIds)
+      .eq('tenant_id', tenantId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: true });
+
+    if (entriesError) throw entriesError;
+
+    const entriesById: Record<string, any> = {};
+    for (const entry of entries || []) {
+      entriesById[entry.id] = entry;
+    }
+
+    return lines
+      .filter((l: any) => entriesById[l.entry_id])
+      .map((l: any) => ({
+        ...l,
+        journal_entries: entriesById[l.entry_id],
+      }));
   }
 
   async createAccount(tenantId: string, accountData: any) {

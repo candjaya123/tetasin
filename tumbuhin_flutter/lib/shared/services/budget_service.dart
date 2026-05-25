@@ -17,9 +17,10 @@ class BudgetService {
 
   Future<List<Map<String, dynamic>>> getBudgets(String month) async {
     try {
-      final response = await _dio.get('/api/v1/finance/budgets', queryParameters: {
-        'month': month,
-      });
+      final response = await _dio.get(
+        '/api/v1/finance/budgets',
+        queryParameters: {'month': month},
+      );
       return List<Map<String, dynamic>>.from(response.data);
     } catch (e) {
       rethrow;
@@ -32,11 +33,14 @@ class BudgetService {
     required String month,
   }) async {
     try {
-      await _dio.post('/api/v1/finance/budgets', data: {
-        'account_id': accountId,
-        'limit_amount': limitAmount,
-        'period_month': month,
-      });
+      await _dio.post(
+        '/api/v1/finance/budgets',
+        data: {
+          'account_id': accountId,
+          'limit_amount': limitAmount,
+          'period_month': month,
+        },
+      );
     } catch (e) {
       rethrow;
     }

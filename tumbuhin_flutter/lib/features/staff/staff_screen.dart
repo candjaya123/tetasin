@@ -20,7 +20,10 @@ class StaffScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Manajemen Tim', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'Manajemen Tim',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -29,7 +32,8 @@ class StaffScreen extends ConsumerWidget {
             data: (staff) => staff.isEmpty
                 ? const EmptyStateWidget(
                     title: 'Belum ada staf',
-                    message: 'Undang staf Anda untuk bergabung dan membantu operasional bisnis.',
+                    message:
+                        'Undang staf Anda untuk bergabung dan membantu operasional bisnis.',
                     icon: HugeIcons.strokeRoundedUserGroup,
                   )
                 : AppRefreshIndicator(
@@ -52,11 +56,15 @@ class StaffScreen extends ConsumerWidget {
                           } else {
                             content = _StaffCard(member: staff[index]);
                           }
-                          
+
                           return content
                               .animate()
                               .fadeIn(duration: 400.ms, delay: (index * 50).ms)
-                              .slideX(begin: 0.1, end: 0, curve: Curves.easeOutQuad);
+                              .slideX(
+                                begin: 0.1,
+                                end: 0,
+                                curve: Curves.easeOutQuad,
+                              );
                         },
                       ),
                       tablet: SingleChildScrollView(
@@ -69,17 +77,23 @@ class StaffScreen extends ConsumerWidget {
                             GridView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: context.screenWidth > 900 ? 3 : 2,
-                                childAspectRatio: 2.5,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                              ),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: context.screenWidth > 900
+                                        ? 3
+                                        : 2,
+                                    childAspectRatio: 2.5,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
+                                  ),
                               itemCount: staff.length,
                               itemBuilder: (context, index) {
                                 return _StaffCard(member: staff[index])
                                     .animate()
-                                    .fadeIn(duration: 400.ms, delay: (index * 50).ms)
+                                    .fadeIn(
+                                      duration: 400.ms,
+                                      delay: (index * 50).ms,
+                                    )
                                     .scale(begin: const Offset(0.95, 0.95));
                               },
                             ),
@@ -122,12 +136,17 @@ class StaffScreen extends ConsumerWidget {
               child: ElevatedButton.icon(
                 onPressed: () => context.push('/staff/qr-join'),
                 icon: const Icon(Icons.person_add_rounded),
-                label: const Text('Undang Anggota Tim Baru', style: TextStyle(fontWeight: FontWeight.w900)),
+                label: const Text(
+                  'Undang Anggota Tim Baru',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFDB827),
                   foregroundColor: const Color(0xFF1A1A1A),
                   padding: const EdgeInsets.all(18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                   minimumSize: const Size(double.infinity, 60),
                 ),
               ),
@@ -145,12 +164,15 @@ class StaffScreen extends ConsumerWidget {
         SizedBox(width: 10),
         Text(
           'Tim Staf Aktif',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A)),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF1A1A1A),
+          ),
         ),
       ],
     );
   }
-
 }
 
 class _StaffCard extends StatelessWidget {
@@ -177,15 +199,34 @@ class _StaffCard extends StatelessWidget {
               color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: const Center(child: Icon(HugeIcons.strokeRoundedUser, size: 20, color: Colors.grey)),
+            child: const Center(
+              child: Icon(
+                HugeIcons.strokeRoundedUser,
+                size: 20,
+                color: Colors.grey,
+              ),
+            ),
           ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(member.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(member.role.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF9CA3AF))),
+                Text(
+                  member.fullName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  member.role.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9CA3AF),
+                  ),
+                ),
               ],
             ),
           ),
@@ -270,10 +311,19 @@ class _StaffLogsSheet extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Detail Aktivitas Staf', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                const Text(
+                  'Detail Aktivitas Staf',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Tutup', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Tutup',
+                    style: TextStyle(
+                      color: Color(0xFFEF4444),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -282,7 +332,12 @@ class _StaffLogsSheet extends ConsumerWidget {
           Expanded(
             child: logsAsync.when(
               data: (logs) => logs.isEmpty
-                  ? const Center(child: Text('Belum ada aktivitas tercatat', style: TextStyle(color: Colors.grey)))
+                  ? const Center(
+                      child: Text(
+                        'Belum ada aktivitas tercatat',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 25),
                       itemCount: logs.length,
@@ -291,16 +346,28 @@ class _StaffLogsSheet extends ConsumerWidget {
                         return Container(
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           decoration: const BoxDecoration(
-                            border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+                            border: Border(
+                              bottom: BorderSide(color: Color(0xFFF3F4F6)),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(log.action, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                log.action,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Text(
-                                DateFormat('dd MMM yyyy, HH:mm').format(log.createdAt),
-                                style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+                                DateFormat(
+                                  'dd MMM yyyy, HH:mm',
+                                ).format(log.createdAt),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF9CA3AF),
+                                ),
                               ),
                             ],
                           ),
@@ -321,7 +388,10 @@ class _StaffLogsSheet extends ConsumerWidget {
       margin: const EdgeInsets.only(top: 10),
       width: 40,
       height: 4,
-      decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(2),
+      ),
     );
   }
 
@@ -337,9 +407,22 @@ class _StaffLogsSheet extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(member.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-          Text(member.role.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFDB827))),
-          Text('ID: ${member.id.substring(0, 12)}...', style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF))),
+          Text(
+            member.fullName,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            member.role.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFFDB827),
+            ),
+          ),
+          Text(
+            'ID: ${member.id.substring(0, 12)}...',
+            style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+          ),
         ],
       ),
     );
